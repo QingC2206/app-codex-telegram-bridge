@@ -93,6 +93,8 @@ Desktop user-input requests default to a **10-second** timeout. On a timeout or 
 
 ## Redacted notification diagnostics
 
+Completion notifications have one explicit exception: if the entire body equals `{"suggestions":[]}` after trimming surrounding whitespace, it is skipped before delivery and diagnostic sampling. This is literal equality, without JSON parsing or normalization. Different internal spacing, nonempty arrays, extra fields, code blocks, and explanatory text are not suppressed by this rule. Logs use `exact-empty-suggestions-literal`, separately from provenance detection.
+
 When a notification has unknown provenance and a `suggestion` / `suggestions` shaped reply, the bot keeps forwarding it under the existing rules and saves a structural sample in `telegram_notification_diagnostics.sqlite3` in its data directory. Replies with other shapes and notifications with classified provenance are not sampled. A legitimate JSON reply with the same suggestion shape may be structurally sampled, but is still forwarded.
 
 Samples contain field types, array counts, string lengths, known provenance enum values, database lookup status, and flags for observed request-template features in the latest input. They exclude reply/prompt text, file paths, credentials, full task IDs, and unknown field names. Unknown keys become positional placeholders. Template flags are diagnostic evidence only and do not control filtering.

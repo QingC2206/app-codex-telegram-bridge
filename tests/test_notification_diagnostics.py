@@ -19,7 +19,7 @@ class NotificationDiagnosticTests(unittest.TestCase):
         self.root = Path(folder.name)
         self.path = self.root / 'telegram_notification_diagnostics.sqlite3'
         self.payload = {'type': 'agent-turn-complete', 'client': 'Codex Desktop',
-                        'thread-id': 'fixture-thread', 'last-assistant-message': '{"suggestions":[]}'}
+                        'thread-id': 'fixture-thread', 'last-assistant-message': '{"suggestion":"next"}'}
         for context in (patch.object(n, 'HOOK_DIR', self.root),
                         patch.object(n, '_stored_thread_purpose', return_value=('missing', None)),
                         patch.object(n, 'log_error')):
@@ -94,7 +94,7 @@ class NotificationDiagnosticTests(unittest.TestCase):
              patch.object(n, 'send_markdown_message', return_value={'message_id':42}) as send:
             n.send_desktop_notification(self.payload, '{}')
             send.assert_called_once()
-            self.assertIn('{"suggestions":[]}', send.call_args.args[1]['text'])
+            self.assertIn('{"suggestion":"next"}', send.call_args.args[1]['text'])
 
     def test_write_failure_does_not_change_classification_or_leak_exception(self):
         with patch.object(d, 'record', side_effect=OSError('secret-token-in-error')):

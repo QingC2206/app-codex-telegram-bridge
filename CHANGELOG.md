@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.6.3
+
+- 完成通知去除首尾空白后，整条正文恰好等于 `{"suggestions":[]}` 时不再转发；此规则独立于来源识别，不扩大到其他 JSON、代码块或带说明的回复。
+- Hook 与 Desktop 通知均在发送和完成状态处理前过滤，日志单独标记字符串匹配原因；其他未知来源的建议结构仍保留脱敏诊断。
+- Suppress completion notifications whose entire body is exactly `{"suggestions":[]}` after trimming surrounding whitespace. Keep other JSON, code blocks, and explanatory replies; log literal matching separately from provenance detection.
+
 ## 0.6.2
 
 - 为来源未知的建议结构通知添加本地脱敏诊断：字段类型、已知来源枚举、最新输入的模板特征，不保存正文、路径、凭据或未知字段名。

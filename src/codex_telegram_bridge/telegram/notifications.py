@@ -1692,6 +1692,12 @@ def completion_thread_source(payload: dict[str, Any]) -> str | None:
     return next(iter(evidence)) if len(evidence) == 1 else None
 
 
+def is_empty_suggestions_reply(payload: dict[str, Any]) -> bool:
+    """Explicit literal suppression policy, independent of source attribution."""
+    value = _assistant_message(payload)
+    return isinstance(value, str) and value.strip() == '{"suggestions":[]}'
+
+
 def _has_suggestion_envelope(payload: dict[str, Any]) -> bool:
     """A diagnostic hint only: a matching JSON shape never authorizes dropping it."""
     value = _assistant_message(payload)
@@ -1918,6 +1924,9 @@ def send_hook_notification(payload: dict[str, Any]) -> int:
         return send_user_input_request_notification(payload)
     if hook_event not in {"Stop", "SubagentStop"}:
         return 0
+    if is_empty_suggestions_reply(payload):
+        log_error("skipped empty suggestions reply; evidence=exact-empty-suggestions-literal")
+        return 0
     if (is_internal_task_metadata_completion(payload) or is_empty_internal_exclusion_completion(payload)
             or is_internal_suggestions_completion(payload)):
         return 0
@@ -2010,6 +2019,9 @@ def forward_computer_use_notification(raw_payload: str) -> None:
 def send_desktop_notification(payload: dict[str, Any], raw_payload: str) -> int:
     forward_computer_use_notification(raw_payload)
     if payload.get("type") != "agent-turn-complete":
+        return 0
+    if is_empty_suggestions_reply(payload):
+        log_error("skipped empty suggestions reply; evidence=exact-empty-suggestions-literal")
         return 0
     if is_internal_suggestions_completion(payload):
         thread_id = str(payload.get("thread-id") or "")

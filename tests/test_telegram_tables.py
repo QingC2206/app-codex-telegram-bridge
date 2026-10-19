@@ -94,6 +94,41 @@ class TableTests(unittest.TestCase):
             with patch.object(n, 'telegram_call', return_value={'message_id': 52}):
                 n.send_markdown_message('111:fake', payload)
             self.assertEqual(n.lookup_task_message('111:fake', '123', 52), 'a')
+    def test_empty_suggestions_literal_skips_delivery_and_completion_in_both_paths(self):
+        for body in ('{"suggestions":[]}', '\r\n  {"suggestions":[]}\t\n'):
+            for source in (None, 'user'):
+                for event in ('Stop', 'SubagentStop', 'agent-turn-complete'):
+                    desktop = event == 'agent-turn-complete'
+                    payload = {'type' if desktop else 'hook_event_name': event,
+                               'last-assistant-message' if desktop else 'last_assistant_message': body}
+                    if source:
+                        payload['threadSource'] = source
+                    with self.subTest(body=body, source=source, event=event), \
+                            patch.object(n, 'load_config', side_effect=AssertionError('must not load credentials')), \
+                            patch.object(n, 'is_internal_suggestions_completion', side_effect=AssertionError('literal is not provenance')), \
+                            patch.object(n, 'cache_full_reply') as cache, \
+                            patch.object(n, 'resolve_desktop_submissions') as resolve, \
+                            patch.object(n, 'complete_payload_reactions') as complete, \
+                            patch.object(n, 'send_markdown_message') as send, \
+                            patch.object(n, 'forward_computer_use_notification'), \
+                            patch.object(n, 'log_error') as log:
+                        result = n.send_desktop_notification(payload, '{}') if desktop else n.send_hook_notification(payload)
+                        self.assertEqual(result, 0)
+                        cache.assert_not_called()
+                        resolve.assert_not_called()
+                        complete.assert_not_called()
+                        send.assert_not_called()
+                        self.assertIn('exact-empty-suggestions-literal', log.call_args.args[0])
+
+    def test_empty_suggestions_literal_does_not_normalize_or_search_content(self):
+        for value in (None, {}, [], '{"suggestions": []}', '{ "suggestions":[]}',
+                      '{"suggestions":[null]}', '{"suggestions":null}', '{"suggestion":[]}',
+                      '{"suggestions":[],"other":1}', '[{"suggestions":[]}]',
+                      '```json\n{"suggestions":[]}\n```', 'Example: {"suggestions":[]}',
+                      '{"suggestions":[]}\nExplanation', '{"suggestions":[],"suggestions":[]}'):
+            with self.subTest(value=value):
+                self.assertFalse(n.is_empty_suggestions_reply({'last_assistant_message': value}))
+
     def test_internal_suggestions_filtered_in_both_notification_paths(self):
         suggestion = {'title': 'Add a smoke test', 'description': 'Verify the build',
                       'prompt': 'Add a credential-safe smoke test', 'appId': 'github', 'pluginId': None}
@@ -145,7 +180,9 @@ class TableTests(unittest.TestCase):
 
     def test_regular_answer_with_suggestion_content_still_delivered_in_both_paths(self):
         for body in ('**答复：** 下面解释兼容性。',
-                     '{"suggestion":"正常的 JSON 回答"}', '{"suggestions":[]}',
+                     '{"suggestion":"正常的 JSON 回答"}', '{"suggestions": []}',
+                     '{"suggestions":["next"]}', '{"suggestions":[],"result":"ok"}',
+                     '```json\n{"suggestions":[]}\n```', '说明：{"suggestions":[]}',
                      '```json\n{"suggestion":"继续检查"}\n```',
                      '{"suggestion":"继续检查","result":"ok"}'):
             for desktop in (False, True):
