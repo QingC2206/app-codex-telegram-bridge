@@ -218,3 +218,59 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local Codex and Telegram credentials / configuration
+.codex/
+.ssh/
+.env
+.env.*
+auth.json
+config.toml
+hooks.json
+*credentials*.json
+*credentials*.json.*
+telegram_*.json
+install-manifest.json
+*.pem
+*.key
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+
+# Local messages, attachments, caches, and databases
+telegram_replies/
+telegram_attachments/
+telegram_message_routes/
+telegram_local_paths/
+telegram-plugin-state/
+telegram-plugins/
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+*.log.*
+
+# Local installation, diagnostics, and build output
+install-manifest.json
+telegram_bot.README.md
+previous-startup-task.xml
+startup-task*.xml
+*.backup
+*.backup.*
+*.bak
+backups/
+robot-repair-backups/
+robot-diagnostics/
+.validation/
+*.validation.json
+.release-staging/
+codex-telegram-bot-v*.zip
+codex-telegram-bot-v*.zip.sha256
+*.exe
+*.dll
+*.pdb
+*.dmp

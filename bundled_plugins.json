@@ -1,0 +1,6 @@
+{
+  "plugins": {
+    "screenshot": ["plugin.json", "main.py"]
+  },
+  "retired": ["markdown"]
+}

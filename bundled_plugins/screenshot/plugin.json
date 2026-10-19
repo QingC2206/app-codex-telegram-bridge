@@ -1,0 +1,9 @@
+{
+  "api_version": 1,
+  "id": "screenshot",
+  "version": "1.0.0",
+  "entrypoint": "main.py",
+  "commands": {"screenshot": "截图：Codex 和每个显示器，照片相册回发"},
+  "timeout_seconds": 180,
+  "cooldown_seconds": 5
+}
