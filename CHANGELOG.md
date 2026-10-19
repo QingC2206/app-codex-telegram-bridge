@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.6.4
+
+- 异步问题卡片保留原问题和用户回答，区分已提交、已回答、待确认及已结束；移除旧作答按钮，长回答可查看全文或下载。
+- 保存 Telegram 选项/文字答案，支持从 Desktop 作答记录回填，升级保留原问题和消息关联；界面中英文同步更新。
+- Preserve asynchronous question cards with the original question and answer, distinct submission/confirmation/closure states, and full-text access for long answers. Persist Telegram answers and recover Desktop answers from history without resubmitting.
+
 ## 0.6.3
 
 - 完成通知去除首尾空白后，整条正文恰好等于 `{"suggestions":[]}` 时不再转发；此规则独立于来源识别，不扩大到其他 JSON、代码块或带说明的回复。

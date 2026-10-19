@@ -16,7 +16,7 @@ import time
 import uuid
 
 from codex_telegram_bridge.codex.desktop import DesktopBridgeSafetyError, DesktopIpcInactive, DesktopIpcUnavailable
-from codex_telegram_bridge.codex.history import read_thread_history, answered_question_ids, REPLY_OPEN, REPLY_CLOSE
+from codex_telegram_bridge.codex.history import read_thread_history, question_answers, REPLY_OPEN, REPLY_CLOSE
 
 
 def question_id(item_id: str, index: int) -> str:
@@ -53,6 +53,9 @@ class AsyncInputs:
                 title TEXT,options TEXT,status TEXT,message INTEGER,created REAL,
                 PRIMARY KEY(bot,chat,thread,item,qindex),UNIQUE(bot,chat,key))''')
             with db:
+                db.execute('BEGIN IMMEDIATE')
+                if 'answer' not in {row[1] for row in db.execute('PRAGMA table_info(questions)')}:
+                    db.execute('ALTER TABLE questions ADD COLUMN answer TEXT')
                 yield db
         finally:
             db.close()
@@ -78,7 +81,7 @@ class AsyncInputs:
                     continue
                 if not question['title'].strip() or len(question['title']) > 12000:
                     continue
-                db.execute('INSERT OR IGNORE INTO questions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                db.execute('INSERT OR IGNORE INTO questions(bot,chat,key,thread,turn,item,qindex,title,options,status,message,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
                     (*self.identity, uuid.uuid4().hex, thread, turn, item['id'], index,
                      question['title'], json.dumps(options or [], ensure_ascii=False),
                      'suppressed' if self.bot.quiet_mode_enabled() is True else 'new', None, time.time()))
@@ -90,9 +93,9 @@ class AsyncInputs:
         turn = latest.get('id')
         active = latest.get('status') == 'inProgress'
         items = latest.get('items') or []
-        answered = answered_question_ids(items)
+        answered = question_answers([item for entry in turns for item in entry.get('items', [])])
         with self.db() as db:
-            previous = [dict(row) for row in db.execute('SELECT key,status,message FROM questions WHERE bot=? AND chat=? AND thread=?',
+            previous = [dict(row) for row in db.execute('SELECT key,status,message,answer FROM questions WHERE bot=? AND chat=? AND thread=?',
                                                        (*self.identity, thread_id))]
             if active:
                 db.execute("UPDATE questions SET status='expired' WHERE bot=? AND chat=? AND thread=? AND turn<>? AND status IN ('new','waiting','publishing','submitted','uncertain','submitting')",
@@ -103,8 +106,8 @@ class AsyncInputs:
             for row in db.execute('SELECT key,item,qindex FROM questions WHERE bot=? AND chat=? AND thread=?',
                                   (*self.identity, thread_id)).fetchall():
                 if question_id(row['item'], row['qindex']) in answered:
-                    db.execute("UPDATE questions SET status='answered' WHERE bot=? AND chat=? AND key=?",
-                               (*self.identity, row['key']))
+                    db.execute("UPDATE questions SET status='answered',answer=COALESCE(?,answer) WHERE bot=? AND chat=? AND key=?",
+                               (answered[question_id(row['item'], row['qindex'])], *self.identity, row['key']))
         if active:
             for item in items:
                 if isinstance(item, dict) and item.get('questions'):
@@ -115,14 +118,43 @@ class AsyncInputs:
                     for row in db.execute('SELECT key,item,qindex FROM questions WHERE bot=? AND chat=? AND thread=? AND turn=?',
                                           (*self.identity, thread_id, turn)).fetchall():
                         if question_id(row['item'], row['qindex']) in answered:
-                            db.execute("UPDATE questions SET status='answered' WHERE bot=? AND chat=? AND key=?",
-                                       (*self.identity, row['key']))
+                            db.execute("UPDATE questions SET status='answered',answer=COALESCE(?,answer) WHERE bot=? AND chat=? AND key=?",
+                                       (answered[question_id(row['item'], row['qindex'])], *self.identity, row['key']))
         self._clear_expired_input()
         for row in previous:
             current = self.get(row['key'])
-            if (current and current['status'] in {'answered', 'expired'} and current['status'] != row['status']
+            if (current and current['status'] in {'answered', 'expired'}
+                    and (current['status'] != row['status'] or current['answer'] != row['answer'])
                     and isinstance(current.get('message'), int)):
-                self.bot.enqueue_edit(current['message'], _t('该异步问题已回答或结束。'), {'inline_keyboard': []})
+                self.refresh_card(current)
+
+    def refresh_card(self, row):
+        """Retain the question and answer; only retire the answering buttons."""
+        try:
+            self._refresh_card(row)
+        except Exception as exc:
+            from codex_telegram_bridge.app import log
+            log('async answer card update postponed: ' + type(exc).__name__)
+
+    def _refresh_card(self, row):
+        if not row or not isinstance(row.get('message'), int):
+            return
+        from codex_telegram_bridge.telegram.notifications import cache_full_reply, build_notification_keyboard, markdown_preview
+        status = row['status']
+        heading = (_t('✅ 已回答') if status == 'answered' else
+                   _t('✅ 回答已提交') if status == 'submitted' else
+                   _t('⏳ 回答待确认') if status in {'submitting', 'uncertain'} else _t('问题已结束'))
+        text = heading + _t('\n\n任务：`{p0}`', p0=row['thread'][:8])
+        text += _t('\n\n**原问题**\n{p0}', p0=row['title'])
+        if row.get('answer') is not None:
+            text += _t('\n\n**你的回答**\n{p0}', p0=row['answer'])
+        elif status == 'answered':
+            text += _t('\n\n已确认作答，暂未读取到回答内容。')
+        else:
+            text += _t('\n\n未记录到回答。')
+        cache_id = cache_full_reply({'last_assistant_message': text}, row['thread'])
+        keyboard = build_notification_keyboard(cache_id=cache_id) or {'inline_keyboard': []}
+        self.bot.enqueue_edit(row['message'], markdown_preview(text, 2800), keyboard)
 
     def current_history(self, thread_id, *, item_limit=240):
         history = read_thread_history(self.bot.app, thread_id, turn_limit=1, item_limit=item_limit,
@@ -256,8 +288,8 @@ class AsyncInputs:
                     'question': row['title'], 'answer': answer}]
         prompt = REPLY_OPEN + '\n' + json.dumps(payload, ensure_ascii=False) + '\n' + REPLY_CLOSE
         with self.db() as db:
-            changed = db.execute("UPDATE questions SET status='submitting' WHERE bot=? AND chat=? AND key=? AND status IN ('waiting','publishing')",
-                                 (*self.identity, key)).rowcount
+            changed = db.execute("UPDATE questions SET status='submitting',answer=? WHERE bot=? AND chat=? AND key=? AND status IN ('waiting','publishing')",
+                                 (answer, *self.identity, key)).rowcount
         if not changed:
             raise ValueError(_t('该回答已进入提交流程，不会重复发送。'))
         try:
@@ -270,23 +302,32 @@ class AsyncInputs:
                                             expected_turn_id=row['turn'])
         except (DesktopBridgeSafetyError, DesktopIpcInactive, DesktopIpcUnavailable):
             with self.db() as db:
-                db.execute("UPDATE questions SET status='waiting' WHERE bot=? AND chat=? AND key=?", (*self.identity, key))
+                db.execute("UPDATE questions SET status='waiting',answer=NULL WHERE bot=? AND chat=? AND key=? AND status='submitting'", (*self.identity, key))
             raise
         except BaseException:
             with self.db() as db:
-                db.execute("UPDATE questions SET status='uncertain' WHERE bot=? AND chat=? AND key=?", (*self.identity, key))
+                db.execute("UPDATE questions SET status='uncertain' WHERE bot=? AND chat=? AND key=? AND status='submitting'", (*self.identity, key))
+            self.refresh_card(self.get(key))
             raise
         try:
             with self.db() as db:
-                db.execute("UPDATE questions SET status='submitted' WHERE bot=? AND chat=? AND key=?", (*self.identity, key))
+                db.execute("UPDATE questions SET status='submitted' WHERE bot=? AND chat=? AND key=? AND status='submitting'", (*self.identity, key))
         except Exception as exc:
             # The pre-dispatch journal still blocks a second submission.
             from codex_telegram_bridge.app import log
             log('async answer accepted but journal confirmation failed: ' + type(exc).__name__)
         if self.bot.pending_free_text.get(self.bot.chat_id) == 'async:' + key:
             self.bot.pending_free_text.pop(self.bot.chat_id, None)
-        self.bot._submission_feedback(row['thread'], row['turn'],
-            _t('✅ 已将回答关联到原问题并提交。'), {'inline_keyboard': []})
+        # Generic submission feedback replaces choice cards; this card retains
+        # the actual question/answer instead, including when reactions succeed.
+        panel = getattr(self.bot._ui_local, 'message_id', None)
+        try:
+            self.bot._ui_local.message_id = None
+            self.bot._submission_feedback(row['thread'], row['turn'],
+                _t('✅ 已将回答关联到原问题并提交。'), {'inline_keyboard': []})
+        finally:
+            self.bot._ui_local.message_id = panel
+        self.refresh_card(self.get(key))
 
     def poll(self):
         threads = self.bot._list_threads(limit=30)

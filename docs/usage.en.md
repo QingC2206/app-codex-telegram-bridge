@@ -38,6 +38,8 @@ Use `/steer` to append to a running task and `/stop` to request interruption of 
 
 Codex questions provide options or a text-answer entry point. Answer asynchronous questions using an option, text entry, or a direct reply to the question card; the answer remains associated with the original question and turn. Expired or answered questions cannot be submitted again. Complex or unsupported approvals need to be handled in Desktop.
 
+After an answer, the original card keeps the question and your answer and removes answering buttons. It distinguishes submitted, answered, awaiting confirmation, and closed states. Answers entered in Desktop are filled in when their history is available. Long content can be viewed in full or downloaded as Markdown. Answers follow the existing 30-day local question-record cleanup policy; old closed cards without a readable answer record cannot be reconstructed.
+
 Replying to a task card continues the task; replying to a question card answers that specific question. A received-message acknowledgment does not itself prove submission. If the outcome is unknown, check the latest Desktop messages before retrying.
 
 Send attachments by replying to a task or side-chat message. Each attachment is limited to 20 MB; send multiple attachments separately. Full replies can be paginated or downloaded as Markdown. Switching interface language does not translate original content or JSON, or filter a response merely because it contains a `suggestion` field.

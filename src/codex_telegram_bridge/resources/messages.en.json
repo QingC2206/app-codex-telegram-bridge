@@ -749,5 +749,14 @@
   "**🌙 静默模式：{p0}**\n\n仅保留查询和设置；暂停回复、提问、审批和进度推送，禁用发送、新建、侧边提问、中止、插件执行及额度重置。\n\n已有任务继续运行；开启时取消进度跟踪与额度预约，关闭后不补发期间的回复。": "**🌙 Quiet mode: {p0}**\n\nQueries and settings only. Automatic replies, questions, approvals, and progress updates are paused. Sending messages, creating tasks, side questions, stopping tasks, running plugins, and resetting quota are disabled.\n\nExisting tasks keep running. Enabling this mode cancels progress tracking and quota reservations. Replies suppressed during quiet mode are not replayed.",
   "静默模式、通知、语言和新任务目录。选择项目后再修改。": "Quiet mode, notifications, language, and the folder for new tasks. Select an item to edit.",
   "⚠️ 提交结果未知：{p0}": "⚠️ Submission outcome unknown: {p0}",
-  "未能核实接收回执，未重发。请先查看 Desktop 任务，避免重复发送。": "Could not verify receipt; nothing was resent. Check the Desktop task before sending again to avoid duplicates."
+  "未能核实接收回执，未重发。请先查看 Desktop 任务，避免重复发送。": "Could not verify receipt; nothing was resent. Check the Desktop task before sending again to avoid duplicates.",
+  "✅ 已回答": "✅ Answered",
+  "✅ 回答已提交": "✅ Answer submitted",
+  "⏳ 回答待确认": "⏳ Answer awaiting confirmation",
+  "问题已结束": "Question closed",
+  "\n\n任务：`{p0}`": "\n\nTask: `{p0}`",
+  "\n\n**原问题**\n{p0}": "\n\n**Question**\n{p0}",
+  "\n\n**你的回答**\n{p0}": "\n\n**Your answer**\n{p0}",
+  "\n\n已确认作答，暂未读取到回答内容。": "\n\nAn answer was confirmed, but its text is not yet available.",
+  "\n\n未记录到回答。": "\n\nNo answer was recorded."
 }

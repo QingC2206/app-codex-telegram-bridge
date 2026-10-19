@@ -74,9 +74,13 @@ REPLY_CLOSE = '</send_user_message_question_reply>'
 
 
 def answered_question_ids(items: list[dict[str, Any]]) -> set[str]:
+    return set(question_answers(items))
+
+
+def question_answers(items: list[dict[str, Any]]) -> dict[str, str | None]:
     """Recognize typed Desktop answers, including App Tools delegation receipts."""
     import json
-    result = set()
+    result = {}
     for item in items:
         if item.get('type') in {'userMessage', 'steeringUserMessage'}:
             content = item.get('content', item.get('input', []))
@@ -103,5 +107,6 @@ def answered_question_ids(items: list[dict[str, Any]]) -> set[str]:
                 continue
             for entry in parsed if isinstance(parsed, list) else [parsed]:
                 if isinstance(entry, dict) and isinstance(entry.get('questionItemId'), str):
-                    result.add(entry['questionItemId'])
+                    answer = entry.get('answer')
+                    result[entry['questionItemId']] = answer if isinstance(answer, str) else None
     return result

@@ -125,7 +125,10 @@ class AsyncInputTests(unittest.TestCase):
             'output': '<codex_delegation>\n  <input>' + escaped + '</input>\n</codex_delegation>'})
         self.manager.reconcile(self.thread, self.manager.current_history(self.thread))
         self.assertEqual(self.manager.get(row['key'])['status'], 'answered')
-        self.bot.enqueue_edit.assert_called_with(70, '该异步问题已回答或结束。', {'inline_keyboard': []})
+        self.assertIn('First & Second', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('Which version?', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('✅ 已回答', self.bot.enqueue_edit.call_args.args[1])
+        self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
         self.bot._desktop_follow_up.assert_not_called()
 
     def test_uncertain_submission_is_durable_and_never_retried(self):
@@ -135,9 +138,97 @@ class AsyncInputTests(unittest.TestCase):
             self.manager.submit(row['key'], 'First')
         restarted = inputs.AsyncInputs(self.bot, self.manager.database)
         self.assertEqual(restarted.get(row['key'])['status'], 'uncertain')
+        self.assertEqual(restarted.get(row['key'])['answer'], 'First')
+        self.assertIn('⏳ 回答待确认', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('First', self.bot.enqueue_edit.call_args.args[1])
         with self.assertRaises(ValueError):
             restarted.submit(row['key'], 'First')
         self.bot._desktop_follow_up.assert_called_once()
+
+    def test_choice_answer_survives_restart_and_turn_end(self):
+        row = self.observed()
+        self.manager.callback(row['key'] + ':1')
+        self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('Which version?', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('回答已提交', self.bot.enqueue_edit.call_args.args[1])
+        restarted = inputs.AsyncInputs(self.bot, self.manager.database)
+        self.assertEqual(restarted.get(row['key'])['answer'], 'Second')
+        self.bot.desktop.native.read_thread.return_value['turns'][0]['status'] = 'completed'
+        restarted.reconcile(self.thread, restarted.current_history(self.thread))
+        self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('问题已结束', self.bot.enqueue_edit.call_args.args[1])
+        self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
+
+    def test_ended_unanswered_question_keeps_title_without_inventing_answer(self):
+        self.observed()
+        self.bot.desktop.native.read_thread.return_value['turns'][0]['status'] = 'completed'
+        self.manager.reconcile(self.thread, self.manager.current_history(self.thread))
+        text = self.bot.enqueue_edit.call_args.args[1]
+        self.assertIn('Which version?', text)
+        self.assertIn('未记录到回答', text)
+        self.assertNotIn('已回答', text)
+
+    def test_native_receipt_can_replace_uncertain_local_answer(self):
+        row = self.observed()
+        self.bot._desktop_follow_up.side_effect = d.DesktopSubmissionUnknown('lost acknowledgement')
+        with self.assertRaises(d.DesktopSubmissionUnknown):
+            self.manager.submit(row['key'], 'First')
+        answer = inputs.REPLY_OPEN + json.dumps([{'questionItemId': inputs.question_id(self.item, 0),
+            'answer': 'Desktop choice'}]) + inputs.REPLY_CLOSE
+        self.history['thread']['turns'][0]['items'].append({'type': 'userMessage',
+            'content': [{'type': 'text', 'text': answer}]})
+        self.manager.reconcile(self.thread, self.manager.current_history(self.thread))
+        self.assertEqual(self.manager.get(row['key'])['answer'], 'Desktop choice')
+        self.assertIn('✅ 已回答', self.bot.enqueue_edit.call_args.args[1])
+        self.bot._desktop_follow_up.assert_called_once()
+
+    def test_long_answer_kept_in_database_and_full_reply_cache(self):
+        from codex_telegram_bridge.telegram import notifications as n
+        row = self.observed()
+        answer = '我的回答\n' * 1000
+        with patch.object(n, 'REPLY_CACHE_DIR', self.manager.database.parent / 'cache'):
+            self.manager.submit(row['key'], answer)
+            self.assertEqual(self.manager.get(row['key'])['answer'], answer)
+            text, markup = self.bot.enqueue_edit.call_args.args[1:]
+            self.assertLess(len(text), 3900)
+            callback = markup['inline_keyboard'][0][0]['callback_data']
+            cached = n.load_cached_reply(callback.split('|')[1])
+            self.assertIn(answer.rstrip(), cached['text'])
+
+    def test_reaction_feedback_does_not_replace_answer_card_with_generic_text(self):
+        row = self.observed()
+        self.bot._reaction.return_value = True
+        self.bot._ui_local.message_id = 70
+        self.bot.edit_message = Mock()
+        self.manager.submit(row['key'], 'Second')
+        self.bot.edit_message.assert_not_called()
+        self.assertEqual(self.bot._ui_local.message_id, 70)
+        self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
+
+    def test_english_card_keeps_answer_in_original_language(self):
+        from codex_telegram_bridge.i18n import using_language
+        row = self.observed()
+        with using_language('en'):
+            self.manager.submit(row['key'], '保留中文回答')
+        text = self.bot.enqueue_edit.call_args.args[1]
+        self.assertIn('Answer submitted', text)
+        self.assertIn('Your answer', text)
+        self.assertIn('保留中文回答', text)
+
+    def test_existing_database_migrates_without_losing_question_routes(self):
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(self.manager.database)) as db, db:
+            db.execute('''CREATE TABLE questions(bot TEXT,chat TEXT,key TEXT,thread TEXT,turn TEXT,item TEXT,
+                qindex INTEGER,title TEXT,options TEXT,status TEXT,message INTEGER,created REAL,
+                PRIMARY KEY(bot,chat,thread,item,qindex),UNIQUE(bot,chat,key))''')
+            db.execute('INSERT INTO questions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                ('111','123','existing',self.thread,self.turn,self.item,0,'Which version?','[]','publishing',70,inputs.time.time()))
+        row = self.manager.get('existing')
+        self.assertEqual(row['message'], 70)
+        self.assertIsNone(row['answer'])
+        self.manager.submit('existing', 'First')
+        self.assertEqual(self.manager.get('existing')['answer'], 'First')
 
     def test_telegram_feedback_failure_does_not_turn_accepted_answer_into_failure(self):
         row = self.observed()
