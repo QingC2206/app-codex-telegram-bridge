@@ -116,8 +116,23 @@ class InteractionTests(unittest.TestCase):
             self.assertFalse(list(root.glob('state_*.sqlite')))
             (root/'state_5.sqlite').write_bytes(b'not a sqlite database')
             text=n.build_message({'thread_id':'task-one','last_assistant_message':'正文'},True)
-            self.assertTrue(text.startswith('**✅ 对话 task\\-one**\n\n'))
+            self.assertTrue(text.startswith('**🥳 对话 task\\-one**\n\n'))
             self.assertIn('正文',text)
+
+    def test_legacy_terminal_reaction_retries_use_supported_replacements(self):
+        for old, new in [('👌', '🎉'), ('👎', '😢')]:
+            db = n._reaction_db()
+            try:
+                with db:
+                    db.execute('INSERT OR REPLACE INTO reactions VALUES(?,?,?,?,?,?,?)',
+                               ('111', '123', 42, 'task', 'turn', old, 0))
+                    db.execute('INSERT OR REPLACE INTO reaction_retries VALUES(?,?,?)', ('111', '123', 42))
+            finally:
+                db.close()
+            with patch.object(n, 'telegram_call', return_value=True) as call:
+                self.assertTrue(n.set_task_reaction('111:secret', '123', 42, old, 'task', 'turn', _retry=True))
+            self.assertEqual(call.call_args.args[2]['reaction'], [{'type': 'emoji', 'emoji': new}])
+            self.assertEqual(n.task_reactions('111:secret'), [])
 
     def test_desktop_completion_passes_task_id_to_title_lookup(self):
         with patch.object(n,'forward_computer_use_notification'), \
@@ -130,7 +145,7 @@ class InteractionTests(unittest.TestCase):
             n.send_desktop_notification({'type':'agent-turn-complete','thread-id':'task-one',
                                         'last-assistant-message':'答复'},'{}')
         title.assert_called_once_with('task-one')
-        self.assertTrue(send.call_args.args[1]['text'].startswith('**✅ 当前主标题**\n\n'))
+        self.assertTrue(send.call_args.args[1]['text'].startswith('**🥳 当前主标题**\n\n'))
 
     def test_new_turn_remembers_telegram_source_without_reaction_dependency(self):
         self.bot._ui_local.source_message_id=42
@@ -232,13 +247,13 @@ class InteractionTests(unittest.TestCase):
             n.complete_task_reactions('111:secret', 'task', 'new')
             self.assertEqual(n.task_reactions('111:secret'), [])
             self.assertEqual([c.args[2]['reaction'] for c in call.call_args_list],
-                             [[{'type': 'emoji', 'emoji': '👀'}], [{'type': 'emoji', 'emoji': '🤔'}], [{'type': 'emoji', 'emoji': '👌'}]])
+                             [[{'type': 'emoji', 'emoji': '👀'}], [{'type': 'emoji', 'emoji': '🤔'}], [{'type': 'emoji', 'emoji': '🎉'}]])
 
     def test_completion_before_submission_feedback_does_not_leave_thinking(self):
         with patch.object(n, 'REACTION_DB', Path(self.folder.name)/'reactions.db'), patch.object(n, 'telegram_call') as call:
             n.complete_task_reactions('111:secret', 'task', 'turn')
             n.set_task_reaction('111:secret', '123', 9, '🤔', 'task', 'turn')
-            self.assertEqual(call.call_args.args[2]['reaction'], [{'type': 'emoji', 'emoji': '👌'}])
+            self.assertEqual(call.call_args.args[2]['reaction'], [{'type': 'emoji', 'emoji': '🎉'}])
             self.assertEqual(n.task_reactions('111:secret'), [])
 
     def test_failed_ok_is_persisted_for_retry(self):
@@ -246,11 +261,11 @@ class InteractionTests(unittest.TestCase):
             n.set_task_reaction('111:secret', '123', 9, '🤔', 'task', 'turn')
             call.side_effect = RuntimeError('temporary network failure')
             n.complete_task_reactions('111:secret', 'task', 'turn')
-            self.assertEqual(n.task_reactions('111:secret')[0][4], '👌')
+            self.assertEqual(n.task_reactions('111:secret')[0][4], '🎉')
             call.side_effect = None
-            n.set_task_reaction('111:secret', '123', 9, '👌')
+            n.set_task_reaction('111:secret', '123', 9, '🎉')
             self.assertEqual(n.task_reactions('111:secret'), [])
-            self.assertEqual(call.call_args.args[2]['reaction'], [{'type': 'emoji', 'emoji': '👌'}])
+            self.assertEqual(call.call_args.args[2]['reaction'], [{'type': 'emoji', 'emoji': '🎉'}])
 
     def test_direct_reply_uses_original_message_reactions_without_receipt(self):
         self.bot._ui_local.source_message_id = 42

@@ -45,6 +45,32 @@ class AsyncInputTests(unittest.TestCase):
     def test_question_id_matches_desktop_canonical_serialization(self):
         self.assertEqual(inputs.question_id('item', 0), '["request_user_input_async","item",0]')
 
+    def test_question_card_uses_task_metadata_and_preserves_answer_layout(self):
+        import sqlite3
+        from contextlib import closing
+        from codex_telegram_bridge.telegram import notifications as n
+        root = self.manager.database.parent
+        with closing(sqlite3.connect(root / 'state_5.sqlite')) as db, db:
+            db.execute('CREATE TABLE threads(id TEXT,name TEXT,title TEXT,cwd TEXT)')
+            db.execute('INSERT INTO threads VALUES(?,?,?,?)',
+                       (self.thread, '排查 Codex 沙盒损坏', '旧标题', 'D:/workspace/codex'))
+        with patch.object(n, 'CODEX_STATE_ROOT', root):
+            row = self.observed()
+            self.assertTrue(self.bot.send.call_args.args[0].startswith('✒️[问题(待回答)] 排查 Codex 沙盒损坏'))
+            row.update(status='answered', answer='保留原问题、我的回答和状态')
+            self.manager.refresh_card(row)
+        text = self.bot.enqueue_edit.call_args.args[1]
+        self.assertEqual(text, '✒️[问题(已回答)] 排查 Codex 沙盒损坏\n工作区：codex（任务：task-123）'
+                         '\n\n**原问题：**\nWhich version?\n\n**用户回答：**\n保留原问题、我的回答和状态')
+
+    def test_question_card_metadata_fallback_does_not_use_robot_working_directory(self):
+        from codex_telegram_bridge.telegram import notifications as n
+        row = self.observed()
+        with patch.object(n, 'CODEX_STATE_ROOT', self.manager.database.parent / 'missing'):
+            heading = self.manager.card_heading(row, '已回答')
+        self.assertIn('未知工作区', heading)
+        self.assertIn('task-123', heading)
+
     def test_duplicate_events_and_restart_do_not_resend_question(self):
         self.observed()
         self.manager.observe(self.thread, self.turn, self.message)
@@ -127,7 +153,7 @@ class AsyncInputTests(unittest.TestCase):
         self.assertEqual(self.manager.get(row['key'])['status'], 'answered')
         self.assertIn('First & Second', self.bot.enqueue_edit.call_args.args[1])
         self.assertIn('Which version?', self.bot.enqueue_edit.call_args.args[1])
-        self.assertIn('✅ 已回答', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('[问题(已回答)]', self.bot.enqueue_edit.call_args.args[1])
         self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
         self.bot._desktop_follow_up.assert_not_called()
 
@@ -139,7 +165,7 @@ class AsyncInputTests(unittest.TestCase):
         restarted = inputs.AsyncInputs(self.bot, self.manager.database)
         self.assertEqual(restarted.get(row['key'])['status'], 'uncertain')
         self.assertEqual(restarted.get(row['key'])['answer'], 'First')
-        self.assertIn('⏳ 回答待确认', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('[问题(待确认)]', self.bot.enqueue_edit.call_args.args[1])
         self.assertIn('First', self.bot.enqueue_edit.call_args.args[1])
         with self.assertRaises(ValueError):
             restarted.submit(row['key'], 'First')
@@ -150,13 +176,13 @@ class AsyncInputTests(unittest.TestCase):
         self.manager.callback(row['key'] + ':1')
         self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
         self.assertIn('Which version?', self.bot.enqueue_edit.call_args.args[1])
-        self.assertIn('回答已提交', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('[问题(已提交)]', self.bot.enqueue_edit.call_args.args[1])
         restarted = inputs.AsyncInputs(self.bot, self.manager.database)
         self.assertEqual(restarted.get(row['key'])['answer'], 'Second')
         self.bot.desktop.native.read_thread.return_value['turns'][0]['status'] = 'completed'
         restarted.reconcile(self.thread, restarted.current_history(self.thread))
         self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
-        self.assertIn('问题已结束', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('[问题(已结束)]', self.bot.enqueue_edit.call_args.args[1])
         self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
 
     def test_ended_unanswered_question_keeps_title_without_inventing_answer(self):
@@ -179,7 +205,7 @@ class AsyncInputTests(unittest.TestCase):
             'content': [{'type': 'text', 'text': answer}]})
         self.manager.reconcile(self.thread, self.manager.current_history(self.thread))
         self.assertEqual(self.manager.get(row['key'])['answer'], 'Desktop choice')
-        self.assertIn('✅ 已回答', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('[问题(已回答)]', self.bot.enqueue_edit.call_args.args[1])
         self.bot._desktop_follow_up.assert_called_once()
 
     def test_long_answer_kept_in_database_and_full_reply_cache(self):
@@ -211,8 +237,8 @@ class AsyncInputTests(unittest.TestCase):
         with using_language('en'):
             self.manager.submit(row['key'], '保留中文回答')
         text = self.bot.enqueue_edit.call_args.args[1]
-        self.assertIn('Answer submitted', text)
-        self.assertIn('Your answer', text)
+        self.assertIn('Question (Submitted)', text)
+        self.assertIn('User answer', text)
         self.assertIn('保留中文回答', text)
 
     def test_existing_database_migrates_without_losing_question_routes(self):

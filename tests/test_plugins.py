@@ -160,10 +160,10 @@ class PluginTests(unittest.TestCase):
         self.host.execute=Mock(return_value={'actions':[{'type':'message','text':'done'}]})
         self.host.deliver=Mock(side_effect=lambda *args:events.append('delivered'))
         self.host.running.add('demo');self.host._run(p,{},42,None)
-        self.assertEqual(events,['🤔','delivered','👌']);self.assertFalse(self.host.running)
+        self.assertEqual(events,['🤔','delivered','🎉']);self.assertFalse(self.host.running)
         events.clear();self.host.deliver=Mock(side_effect=TimeoutError('unknown'))
         self.host._run(p,{},42,None)
-        self.assertEqual(events,['🤔','👎']);self.host.deliver.assert_called_once()
+        self.assertEqual(events,['🤔','😢']);self.host.deliver.assert_called_once()
         self.assertIn('未自动重试',self.bot.send.call_args.args[0])
 
     def test_document_and_album_reply_to_command_without_automatic_retry(self):

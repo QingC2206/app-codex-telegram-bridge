@@ -186,12 +186,12 @@ class SideChats:
                 sent=self.bot.send(_t('**💬 侧边聊天 · {p0}**\n\n主任务：`{p1}` · 侧边：`{p2}` · {p3}/{p4}\n\n', p0=format(title, ''), p1=format(parent[:8], ''), p2=format(tid[:8], ''), p3=format(index, ''), p4=format(len(pages), ''))+page,
                     {'inline_keyboard':[[{'text':_t('关闭侧边聊天'),'callback_data':'sideclose|'+tid}]]},reply_to=source)
                 self.remember(sent.get('message_id'),'session',tid,parent)
-            self.bot._reaction('👌')
+            self.bot._reaction('🎉')
             session['expires']=time.time()+self.TTL
         except Exception as exc:
-            self.bot._reaction('👎')
+            self.bot._reaction('😢')
             if not self.closing and self.bot._background_allowed(generation) is not False:
-                try:self.bot.send(_t('❌ 侧边聊天：')+str(exc).replace(self.bot.token,'[redacted]')[:600]+
+                try:self.bot.send(_t('🥲 侧边聊天：')+str(exc).replace(self.bot.token,'[redacted]')[:600]+
                     _t('\n\n未自动重试，也未把问题发送给主任务。'),reply_to=source)
                 except Exception:pass
             # Unknown turn state must not accept follow-ups that may steer it.

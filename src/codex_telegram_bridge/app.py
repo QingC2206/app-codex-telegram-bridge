@@ -1355,10 +1355,10 @@ class TelegramCodexBot:
     def _command_error_text(exc):
         if isinstance(exc, DesktopSubmissionUnknown):
             return _t('⚠️ 提交结果未知：{p0}', p0=truncate(exc, 800))
-        return _t('❌ 处理命令失败：{p0}', p0=truncate(exc, 800))
+        return _t('🥲 处理命令失败：{p0}', p0=truncate(exc, 800))
 
     def _observe_feedback_text(self, text):
-        if str(text).lstrip().startswith(("❌", "**❌", "用法：", "用法:", "Usage:")):
+        if str(text).lstrip().startswith(("🥲", "**🥲", "用法：", "用法:", "Usage:")):
             self._feedback_error()
 
     def _finish_feedback(self):
@@ -1368,13 +1368,13 @@ class TelegramCodexBot:
                 if not feedback.get("deferred"):
                     self._operation_reaction("👀")
             elif feedback.get("failed"):
-                self._operation_reaction("👎")
+                self._operation_reaction("😢")
             elif not feedback.get("deferred"):
-                self._operation_reaction("👌")
+                self._operation_reaction("🎉")
 
     def _input_error(self, text):
         self._feedback_error()
-        self._operation_reaction("👎")
+        self._operation_reaction("😢")
         self.send(text)
 
     def _reaction(self, emoji, thread_id="", turn_id=""):
@@ -1430,7 +1430,7 @@ class TelegramCodexBot:
                 receipt = telegram_notify_module.desktop_submission_turn(self.token, chat, message, thread)
                 if thread == BOT_OPERATION_THREAD and emoji in {"👀", "🤔"}:
                     if updated < self.reaction_started_at:
-                        telegram_notify_module.set_task_reaction(self.token, chat, message, "👎", thread)
+                        telegram_notify_module.set_task_reaction(self.token, chat, message, "😢", thread)
                 elif (emoji == "👀" and receipt is None) or (emoji == "🤔" and not thread and not turn):
                     telegram_notify_module.set_task_reaction(self.token, chat, message, "")
         except Exception as exc:
@@ -1444,11 +1444,11 @@ class TelegramCodexBot:
                     receipt = telegram_notify_module.desktop_submission_turn(self.token, chat, message, thread)
                     if thread == BOT_OPERATION_THREAD and emoji in {"👀", "🤔"}:
                         if time.time()-updated > 7200:
-                            telegram_notify_module.set_task_reaction(self.token, chat, message, "👎", thread)
+                            telegram_notify_module.set_task_reaction(self.token, chat, message, "😢", thread)
                     elif not emoji or (emoji == "👀" and time.time()-updated > 7200 and receipt is None):
                         telegram_notify_module.set_task_reaction(self.token, chat, message, "")
-                    elif emoji == "👌":
-                        telegram_notify_module.set_task_reaction(self.token, chat, message, "👌", thread, turn)
+                    elif emoji == "🎉":
+                        telegram_notify_module.set_task_reaction(self.token, chat, message, "🎉", thread, turn)
                     elif emoji in ("🤔", "👀") and thread and turn:
                         if telegram_notify_module.reaction_delivery_confirmed(self.token, thread, turn):
                             telegram_notify_module.complete_task_reactions(self.token, thread, turn)
@@ -2009,7 +2009,7 @@ class TelegramCodexBot:
         emoji, state_name = status_label(status, active)
         if not active and thread_id in self.turn_elapsed:
             state_name = _t('本轮已结束')
-            emoji = "✅"
+            emoji = "🥳"
 
         plan = self.plans.get(thread_id, [])
         completed = sum(1 for step in plan if step.get("status") == "completed")
@@ -2353,7 +2353,7 @@ class TelegramCodexBot:
             log(f"quota command failed: {safe_error}")
             self.replace_progress_message(
                 progress,
-                _t('**❌ Codex 额度查询失败**\n\n{p0}\n\n机器人仍在线，可以稍后重试 `/quota`。', p0=format(safe_error, '')),
+                _t('**🥲 Codex 额度查询失败**\n\n{p0}\n\n机器人仍在线，可以稍后重试 `/quota`。', p0=format(safe_error, '')),
             )
             return
         self._observe_quota(result)
@@ -2692,7 +2692,7 @@ class TelegramCodexBot:
                 previous = {}
             if previous.get("alerted"):
                 recovery_text = (
-                    _t('**✅ Codex 额度卡监控已恢复**\n\n现在可以再次读取可靠的重置卡数量和明细，后续新卡会正常提醒。')
+                    _t('**🥳 Codex 额度卡监控已恢复**\n\n现在可以再次读取可靠的重置卡数量和明细，后续新卡会正常提醒。')
                 )
             self.state.update(quota_monitor_health={
                 "consecutive_failures": 0,
@@ -3331,7 +3331,7 @@ class TelegramCodexBot:
             raise ValueError(_t('目录不存在：{p0}', p0=format(path, '')))
         resolved = str(path.resolve())
         self.state.update(default_cwd=resolved)
-        self.send(_t('✅ 新任务默认目录已设置为：\n\n{p0}', p0=format(resolved, '')))
+        self.send(_t('🥳 新任务默认目录已设置为：\n\n{p0}', p0=format(resolved, '')))
 
     def command_logs(self, _argument: str = "") -> None:
         lines: list[str] = []
@@ -3679,7 +3679,7 @@ class TelegramCodexBot:
             self._feedback_exception(exc)
             if callback_id:
                 self._answer_callback(str(callback_id), truncate(exc, 180), True)
-            self.send(self._command_error_text(exc) if isinstance(exc, DesktopSubmissionUnknown) else f"❌ {exc}")
+            self.send(self._command_error_text(exc) if isinstance(exc, DesktopSubmissionUnknown) else f"🥲 {exc}")
 
     def _answer_callback(self, callback_id: str, text: str, alert: bool) -> None:
         try:
@@ -3809,7 +3809,7 @@ class TelegramCodexBot:
                 return
             status = turn.get("status") if isinstance(turn, dict) else "completed"
             text = (
-                (telegram_notify_module.notification_heading(thread_id, "❌" if status == "failed" else "✅") + "\n\n") +
+                (telegram_notify_module.notification_heading(thread_id, "🥲" if status == "failed" else "🥳") + "\n\n") +
                 _t('**任务：** `{p0}`\n\n**状态：** {p1}', p0=format(thread_id[:8], ''), p1=format(status, ''))
             )
             if preview:
@@ -4004,9 +4004,9 @@ class TelegramCodexBot:
                         self.send(_t('回答已提交，处理状态见原消息上的表情。'), {"inline_keyboard": []})
                     return
             if getattr(self._ui_local, "message_id", None):
-                self.send(_t('✅ 已把回答发送给 Codex。'), {"inline_keyboard": []})
+                self.send(_t('🥳 已把回答发送给 Codex。'), {"inline_keyboard": []})
             else:
-                self.enqueue(_t('✅ 已把回答发送给 Codex。'))
+                self.enqueue(_t('🥳 已把回答发送给 Codex。'))
             return
         question = questions[index] if isinstance(questions[index], dict) else {}
         header = question.get("header") or _t('问题 {p0}', p0=format(index + 1, ''))

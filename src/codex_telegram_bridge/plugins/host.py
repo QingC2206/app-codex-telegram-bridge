@@ -150,7 +150,7 @@ class PluginHost:
         lines = [_t('**🧩 本地插件**'), _t('插件目录：`{p0}`', p0=format(self.root, ''))]
         for p in self.plugins.values():
             lines.append(f"**{p.id} · {p.manifest['version']}**\n\n"+' / '.join('`/'+x+'`' for x in p.manifest['commands']))
-        for name, error in self.errors.items(): lines.append(f'❌ {name}：{error}')
+        for name, error in self.errors.items(): lines.append(f'🥲 {name}：{error}')
         if not self.plugins: lines.append(_t('没有已启用的插件。'))
         lines.extend(getattr(self,'bundle_notes',[]))
         lines.append(_t('文件变更自动识别；删除目录或设置 enabled=false 可停用。'))
@@ -330,11 +330,11 @@ class PluginHost:
             with tempfile.TemporaryDirectory(prefix='job-',dir=self.state_root) as directory:
                 value=self.execute(plugin,request,Path(directory))
                 self.deliver(plugin,value,source,panel)
-                self.bot._reaction('👌' if value.get('ok',True) else '👎')
+                self.bot._reaction('🎉' if value.get('ok',True) else '😢')
         except Exception as exc:
-            self.bot._reaction('👎')
+            self.bot._reaction('😢')
             try:
-                self.bot.send(_t('❌ 插件 ')+plugin.id+'：'+str(exc).replace(self.bot.token,'[redacted]')[:500]+
+                self.bot.send(_t('🥲 插件 ')+plugin.id+'：'+str(exc).replace(self.bot.token,'[redacted]')[:500]+
                     _t('\n\n未自动重试；若发送结果不明确，请先检查聊天，避免重复发送。'),reply_to=source)
             except Exception: pass
         finally:

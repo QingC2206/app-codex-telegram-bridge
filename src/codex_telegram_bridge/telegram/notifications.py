@@ -192,19 +192,22 @@ def attach_task_reply(token, request, thread_id, turn_id):
 
 def set_task_reaction(token, chat_id, message_id, emoji, thread_id="", turn_id="", *, _retry=False):
     """Serialize desired state and Telegram writes across bot and hook processes."""
+    emoji = {"👌": "🎉", "👎": "😢"}.get(emoji, emoji)
     if not message_id:
         return False
     db = _reaction_db()
     bot = token.split(":")[0]
     try:
         db.execute("BEGIN IMMEDIATE")
+        # Retain retry state from older installations with the new supported icons.
+        db.execute("UPDATE reactions SET emoji=CASE emoji WHEN '👌' THEN '🎉' ELSE '😢' END WHERE bot=? AND emoji IN ('👌','👎')", (bot,))
         previous = db.execute("SELECT thread,turn,emoji,updated FROM reactions WHERE bot=? AND chat=? AND message=?",
                               (bot, str(chat_id), message_id)).fetchone()
         if _retry and (not previous or previous[:3] != (thread_id, turn_id, emoji)):
             # A hook may have completed the message since the retry was queued.
             return False
         if emoji in {"👀", "🤔"} and turn_id and db.execute("SELECT 1 FROM reaction_delivered WHERE bot=? AND thread=? AND turn=?", (bot, thread_id, turn_id)).fetchone():
-            emoji = "👌"
+            emoji = "🎉"
         if previous and previous[:3] == (thread_id, turn_id, emoji) and not db.execute(
                 "SELECT 1 FROM reaction_retries WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id)).fetchone():
             return True
@@ -222,12 +225,12 @@ def set_task_reaction(token, chat_id, message_id, emoji, thread_id="", turn_id="
                 db.execute("INSERT OR IGNORE INTO reaction_retries VALUES (?,?,?)", (bot, str(chat_id), message_id))
             else:
                 db.execute("DELETE FROM reaction_retries WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
-                if emoji in {"", "👌", "👎"}:
+                if emoji in {"", "🎉", "😢"}:
                     db.execute("DELETE FROM reactions WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
             db.commit()
             return False
         db.execute("DELETE FROM reaction_retries WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
-        if not emoji or emoji in {"👌", "👎"}:
+        if not emoji or emoji in {"🎉", "😢"}:
             # Forget local work after success; Telegram keeps the OK reaction.
             db.execute("DELETE FROM reactions WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
         db.commit()
@@ -394,7 +397,7 @@ def complete_task_reactions(token, thread_id, turn_id):
         db.close()
     for chat, message, thread, turn, emoji, updated in task_reactions(token):
         if thread == thread_id and turn == turn_id:
-            set_task_reaction(token, chat, message, "👌", thread, turn)
+            set_task_reaction(token, chat, message, "🎉", thread, turn)
 
 
 def reaction_delivery_confirmed(token, thread_id, turn_id):
@@ -1441,7 +1444,7 @@ def setup() -> int:
             token,
             {
                 "chat_id": chat_id,
-                "text": _t('✅ Codex → Telegram 通知测试成功'),
+                "text": _t('🥳 Codex → Telegram 通知测试成功'),
                 "disable_notification": silent,
             },
         )
@@ -1838,11 +1841,10 @@ def send_user_input_request_notification(payload: dict[str, Any]) -> int:
 CODEX_STATE_ROOT = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
 
 
-def conversation_title(thread_id: str) -> str:
-    """Read the Desktop display name, without model calls or stale title caching."""
-    fallback = _t('对话 {p0}', p0=format(thread_id[:8], '')) if thread_id else _t('Codex 对话')
+def _conversation_metadata(thread_id: str) -> dict[str, Any]:
+    """Read selected-profile Desktop metadata without model calls or caching."""
     if not re.fullmatch(r"[A-Za-z0-9-]{6,64}", thread_id):
-        return fallback
+        return {}
     try:
         databases = [p for p in CODEX_STATE_ROOT.glob("state_*.sqlite")
                      if re.fullmatch(r"state_[0-9]+\.sqlite", p.name)]
@@ -1852,26 +1854,36 @@ def conversation_title(thread_id: str) -> str:
                 db = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=0.2)
                 try:
                     columns = {r[1] for r in db.execute("PRAGMA table_info(threads)")}
-                    fields = [key for key in ("name", "title") if key in columns]
+                    fields = [key for key in ("name", "title", "cwd") if key in columns]
                     if "id" not in columns or not fields:
                         continue
                     row = db.execute("SELECT " + ",".join(fields) + " FROM threads WHERE id=?",
                                      (thread_id,)).fetchone()
                     if row:
-                        for value in row:
-                            if isinstance(value, str) and value.strip():
-                                title = " ".join(value.split())
-                                return title if len(title) <= 180 else title[:179] + "…"
+                        return dict(zip(fields, row))
                 finally:
                     db.close()
             except (OSError, sqlite3.Error):
                 continue
     except OSError:
         pass
-    return fallback
+    return {}
 
 
-def notification_heading(thread_id: str, icon: str = "✅") -> str:
+def conversation_title(thread_id: str) -> str:
+    for key, value in _conversation_metadata(thread_id).items():
+        if key in {"name", "title"} and isinstance(value, str) and value.strip():
+            title = " ".join(value.split())
+            return title if len(title) <= 180 else title[:179] + "…"
+    return _t('对话 {p0}', p0=thread_id[:8]) if thread_id else _t('Codex 对话')
+
+
+def conversation_workspace(thread_id: str) -> str:
+    cwd = _conversation_metadata(thread_id).get("cwd")
+    return workspace_name(cwd if isinstance(cwd, str) else "")
+
+
+def notification_heading(thread_id: str, icon: str = "🥳") -> str:
     title = conversation_title(thread_id)
     # Titles are literal metadata, not Markdown supplied by the user.
     title = re.sub(r"([\\`*_{}\[\]()<>#+.!|~-])", r"\\\1", title)
@@ -2103,7 +2115,7 @@ def send_manual_test() -> int:
             token,
             {
                 "chat_id": str(config["chat_id"]),
-                "text": _t('✅ Codex Telegram 手动测试成功'),
+                "text": _t('🥳 Codex Telegram 手动测试成功'),
                 "disable_notification": bool(config.get("silent")),
             },
         )

@@ -4,7 +4,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.4 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.5 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 

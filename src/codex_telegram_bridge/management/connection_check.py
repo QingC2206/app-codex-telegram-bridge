@@ -140,8 +140,8 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
 
         if send_probe or send_telegram:
             stage = "telegram_delivery"
-            text = ("✅ Robot 通信验收：指定 Desktop 任务的接收记录已确认。"
-                    if send_probe else "✅ Robot 只读连接检查：Telegram API 与 Desktop 原生接口可用。")
+            text = ("🥳 Robot 通信验收：指定 Desktop 任务的接收记录已确认。"
+                    if send_probe else "🥳 Robot 只读连接检查：Telegram API 与 Desktop 原生接口可用。")
             text += "\n本检查未模拟手机入站消息，也未消费 Telegram 更新。"
             if thread_id:
                 text += "\n任务：" + thread_id[:8]

@@ -55,7 +55,7 @@ class SideTests(unittest.TestCase):
         self.bot.start_turn.assert_not_called();self.bot.steer_turn.assert_not_called();self.bot.interrupt_and_send.assert_not_called()
         self.assertEqual(self.bot.send.call_args.kwargs['reply_to'],42)
         self.assertEqual(self.ctl.lookup(99),{'kind':'session','target':'side-thread','parent':'parent-thread'})
-        self.assertEqual(self.bot._reaction.call_args.args,('👌',))
+        self.assertEqual(self.bot._reaction.call_args.args,('🎉',))
 
     def test_quiet_interval_suppresses_late_answer_without_interrupting_task(self):
         self.bot._background_allowed.return_value=False
@@ -83,7 +83,7 @@ class SideTests(unittest.TestCase):
     def test_sending_failure_keeps_non_ok_and_does_not_retry_model(self):
         self.bot.send.side_effect=TimeoutError('unknown')
         self.ctl._run(self.route,'q',42)
-        self.assertNotIn(('👌',),[x.args for x in self.bot._reaction.call_args_list])
+        self.assertNotIn(('🎉',),[x.args for x in self.bot._reaction.call_args_list])
         self.assertEqual([m for m,p in self.ctl.app.calls].count('turn/start'),1)
         self.assertNotIn('side-thread',self.ctl.sessions)
 

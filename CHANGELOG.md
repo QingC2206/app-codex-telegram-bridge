@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.6.5
+
+- 问题卡片统一为 `✒️[问题(状态)] 任务标题`，展示工作区、任务短 ID、原问题和用户回答；任务元数据只读查询，缺失时明确显示未知工作区。
+- 正文完成/错误图标改为 🥳 / 🥲；Telegram 原生表情回应使用支持的 🎉 / 😢，兼容升级前的待重试反馈。
+- Use question cards with task titles, workspaces, short task IDs, original questions, and user answers. Use 🥳 / 🥲 in message text and supported 🎉 / 😢 Telegram reactions, including retries from older versions.
+
 ## 0.6.4
 
 - 异步问题卡片保留原问题和用户回答，区分已提交、已回答、待确认及已结束；移除旧作答按钮，长回答可查看全文或下载。

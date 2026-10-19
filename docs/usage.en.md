@@ -38,6 +38,8 @@ Use `/steer` to append to a running task and `/stop` to request interruption of 
 
 Codex questions provide options or a text-answer entry point. Answer asynchronous questions using an option, text entry, or a direct reply to the question card; the answer remains associated with the original question and turn. Expired or answered questions cannot be submitted again. Complex or unsupported approvals need to be handled in Desktop.
 
+Question cards use `✒️[Question (Answered)] Task title`, followed by the workspace and short task ID. Awaiting-answer, submitted, awaiting-confirmation, and closed cards share this layout. Completion/error text uses 🥳 / 🥲; native message reactions use 🎉 / 😢 because Telegram does not support 🥳 / 🥲 as ordinary reactions.
+
 After an answer, the original card keeps the question and your answer and removes answering buttons. It distinguishes submitted, answered, awaiting confirmation, and closed states. Answers entered in Desktop are filled in when their history is available. Long content can be viewed in full or downloaded as Markdown. Answers follow the existing 30-day local question-record cleanup policy; old closed cards without a readable answer record cannot be reconstructed.
 
 Replying to a task card continues the task; replying to a question card answers that specific question. A received-message acknowledgment does not itself prove submission. If the outcome is unknown, check the latest Desktop messages before retrying.

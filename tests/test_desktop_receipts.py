@@ -110,7 +110,7 @@ class ReceiptTests(unittest.TestCase):
         self.bot._announce_desktop_follow_up(self.thread, result)
         self.complete()
         response = self.notify()
-        self.assertEqual(self.emojis(), ['👀', '🤔', '👌'])
+        self.assertEqual(self.emojis(), ['👀', '🤔', '🎉'])
         self.assertEqual(response.call_args.args[1]['reply_parameters']['message_id'], self.message)
         self.assertFalse(n.task_reactions(self.token))
         self.bot.desktop.send_follow_up.assert_called_once()
@@ -131,9 +131,9 @@ class ReceiptTests(unittest.TestCase):
         self.track(); self.submitted(); self.complete()
         self.notify()
         self.bot._submission_feedback(self.thread, 'turn-new', 'sent')
-        self.assertEqual(self.emojis()[:3], ['👀', '🤔', '👌'])
+        self.assertEqual(self.emojis()[:3], ['👀', '🤔', '🎉'])
         self.assertNotIn('🤔', self.emojis()[3:])
-        self.assertEqual(self.emojis()[-1], '👌')
+        self.assertEqual(self.emojis()[-1], '🎉')
 
     def test_delivery_failure_does_not_mark_ok(self):
         self.track(); self.submitted(); self.complete()
@@ -195,7 +195,7 @@ class ReceiptTests(unittest.TestCase):
         before = self.api.call_count
         n.set_task_reaction(self.token, self.chat, 42, '🤔', self.thread, 'turn-new', _retry=True)
         self.assertEqual(self.api.call_count, before)
-        self.assertEqual(self.emojis()[-1], '👌')
+        self.assertEqual(self.emojis()[-1], '🎉')
 
     def test_uncertain_submission_is_reconciled_without_any_retry(self):
         self.bot.desktop.send_follow_up.side_effect = b.DesktopSubmissionUnknown('lost reply')

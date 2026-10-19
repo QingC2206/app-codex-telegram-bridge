@@ -141,13 +141,13 @@ class AsyncInputs:
             return
         from codex_telegram_bridge.telegram.notifications import cache_full_reply, build_notification_keyboard, markdown_preview
         status = row['status']
-        heading = (_t('✅ 已回答') if status == 'answered' else
-                   _t('✅ 回答已提交') if status == 'submitted' else
-                   _t('⏳ 回答待确认') if status in {'submitting', 'uncertain'} else _t('问题已结束'))
-        text = heading + _t('\n\n任务：`{p0}`', p0=row['thread'][:8])
-        text += _t('\n\n**原问题**\n{p0}', p0=row['title'])
+        label = (_t('已回答') if status == 'answered' else
+                 _t('已提交') if status == 'submitted' else
+                 _t('待确认') if status in {'submitting', 'uncertain'} else _t('已结束'))
+        text = self.card_heading(row, label)
+        text += _t('\n\n**原问题：**\n{p0}', p0=row['title'])
         if row.get('answer') is not None:
-            text += _t('\n\n**你的回答**\n{p0}', p0=row['answer'])
+            text += _t('\n\n**用户回答：**\n{p0}', p0=row['answer'])
         elif status == 'answered':
             text += _t('\n\n已确认作答，暂未读取到回答内容。')
         else:
@@ -155,6 +155,15 @@ class AsyncInputs:
         cache_id = cache_full_reply({'last_assistant_message': text}, row['thread'])
         keyboard = build_notification_keyboard(cache_id=cache_id) or {'inline_keyboard': []}
         self.bot.enqueue_edit(row['message'], markdown_preview(text, 2800), keyboard)
+
+    def card_heading(self, row, status):
+        from codex_telegram_bridge.telegram.notifications import conversation_title, conversation_workspace
+        import re
+        def literal(value):
+            return re.sub(r'([\\`*_{}\[\]()<>#+.!|~-])', r'\\\1', value)
+        return (_t('✒️[问题({p0})] {p1}', p0=status, p1=literal(conversation_title(row['thread'])))
+                + _t('\n工作区：{p0}（任务：{p1}）', p0=literal(conversation_workspace(row['thread'])),
+                     p1=row['thread'][:8]))
 
     def current_history(self, thread_id, *, item_limit=240):
         history = read_thread_history(self.bot.app, thread_id, turn_limit=1, item_limit=item_limit,
@@ -226,8 +235,8 @@ class AsyncInputs:
                         for index, label in enumerate(options)]
             keyboard.append([{'text': _t('文字回答'), 'callback_data': f"asyncq|{row['key']}:other"}])
             try:
-                sent = self.bot.send(_t('**❓ Codex 的异步提问**\n\n任务：`') + row['thread'][:8]
-                    + '`\n\n' + row['title'][:2800]
+                sent = self.bot.send(self.card_heading(row, _t('待回答'))
+                    + _t('\n\n**原问题：**\n{p0}', p0=row['title'][:2800])
                     + _t('\n\n任务可以继续运行。请选择选项，或回复此消息填写答案。'),
                     {'inline_keyboard': keyboard})
                 message = sent.get('message_id') if isinstance(sent, dict) else None
@@ -324,7 +333,7 @@ class AsyncInputs:
         try:
             self.bot._ui_local.message_id = None
             self.bot._submission_feedback(row['thread'], row['turn'],
-                _t('✅ 已将回答关联到原问题并提交。'), {'inline_keyboard': []})
+                _t('🥳 已将回答关联到原问题并提交。'), {'inline_keyboard': []})
         finally:
             self.bot._ui_local.message_id = panel
         self.refresh_card(self.get(key))
