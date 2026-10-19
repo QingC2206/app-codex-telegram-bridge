@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.6.2
+
+- 为来源未知的建议结构通知添加本地脱敏诊断：字段类型、已知来源枚举、最新输入的模板特征，不保存正文、路径、凭据或未知字段名。
+- 样本按事件去重，最多 100 条，每次写入清理超过 7 天的记录；采集失败不影响通知，当前过滤规则不变。
+- Add bounded local structural diagnostics for unclassified suggestion-shaped notifications. Preserve existing forwarding; record no raw message text or credentials.
+
 ## 0.6.1
 
 - Desktop 用户输入默认超时改为 10 秒；提交结果未知时再只读核对接收回执，最多等待 10 秒，禁止自动重发。

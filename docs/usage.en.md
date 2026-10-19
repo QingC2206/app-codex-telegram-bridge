@@ -91,6 +91,14 @@ Reply to a main-task message with `/side question`, or use `/side ID question`. 
 
 Desktop user-input requests default to a **10-second** timeout. On a timeout or unknown submission outcome, the bot spends up to **10 more seconds** checking local receipts. Confirmation requires a matching user message recorded after this submission in the same task, with explicit message and turn IDs; an expected target turn must also match. A verified receipt counts as accepted. Otherwise the outcome stays unknown, the journal is retained, and nothing is automatically resent. Desktop may have its own shorter internal timeout; this setting does not modify Desktop itself.
 
+## Redacted notification diagnostics
+
+When a notification has unknown provenance and a `suggestion` / `suggestions` shaped reply, the bot keeps forwarding it under the existing rules and saves a structural sample in `telegram_notification_diagnostics.sqlite3` in its data directory. Replies with other shapes and notifications with classified provenance are not sampled. A legitimate JSON reply with the same suggestion shape may be structurally sampled, but is still forwarded.
+
+Samples contain field types, array counts, string lengths, known provenance enum values, database lookup status, and flags for observed request-template features in the latest input. They exclude reply/prompt text, file paths, credentials, full task IDs, and unknown field names. Unknown keys become positional placeholders. Template flags are diagnostic evidence only and do not control filtering.
+
+Repeated samples are counted together, with at most 100 samples retained. Each write removes samples not seen in seven days. Diagnostic write failures do not block notifications. The normal log's `diagnostic_sample` identifies the sample. The database stays local and is neither uploaded nor packaged. Collection does not automatically suppress messages; actual samples must be reviewed before changing provenance detection.
+
 ## Troubleshooting
 
 | Symptom | What to check |

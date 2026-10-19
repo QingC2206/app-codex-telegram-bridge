@@ -1726,7 +1726,18 @@ def is_internal_suggestions_completion(payload: dict[str, Any]) -> bool:
     if source is None and _has_suggestion_envelope(payload):
         thread = str(payload.get("thread-id") or payload.get("thread_id") or "")
         safe_id = thread[:8] if re.fullmatch(r"[A-Za-z0-9-]{6,64}", thread) else "unknown"
-        log_error(f"preserved unclassified suggestion-shaped completion for {safe_id}; source=unknown")
+        diagnostic = ''
+        try:
+            from .notification_diagnostics import record
+            status, stored = _stored_thread_purpose(thread)
+            sample = record(payload, HOOK_DIR / 'telegram_notification_diagnostics.sqlite3',
+                            stored_status=status, stored_source=stored,
+                            composer_match=_composer_prediction_request(payload))
+            diagnostic = f'; diagnostic_sample={sample}'
+        except Exception as exc:
+            # Diagnostic failures never change forwarding or disclose values.
+            diagnostic = f'; diagnostic_unavailable={type(exc).__name__}'
+        log_error(f"preserved unclassified suggestion-shaped completion for {safe_id}; source=unknown{diagnostic}")
     return False
 
 

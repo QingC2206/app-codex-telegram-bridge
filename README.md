@@ -4,7 +4,7 @@
 
 通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.1 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.2 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
 文档和 Telegram 界面均支持中英文，默认中文。发送 `/settings` → **语言** 通过按钮选择，或用 `/language en` / `/language zh` 切换；重启和升级后保留。任务正文、模型答复与用户输入不自动翻译。
 
