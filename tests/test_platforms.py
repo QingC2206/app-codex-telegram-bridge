@@ -176,8 +176,12 @@ os._exit(0)
         result=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True,timeout=10)
         self.assertEqual(result.returncode,0,result.stderr)
         import psutil
-        process=psutil.Process(int(result.stdout.strip())) if psutil.pid_exists(int(result.stdout.strip())) else None
-        deadline=time.monotonic()+5
-        while process and process.is_running() and process.status()!=psutil.STATUS_ZOMBIE and time.monotonic()<deadline:time.sleep(.1)
-        if process and process.is_running() and process.status()!=psutil.STATUS_ZOMBIE:
-            process.kill();self.fail('Owned child survived its parent')
+        try:
+            process=psutil.Process(int(result.stdout.strip()))
+            deadline=time.monotonic()+5
+            while process.is_running() and process.status()!=psutil.STATUS_ZOMBIE and time.monotonic()<deadline:time.sleep(.1)
+            if process.is_running() and process.status()!=psutil.STATUS_ZOMBIE:
+                process.kill();self.fail('Owned child survived its parent')
+        except psutil.NoSuchProcess:
+            # Successful cleanup can race with construction or any status read.
+            pass
