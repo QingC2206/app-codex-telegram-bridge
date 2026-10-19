@@ -50,7 +50,7 @@ class ScreenTests(unittest.TestCase):
         u.SetThreadDpiAwarenessContext.return_value = 0
         u.IsIconic.return_value = True
         windows = [{'hwnd': 1, 'pid': 2}]
-        with patch.object(s, 'api', return_value=(u, Mock(), Mock())), patch.object(s, 'codex_windows', return_value=windows), patch.object(s.time, 'sleep'), patch.object(s.subprocess, 'run', side_effect=subprocess.TimeoutExpired('capture', 18)):
+        with patch.object(s.subprocess, 'CREATE_NO_WINDOW', 0, create=True), patch.object(s, 'api', return_value=(u, Mock(), Mock())), patch.object(s, 'codex_windows', return_value=windows), patch.object(s.time, 'sleep'), patch.object(s.subprocess, 'run', side_effect=subprocess.TimeoutExpired('capture', 18)):
             with self.assertRaisesRegex(RuntimeError, '超时'):
                 s.capture({'kind': 'codex', 'hwnd': 1, 'pid': 2})
         u.ShowWindow.assert_called_once_with(1, 4)

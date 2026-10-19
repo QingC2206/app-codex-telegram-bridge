@@ -216,7 +216,7 @@ class PluginHost:
         # Do not forward arbitrary process environment (API keys, tokens, etc.).
         env = {key:value for key,value in os.environ.items() if key.upper() in
                {'SYSTEMROOT','WINDIR','TEMP','TMP','PATH','USERPROFILE','LOCALAPPDATA','APPDATA','PROGRAMFILES','PROGRAMFILES(X86)','HOME','DISPLAY','WAYLAND_DISPLAY','XDG_RUNTIME_DIR','DBUS_SESSION_BUS_ADDRESS','XAUTHORITY'}}
-        env.update(PYTHONIOENCODING='utf-8', PYTHONDONTWRITEBYTECODE='1')
+        env.update(PYTHONIOENCODING='utf-8', PYTHONDONTWRITEBYTECODE='1', CODEX_HOME=str(ROOT.resolve()))
         flags = subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
         proc = subprocess.Popen([sys.executable, '-B', '-m', 'codex_telegram_bridge.plugins.worker'],
             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=code, env=env, creationflags=flags, **spawn_options())

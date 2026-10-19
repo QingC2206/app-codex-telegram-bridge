@@ -551,7 +551,7 @@ class InteractionTests(unittest.TestCase):
              patch.object(n, 'urlopen', return_value=io.BytesIO(b'hello')):
             path = n.download_telegram_attachment('111:secret', {'file_id': 'x', 'file_name': '../../evil.txt'})
             self.assertEqual(path.read_bytes(), b'hello')
-            self.assertTrue(path.is_relative_to(Path(self.folder.name)))
+            self.assertTrue(path.is_relative_to(Path(self.folder.name).resolve()))
             self.assertEqual(path.name, 'file-evil.txt')
 
     def test_download_rejects_oversize_and_hides_token_on_failure(self):

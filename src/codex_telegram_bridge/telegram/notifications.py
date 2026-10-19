@@ -13,7 +13,7 @@ import getpass
 import html
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import secrets
 import sqlite3
@@ -44,6 +44,14 @@ MAX_CACHED_REPLY_BYTES = 48 * 1024 * 1024
 
 
 REACTION_DB = HOOK_DIR / "telegram_reactions.sqlite3"
+
+
+def workspace_name(cwd):
+    if not cwd:
+        return "未知工作区"
+    # History may contain Windows workspaces even when viewed on another OS.
+    path = PureWindowsPath(cwd)
+    return path.name if path.drive else Path(cwd).name
 
 
 def _reaction_db():
@@ -975,7 +983,7 @@ def cache_full_reply(payload: dict[str, Any], thread_id: str = "") -> str | None
             "id": cache_id,
             "created_at": int(time.time()),
             "thread_id": thread_id,
-            "workspace": Path(cwd).name if cwd else "未知工作区",
+            "workspace": workspace_name(cwd),
             "text": text,
         }
         target = REPLY_CACHE_DIR / f"{cache_id}.json"
@@ -1724,7 +1732,7 @@ def message_sections(parts: list[str]) -> str:
 def build_user_input_request_message(payload: dict[str, Any]) -> str:
     """Format a non-interactive alert for Desktop's request_user_input tool."""
     cwd = str(payload.get("cwd") or "")
-    workspace = Path(cwd).name if cwd else "未知工作区"
+    workspace = workspace_name(cwd)
     session_id = str(payload.get("session_id") or payload.get("thread_id") or "")
     tool_input = payload.get("tool_input")
     questions = tool_input.get("questions") if isinstance(tool_input, dict) else None
@@ -1838,7 +1846,7 @@ def notification_heading(thread_id: str, icon: str = "✅") -> str:
 
 def build_message(payload: dict[str, Any], include_preview: bool) -> str:
     cwd = str(payload.get("cwd") or "")
-    workspace = Path(cwd).name if cwd else "未知工作区"
+    workspace = workspace_name(cwd)
     completed_at = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
     thread_id = str(payload.get("thread_id") or payload.get("thread-id") or payload.get("session_id") or payload.get("agent_id") or "")
     title = notification_heading(thread_id)

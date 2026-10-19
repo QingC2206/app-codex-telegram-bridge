@@ -30,7 +30,7 @@ def asar(resources, name='openai-codex-electron'):
 
 class PathAndCredentialsTests(unittest.TestCase):
     def setUp(self):
-        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.root=Path(temporary.name)
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.root=Path(temporary.name).resolve()
         env=patch.dict(os.environ,{'CODEX_HOME':str(self.root),'CODEX_TELEGRAM_DATA_DIR':''})
         env.start();self.addCleanup(env.stop)
 
@@ -71,7 +71,7 @@ class PathAndCredentialsTests(unittest.TestCase):
 
 class PosixDiscoveryTests(unittest.TestCase):
     def setUp(self):
-        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.root=Path(temporary.name)
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.root=Path(temporary.name).resolve()
 
     def test_linux_desktop_package_is_required_not_cli_basename(self):
         executable=self.root/'app/codex';executable.parent.mkdir();executable.write_bytes(b'fixture')

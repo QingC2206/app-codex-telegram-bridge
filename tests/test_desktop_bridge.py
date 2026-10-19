@@ -381,7 +381,7 @@ class BotEntryTests(unittest.TestCase):
 
     def test_reply_to_notification_uses_discovered_modern_pipe(self):
         profile = Path(self.folder.name).resolve()
-        pipe = r'\\.\pipe\codex-app-tools-modern'
+        pipe = r'\\.\pipe\codex-app-tools-modern' if os.name == 'nt' else '/tmp/codex-app-tools/modern.sock'
         self.bot.desktop.native.discover = lambda: d.discover_desktop(profile)
         with patch.object(d, '_desktop_roots', return_value=[{'ProcessId': 44}]), \
                 patch.object(d, '_process_environment', return_value={
@@ -393,7 +393,7 @@ class BotEntryTests(unittest.TestCase):
 
     def test_send_selected_task_uses_discovered_modern_pipe(self):
         profile = Path(self.folder.name).resolve()
-        pipe = r'\\.\pipe\codex-app-tools-modern'
+        pipe = r'\\.\pipe\codex-app-tools-modern' if os.name == 'nt' else '/tmp/codex-app-tools/modern.sock'
         self.bot.desktop.native.discover = lambda: d.discover_desktop(profile)
         self.bot.awaiting_continue['123'] = 'task'
         with patch.object(d, '_desktop_roots', return_value=[{'ProcessId': 44}]), \
