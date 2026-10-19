@@ -52,17 +52,20 @@ def macos_agent(argv, label, data):
 
 def windows_task(argv):
     ns='http://schemas.microsoft.com/windows/2004/02/mit/task'
+    domain=os.environ.get('USERDOMAIN'); user=getpass.getuser()
+    account=f'{domain}\\{user}' if domain else user
     ET.register_namespace('',ns)
     def child(parent,name,text=None,**attrs):
         node=ET.SubElement(parent,'{'+ns+'}'+name,attrs);node.text=text;return node
     root=ET.Element('{'+ns+'}Task',{'version':'1.2'})
     triggers=child(root,'Triggers')
     trigger=child(triggers,'LogonTrigger');child(trigger,'Enabled','true')
+    # An unscoped logon trigger covers all users and requires elevation.
+    child(trigger,'UserId',account)
     trigger=child(triggers,'TimeTrigger');child(trigger,'StartBoundary','2020-01-01T00:00:00')
     repetition=child(trigger,'Repetition');child(repetition,'Interval','PT1M');child(repetition,'StopAtDurationEnd','false')
     principals=child(root,'Principals');principal=child(principals,'Principal',id='Author')
-    domain=os.environ.get('USERDOMAIN'); user=getpass.getuser()
-    child(principal,'UserId',f'{domain}\\{user}' if domain else user)
+    child(principal,'UserId',account)
     child(principal,'LogonType','InteractiveToken');child(principal,'RunLevel','LeastPrivilege')
     settings=child(root,'Settings');child(settings,'MultipleInstancesPolicy','IgnoreNew')
     child(settings,'DisallowStartIfOnBatteries','false');child(settings,'StopIfGoingOnBatteries','false')

@@ -119,6 +119,9 @@ class ServiceDefinitionTests(unittest.TestCase):
         self.assertEqual(values['Command'],'C:\\a space\\pythonw.exe')
         self.assertEqual(values['LogonType'],'InteractiveToken')
         self.assertEqual(values['MultipleInstancesPolicy'],'IgnoreNew')
+        ns='{http://schemas.microsoft.com/windows/2004/02/mit/task}'
+        self.assertEqual(root.find(ns+'Triggers/'+ns+'LogonTrigger/'+ns+'UserId').text,
+                         root.find(ns+'Principals/'+ns+'Principal/'+ns+'UserId').text)
 
 
 class ServiceRecoveryTests(unittest.TestCase):
