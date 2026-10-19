@@ -106,6 +106,18 @@ class PosixDiscoveryTests(unittest.TestCase):
              patch.dict(os.environ,CODEX_CLI_PATH=str(self.root/'.vscode/codex')):
             with self.assertRaises(DesktopBridgeSafetyError):posix.locate_runtime(self.root)
 
+    def test_mac_nested_bundled_runtime_found_before_starting_a_task(self):
+        from codex_telegram_bridge.codex import desktop
+        resources=self.root/'resources'
+        binary=resources/'codex-cli/CodexCLI.app/Contents/MacOS/codex'
+        binary.parent.mkdir(parents=True);binary.write_bytes(b'fixture');binary.chmod(0o700)
+        process=Mock();process.exe.return_value=str(self.root/'app');process.children.return_value=[]
+        with patch.object(posix.sys,'platform','darwin'),patch.dict(os.environ,CODEX_CLI_PATH=''), \
+                patch.object(desktop,'discover_desktop',return_value=Mock(pid=123)), \
+                patch.object(posix.psutil,'Process',return_value=process), \
+                patch.object(posix,'desktop_resources',return_value=resources):
+            self.assertEqual(posix.locate_runtime(self.root),binary.resolve())
+
     @unittest.skipIf(os.name=='nt','Native POSIX endpoint paths')
     def test_native_endpoint_grammar_rejects_traversal_and_wrong_service(self):
         self.assertTrue(discovery.valid_native_endpoint('/tmp/codex-app-tools/test-uuid.sock'))

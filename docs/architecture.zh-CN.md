@@ -33,6 +33,8 @@ App Tools 仅用于查询。Telegram 人类输入使用 follower IPC 的 start/s
 
 只选择能证明属于 Desktop 的后端，拒绝 VS Code、PATH CLI 和不匹配的 `CODEX_CLI_PATH`。同环境多实例、跨环境同任务 ID、无法读取实例环境、端点身份变化均停止提交。
 
+macOS 支持安装包内 `Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex` 的嵌套后端布局，并优先使用已验证 Desktop 的配套运行进程。
+
 Unix follower 端点按所选环境的 `ipc/ipc.sock` 发现，兼容旧版当前用户临时目录端点。App Tools 使用 Desktop/配套子进程公布的 `codex-app-tools/<id>.sock` 或兼容 browser-use 地址。协议是四字节小端长度加 JSON。传输、查询和业务路由分别封装；不是把所有 Unix socket 都当成同一种协议。
 
 这些 Desktop 本地接口属于版本相关实现，不宣称是稳定公开 API。macOS 的本地 peer 授权、系统录屏权限或密钥环可能拒绝访问；程序报告失败并停止，不关闭权限检查。`doctor` 失败时附脱敏错误及 Desktop 版本，不能仅凭 CI 结果判定兼容。

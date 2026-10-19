@@ -10,11 +10,11 @@ Control Codex Desktop from Telegram — notifications, task management, and mess
 
 | 平台 | 实现 | 实机验收 |
 | --- | --- | --- |
-| Windows | 命名管道、DPAPI、任务计划、原生窗口/屏幕截图 | 保留原 Windows 实现，重构后另做真实投递验收 |
+| Windows | 命名管道、DPAPI、任务计划、原生窗口/屏幕截图 | 通过真实任务投递、用户来源回执及 Telegram 发送验收；手机入站操作需人工检查 |
 | macOS | Unix socket、Keychain、LaunchAgent、窗口/屏幕截图 | 自动测试覆盖；真实 Desktop/Telegram 闭环待 Mac 用户验收 |
 | Linux | Unix socket、Secret Service、systemd 用户服务、X11/Wayland 截图 | 自动测试覆盖；真实 Desktop/Telegram 闭环待 Linux 桌面验收 |
 
-跨平台 CI 运行现有业务回归、安装配置测试及各系统原生进程/连接测试。**CI 通过不代表真实 Desktop 或手机通信已经通过。** macOS/Linux 在完成对应实机验收前按实验性支持发布。
+跨平台 CI 在三个系统上分别运行 Python 3.10、3.11、3.13，覆盖业务回归、安装配置及各系统原生进程/连接测试。**CI 通过不代表真实 Desktop 或手机通信已经通过。** macOS/Linux 在完成对应实机验收前按实验性支持发布。
 
 Desktop 的本地接口可能随版本变化。连接验证失败时停止提交，不改用其他客户端，也不关闭系统的进程/截图权限检查。详情见 [架构与兼容边界](docs/architecture.zh-CN.md) 和 [验收步骤](docs/testing.zh-CN.md)。
 
@@ -80,6 +80,8 @@ git pull --ff-only
 ```
 
 然后重新运行本平台的 `install.py`。检测到唯一的旧版凭据目录时，会继续使用该目录里的凭据、状态、回复关联和附件；有多个旧目录时要求明确指定 `--data-dir`。不要把 Windows DPAPI 凭据复制到其他系统；在新电脑运行配置向导。
+
+多台电脑同时测试时，请各用一个 Telegram Bot；同一个 Bot Token 不能交给多个正在运行的长轮询服务。这样也能避免把 Mac 测试消息交给 Windows 任务。
 
 管理命令使用安装器创建的 Python。macOS/Linux 示例：
 

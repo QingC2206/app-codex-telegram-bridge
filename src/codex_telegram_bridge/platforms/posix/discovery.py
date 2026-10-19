@@ -121,15 +121,28 @@ def locate_runtime(profile: Path) -> Path:
     if not resources:
         raise DesktopBridgeSafetyError('Desktop executable changed.')
     configured = os.environ.get('CODEX_CLI_PATH')
+    if not configured and (profile/'config.toml').is_file():
+        import tomlkit
+        config = tomlkit.parse((profile/'config.toml').read_text(encoding='utf-8-sig'))
+        configured = config.get('mcp_servers',{}).get('node_repl',{}).get('env',{}).get('CODEX_CLI_PATH')
     if configured and not _runtime_allowed(configured, resources):
         raise DesktopBridgeSafetyError('CODEX_CLI_PATH must belong to Codex Desktop; VS Code and standalone CLI are forbidden.')
-    running = {Path(child.exe()).resolve() for child in process.children()
-               if _runtime_allowed(child.exe(), resources)}
+    running = set()
+    for child in process.children():
+        try:
+            path = Path(child.exe()).resolve()
+            if _runtime_allowed(path, resources):
+                running.add(path)
+        except psutil.NoSuchProcess:
+            continue
     if len(running) > 1:
         raise DesktopBridgeSafetyError('Multiple Desktop runtime versions are running.')
     if running:
         return running.pop()
     candidates = [resources/'codex', resources/'bin/codex']
+    if sys.platform == 'darwin':
+        # Packaged Desktop ships its signed CLI as a nested application bundle.
+        candidates.insert(0, resources/'codex-cli/CodexCLI.app/Contents/MacOS/codex')
     if configured:
         candidates.insert(0, Path(configured))
     for path in candidates:
