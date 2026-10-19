@@ -2,8 +2,8 @@
 *.py text eol=lf
 *.md text eol=lf
 *.json text eol=lf
-*.ps1 text eol=crlf
-*.cmd text eol=crlf
+*.toml text eol=lf
+*.yml text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf
 LICENSE text eol=lf

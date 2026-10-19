@@ -274,3 +274,7 @@ codex-telegram-bot-v*.zip.sha256
 *.dll
 *.pdb
 *.dmp
+bridge-install.json
+*.lock
+codex-telegram-bridge-v*.zip
+codex-telegram-bridge-v*.zip.sha256

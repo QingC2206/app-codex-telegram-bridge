@@ -1,72 +1,104 @@
 # App Codex Telegram Bridge
 
-Control Codex Desktop from Telegram on Windows — notifications, task management, and messaging.
+Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-在 Telegram 中接收 Codex Desktop 的任务通知、回复原会话、查看正在运行的任务，并按需查看进度、修改和截图。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.4.0 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
-当前版本：**[0.3.17](VERSION)** · **Windows** · **MIT License**
+本项目只连接 **Codex Desktop** 及其配套后端，禁止回退到 VS Code 扩展或 PATH 中的独立 Codex CLI。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
+
+## 平台与验收范围
+
+| 平台 | 实现 | 实机验收 |
+| --- | --- | --- |
+| Windows | 命名管道、DPAPI、任务计划、原生窗口/屏幕截图 | 保留原 Windows 实现，重构后另做真实投递验收 |
+| macOS | Unix socket、Keychain、LaunchAgent、窗口/屏幕截图 | 自动测试覆盖；真实 Desktop/Telegram 闭环待 Mac 用户验收 |
+| Linux | Unix socket、Secret Service、systemd 用户服务、X11/Wayland 截图 | 自动测试覆盖；真实 Desktop/Telegram 闭环待 Linux 桌面验收 |
+
+跨平台 CI 运行现有业务回归、安装配置测试及各系统原生进程/连接测试。**CI 通过不代表真实 Desktop 或手机通信已经通过。** macOS/Linux 在完成对应实机验收前按实验性支持发布。
+
+Desktop 的本地接口可能随版本变化。连接验证失败时停止提交，不改用其他客户端，也不关闭系统的进程/截图权限检查。详情见 [架构与兼容边界](docs/architecture.zh-CN.md) 和 [验收步骤](docs/testing.zh-CN.md)。
 
 ## 功能
 
-- **双向消息**：任务完成后发送通知；回复任务卡片即可继续对应的 Desktop 会话，也可以通过 `/send` 选择任务。
-- **运行任务列表**：`/running` 实时核验当前环境中的运行任务，显示名称、工作区和等待状态，支持刷新、分页、详情和回复。
-- **任务查看与控制**：查看最近任务、进度、Diff、Token 用量；向运行中的任务追加指令，或在具备中止能力时停止当前 Turn。
-- **提问与审批**：转发支持的审批、选项和文字输入请求，包括异步提问；复杂认证和不支持的交互会提示回到 Desktop 处理。
-- **完整回复**：展示 Markdown、代码和表格；长内容支持分页与下载，本地图片可上传到 Telegram。
-- **附件与截图**：向任务发送文字、图片或文件；随包截图插件提供 `/screenshot`。
-- **侧边聊天**：通过 `/side` 对任务发起独立的只读提问，保留主任务的执行过程。
-- **额度与提醒**：查询额度、接收周额度提醒；账户及接口支持时可使用重置卡相关功能。
-- **后台服务**：Windows 登录时启动，进程退出后由任务计划程序定期尝试恢复。
+- **通知和双向消息**：完成通知、完整回复、Markdown/表格、分页和下载；回复任务卡片或使用 `/send` 继续原任务。
+- **任务管理**：`/running` 实时核验运行任务；列表、详情、进度、Diff、Token 用量、追加指令及能力允许时中止 Turn。
+- **提问与审批**：支持选项、文字、异步提问和兼容的审批；过期或已回答按钮失效，结果未知的提交不自动重试。
+- **附件和插件**：上传图片/文件、显示本地图片，随包 `/screenshot` 插件与自定义 Python 插件。
+- **侧边聊天与额度**：只读侧边提问、额度查询、低额度提醒，以及账户和接口支持的重置卡操作。
+- **后台服务**：随当前用户桌面会话启动；Windows 任务计划、macOS LaunchAgent、Linux systemd 用户服务。
 
-## 运行要求
+## 安装
 
-- Windows 10 / 11，使用 **64 位 Python 3.10+**；建议使用 Python 3.11 或更新版本。
-- 已安装、登录并运行 **Codex Desktop**。机器人选择 Desktop 配套的 App Server，不使用 VS Code 扩展或 PATH 中的其他 Codex CLI。
-- 可以访问 Telegram Bot API，并拥有一个由自己管理的 Telegram Bot。
-- 截图功能需要当前 Windows 用户的可用交互桌面。
+需要已登录并运行的 Codex Desktop、64 位 Python 3.10+ 和可访问的 Telegram Bot API。推荐 Python 3.11 或更新版本。
 
-Python 部分仅使用标准库，无需运行 `pip install`。本项目依赖 Desktop 的本地接口；Desktop 更新后可能需要相应适配。
-
-## 快速开始
-
-### 1. 创建 Telegram Bot
-
-在 Telegram 中打开官方 [@BotFather](https://t.me/BotFather)，发送 `/newbot` 并按提示创建机器人。保存 Token，然后打开新机器人的私聊并发送 `/start`。
-
-详细操作见 [BotFather 配置指南](BOTFATHER_GUIDE.zh-CN.md)。Token 在安装向导中本机输入，不需要填写到源代码中。
-
-### 2. 获取源码
-
-在 PowerShell 中执行：
-
-```powershell
-git clone https://github.com/QingC2206/app-codex-telegram-bridge.git
-Set-Location app-codex-telegram-bridge
-```
-
-也可以从 GitHub 的 **Code → Download ZIP** 下载源码并解压。如果 [Releases](https://github.com/QingC2206/app-codex-telegram-bridge/releases) 中已有安装包，也可直接下载使用。
-
-### 3. 安装
-
-保持 Codex Desktop 正在运行，在仓库目录双击 `install.cmd`，或者执行：
-
-```powershell
-.\install.cmd
-```
-
-按向导输入自己的 Bot Token，选择接收消息的聊天，并完成通知设置。安装后完全退出并重新打开 Codex Desktop，以加载新的通知和 Hook 配置；如应用要求审核 Hook，请核对安装路径后确认。
-
-默认安装目录：
+1. 在 Telegram 的官方 [@BotFather](https://t.me/BotFather) 创建机器人，并对新机器人发送 `/start`。详见 [配置指南](docs/setup.zh-CN.md)。
+2. 克隆项目：
 
 ```text
-%USERPROFILE%\.codex\hooks\codex-telegram-bot
+git clone https://github.com/QingC2206/app-codex-telegram-bridge.git
+cd app-codex-telegram-bridge
 ```
 
-安装器会复制发布白名单中的文件，在本机加密保存 Token，备份并更新 `config.toml` 和 `hooks.json`，并配置名为 **Codex Telegram Bot** 的任务计划。已有的其他 `notify` 配置会要求确认后才替换；其他 Hook 会保留。
+3. Windows 执行：
 
-### 4. 开始使用
+```powershell
+py -3 install.py
+```
 
-在 Telegram 中发送 `/help` 查看菜单，发送 `/running` 查看运行任务。收到任务通知后，使用 Telegram 的“回复”功能输入消息，即可回复对应任务。
+macOS / Linux 执行：
+
+```sh
+python3 install.py
+```
+
+安装器会在当前 Codex 环境下创建独立 Python 虚拟环境 `telegram-bridge-runtime/`，安装依赖，配置 Telegram 凭据、通知 Hook 和用户服务。无需修改全局 Python，也不需要 PowerShell 安装脚本。安装失败会返回错误；不要用管理员/root 用户重跑。
+
+4. 完全退出并重新打开 Codex Desktop，按应用要求审核新增 Hook。在 Telegram 发送 `/help` 或 `/running`。
+
+首次安装需要从 PyPI 下载依赖。macOS 应使用可运行 `venv` 的 Python；Linux 需安装发行版的 Python venv 支持、Secret Service 密钥环、systemd 用户会话。无桌面会话的服务器不属于本项目 Desktop 模式的运行目标。
+
+### 平台权限
+
+- **Windows**：凭据继续使用当前用户的 DPAPI，后台服务不要求管理员权限。
+- **macOS**：首次访问 Keychain 可能要求授权。截图需要为实际运行机器人的 Python 程序允许“屏幕录制”；未授权时返回明确错误。
+- **Linux**：登录后应有解锁的 Secret Service 密钥环；缺失或锁定时不降级为明文存储。X11 的窗口截图是可见区域，可能包含遮挡。Wayland 使用桌面截图 Portal，需在电脑上确认，无法承诺无人值守的逐窗口截图。
+
+### 隔离环境和自定义目录
+
+`CODEX_HOME` 或 `--codex-home` 指定要连接的 Desktop 环境；机器人仍会核验实际运行实例的环境归属。
+
+```text
+python install.py --codex-home <Codex环境绝对路径> --data-dir <机器人数据绝对路径>
+```
+
+`--no-service` 只配置 Hook，供手动启动；已有其他通知命令时，安装器会停止，确认确实需要替换后才使用 `--replace-notify`。
+
+## 更新、管理与卸载
+
+```text
+git pull --ff-only
+```
+
+然后重新运行本平台的 `install.py`。检测到唯一的旧版凭据目录时，会继续使用该目录里的凭据、状态、回复关联和附件；有多个旧目录时要求明确指定 `--data-dir`。不要把 Windows DPAPI 凭据复制到其他系统；在新电脑运行配置向导。
+
+管理命令使用安装器创建的 Python。macOS/Linux 示例：
+
+```sh
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge doctor
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge service status
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge run
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge uninstall
+```
+
+Windows 示例：
+
+```powershell
+& "$env:USERPROFILE\.codex\telegram-bridge-runtime\Scripts\python.exe" -m codex_telegram_bridge doctor
+```
+
+其他子命令：`setup`、`service install/start/stop/status/uninstall`、`doctor --offline`。也可在自己管理的虚拟环境中 `python -m pip install .`，再使用 `codex-telegram-bridge` 命令。
+
+自定义环境的管理命令仍需传入 `--codex-home` / `--data-dir`，放在子命令之前。**卸载仅移除本工具管理的服务和 Hook，保留凭据、历史、插件和备份。** 已创建的独立 Python 虚拟环境也保留，可在确认路径后手动删除。
 
 ## 常用命令
 
@@ -94,114 +126,64 @@ Set-Location app-codex-telegram-bridge
 
 多数带任务 ID 的命令可省略 ID，通过按钮选择任务。回复任务卡片时可以附带图片或文件，单附件上限为 20 MB；多附件请分次发送。
 
-## 任务归属与兼容边界
+## 任务归属与投递规则
 
-- 默认面向当前 Windows 用户的 `%USERPROFILE%\.codex` 环境，查询和提交时验证 Desktop 实例及本机连接。其他订阅的隔离环境不会自动成为发送目标。
-- 已有 Desktop 任务经其当前持有者提交用户消息，保留原任务设置。找不到持有者时，先在 Desktop 中打开该任务后再发送。
-- 机器人不会用独立后台恢复并接管外部原任务；`/new` 创建的机器人任务使用它自己的后台。
-- 发送中断、缺少确认或结果不明时不会自动重发。先核对任务最新消息，避免手动重复提交。
-- `/running` 每次重新核验状态。查询有时间和分页上限；核验不完整时会显示可能遗漏的提示。等待审批或输入但尚未结束的任务也计入运行中。
-- 中止能力取决于当前持有者和 Desktop 接口。不可用时需回 Desktop 操作。
+- 验证 Desktop 程序来源、用户、环境和本地连接的服务端进程；环境重复、连接身份不明时拒绝提交。
+- 外部任务只经 Desktop 当前持有者继续；找不到持有者时，先在正确 Desktop 中打开该任务。
+- `/new` 创建的机器人任务使用 Desktop 配套的独立 App Server；不会自动恢复并接管原 Desktop 任务。
+- Telegram 人类消息使用用户输入通道，保留用户来源；不使用代理间委派工具伪装用户输入。
+- `suggestion` JSON 本身不会触发过滤；结合记录类型和明确内部来源识别预测建议。
+- 发送结果不明时不自动换路或重发。先核对任务最新消息，避免手动重复执行。
+- `/running` 使用当前状态核验；超时、分页上限或部分记录无法核验时明确提示。
 
 ## 额度与重置卡
 
-`/quota` 展示账户返回的额度数据。机器人提供周额度的低额度提醒，并在账户及本地接口支持时提供重置卡功能。
-
-预约可选择 6 / 12 / 24 小时；它绑定当前账户、当前额度周期和指定卡，周剩余严格低于 3% 时才尝试使用。立即重置要求周剩余不高于 5%，并需要二次确认。预约会在到期、额度恢复、周期或账户变化、服务重启等情况下失效。结果不明的兑换不会自动重试或换卡。
-
-## 更新与卸载
-
-更新源码后，重新运行相同安装目录的安装器即可保留原有本机凭据和状态。默认安装的用户可以执行：
-
-```powershell
-git pull --ff-only
-.\install.cmd
-```
-
-如果之前使用了自定义安装目录，更新时仍需指定它：
-
-```powershell
-.\install.ps1 -InstallRoot '<原安装目录>'
-```
-
-更换机器人或重新配置 Token：
-
-```powershell
-.\install.ps1 -Reconfigure
-```
-
-在已安装的目录运行 `uninstall.cmd` 可停止服务并移除本工具管理的配置。默认会删除本机凭据、状态和缓存；需要保留时执行：
-
-```powershell
-.\uninstall.ps1 -KeepData
-```
+`/quota` 展示账户额度，保留周额度提醒与重置卡机制。预约可选 6 / 12 / 24 小时，绑定账户、周期和指定卡，周剩余严格低于 3% 时才尝试使用。立即重置要求周剩余不高于 5%，并需要二次确认。到期、额度恢复、周期或账户变化、服务重启会使预约失效。结果未知的兑换不会自动重试或换卡。
 
 ## 数据与隐私
 
-Token 使用 Windows DPAPI 加密，保存在安装目录的 `telegram_notify.credentials.json` 中，由同一 Windows 用户解密。加密文件仍属于凭据，不应公开。
+新安装默认把运行数据放在所选 `CODEX_HOME/telegram-bridge/`；旧安装继续使用原数据目录。Python 包目录中不保存凭据、日志或聊天缓存。
 
-任务回复、主动请求的截图和文件会经 Telegram 传输。截图功能会包含相应显示器上的画面；插件以当前 Windows 用户权限执行，安装前应审核其代码。
+Windows 配置保存 DPAPI 加密值；macOS/Linux 保存系统钥匙串引用，Token 保留在系统凭据存储。配置文件仍包含聊天信息，不应公开。任务回复、主动请求的截图和附件会发送到 Telegram；插件具有当前用户权限。
 
-日志、聊天关联、状态数据库、附件、回复缓存和配置备份只应留在本机。完整回复缓存默认保留 7 天；下载到本机的附件不会随回复缓存一起自动清理。
+完整回复缓存默认保留 7 天；下载附件不会随回复缓存自动清理。日志、数据库、截图和验收报告均排除在 Git 和发布包之外。详见 [安全说明](SECURITY.md)。
 
-仓库的 `.gitignore` 排除了这些文件以及本地验证报告、虚拟环境和构建产物。构建脚本使用文件白名单生成安装包。报告问题时请隐藏 Token、Chat ID、会话内容及个人路径，详见 [安全说明](SECURITY.md)。
+## 开发与测试
 
-## 检查与测试
-
-### 离线检查
-
-以下检查不需要真实 Bot Token，也不代表已验证手机到 Desktop 的整条通信链路：
-
-```powershell
-.\run_tests.ps1 -Suite Communication,Interactions,Feedback
+```text
+python -m pip install -e ".[dev]"
+python tools/run_tests.py --suite Full
+python -m build
+python tools/check_distribution.py
 ```
 
-检查安装包文件与全部离线回归：
+测试使用临时环境和合成凭据，不连接真实 Telegram 或向 Desktop 任务提交消息。可选分组：`Communication`、`Notifications`、`Quota`、`Interactions`、`Screenshots`、`Plugins`、`SideChat`、`Security`、`Images`、`Feedback`、`Platforms`。
 
-```powershell
-.\install.ps1 -CheckOnly -TestSuite Full
+`python -m build` 生成开发用 wheel/sdist，不宣称通过真实通信验收。发布安装 ZIP 使用独立门禁，向明确指定的活动任务提交一次测试输入，核对对应用户消息回执并验证 Telegram 发送：
+
+```text
+python tools/build_release.py --thread-id <允许验收的活动任务完整ID>
 ```
 
-可选测试组包括 `Communication`、`Notifications`、`Quota`、`Interactions`、`Screenshots`、`Plugins`、`SideChat`、`Security`、`Images`、`Feedback`，或 `Full`。
+凭据有歧义时传入 `--credentials`，自定义环境传入 `--codex-home`。输出位于 `dist/`；`.validation/` 和 `*.validation.json` 含本机任务关联，不得公开。详见 [测试与实机验收](docs/testing.zh-CN.md)。
 
-### 已安装环境的只读检查
+## 项目结构
 
-在安装目录运行：
-
-```powershell
-py -3 .\telegram_bot.py --check
+```text
+src/codex_telegram_bridge/
+  app.py / cli.py           服务编排与统一入口
+  config.py / paths.py      凭据配置与数据路径
+  telegram/                消息收发、格式和通知
+  codex/                   Desktop 协议、历史和回执
+  features/                运行任务、提问、额度、侧边聊天
+  storage/                 持久状态
+  platforms/               Windows / macOS / Linux 与 POSIX 共用适配
+  management/              安装、服务和诊断
+  plugins/                 插件宿主和接口
+  resources/               随包插件及清单（wheel 内同样携带）
+tests/                     离线回归与平台原生测试
+tools/                     Python 测试、验收和发布工具
+docs/                      安装、架构、插件与验收文档
 ```
 
-它检查 Telegram API 和真实 Desktop 本机接口，不向任务发送消息，也不消费 Telegram 更新。
-
-### 构建安装包
-
-构建需要先完成安装和配置，并显式指定一个正在运行、允许接收测试消息的任务：
-
-```powershell
-.\build_release.ps1 -ThreadId '<正在运行的任务完整 ID>' -TestSuite Communication,Interactions,Feedback
-```
-
-该命令会向指定任务发送一条带标记的自检消息，核对实际用户消息接收记录，再发送 Telegram 验收消息并运行所选离线回归；验收失败即停止打包。输出位于 `dist/`。本地 `.validation/` 和 `*.validation.json` 包含任务关联信息，不应提交到 Git。
-
-## 常见问题
-
-**通知没有到达**：确认机器人私聊已发送 `/start`，检查网络、`/mute` 状态及安装目录中的日志；配置 Hook 后需要重新启动 Codex Desktop。
-
-**找不到任务持有者／任务由另一个应用打开**：在正确的 Desktop 环境中打开目标任务，检查是否存在共用同一环境的重复实例。不要同时用其他后台恢复原任务。
-
-**Desktop 更新后消息提交失败**：先运行只读连接检查并查看错误，安装本项目的兼容更新。结果未知时先检查原任务，确认后再决定是否重发。
-
-**机器人进程退出**：默认安装会创建登录触发及每分钟健康触发的计划任务，可在 Windows 任务计划程序中检查 **Codex Telegram Bot**。未启用自启动的安装需要自行运行服务。
-
-**截图失败**：确认当前会话有可用交互桌面；锁屏、断开的远程桌面或窗口停止绘制会影响捕获。
-
-## 源码与贡献
-
-核心入口是 `telegram_bot.py` 和 `telegram_notify.py`；Desktop 连接位于 `desktop_bridge.py`，运行任务核验位于 `running_tasks.py`。插件文档见 [PLUGIN_API.zh-CN.md](PLUGIN_API.zh-CN.md)，版本记录见 [CHANGELOG.md](CHANGELOG.md)。
-
-提交修改前运行相关测试组。请只提交源码、文档和测试，不提交个人配置、凭据、日志、会话、数据库、截图或验证报告。
-
-## 许可证
-
-本项目采用 [MIT License](LICENSE)，允许使用、修改、分发和商用；分发副本或实质部分时保留版权及许可声明。
+插件开发见 [插件 API](docs/plugins.zh-CN.md)，版本变化见 [CHANGELOG](CHANGELOG.md)。本项目采用 [MIT License](LICENSE)。

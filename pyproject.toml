@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "app-codex-telegram-bridge"
+version = "0.4.0"
+description = "Telegram notifications and task control for Codex Desktop"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+  "psutil>=6.1,<8",
+  "keyring>=25,<26",
+  "tomlkit>=0.13,<1",
+  "mss>=10,<11",
+  "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+  "dbus-next>=0.2.3; sys_platform == 'linux'",
+  "python-xlib>=0.33; sys_platform == 'linux'",
+]
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "wheel"]
+
+[project.scripts]
+codex-telegram-bridge = "codex_telegram_bridge.cli:main"
+
+[project.urls]
+Repository = "https://github.com/QingC2206/app-codex-telegram-bridge"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+codex_telegram_bridge = ["resources/*.json", "resources/bundled_plugins/*/*.json", "resources/bundled_plugins/*/*.py"]
