@@ -106,6 +106,95 @@ def _stop_owned_processes():
             raise RuntimeError('Cannot stop the old Robot process safely; close that Robot before upgrading.') from exc
 
 
+def _owned_arguments(argv):
+    return ('codex_telegram_bridge' in argv and '--codex-home' in argv
+            and '--data-dir' in argv
+            and argv[argv.index('--codex-home')+1:argv.index('--codex-home')+2] == [str(codex_home())]
+            and argv[argv.index('--data-dir')+1:argv.index('--data-dir')+2] == [str(data_dir())])
+
+
+def _validate_definition(path):
+    if not path.exists():
+        return
+    if path.suffix == '.plist':
+        owned = _owned_arguments(plistlib.loads(path.read_bytes()).get('ProgramArguments', []))
+    else:
+        content = path.read_text(encoding='utf-8')
+        owned = ('codex_telegram_bridge' in content
+                 and _systemd_arg(str(codex_home())) in content
+                 and _systemd_arg(str(data_dir())) in content)
+    if not owned:
+        raise RuntimeError('Existing user service is not owned by this Robot/profile.')
+
+
+def snapshot():
+    """Read original definition/state before any installation mutation."""
+    label = identity()
+    if sys.platform == 'win32':
+        name = 'Codex Telegram Bot' if codex_home() == (Path.home()/'.codex').resolve() else label
+        result = _run(['schtasks.exe', '/Query', '/TN', name, '/XML'], check=False)
+        content = result.stdout if result.returncode == 0 else None
+        if content is not None and not _legacy_owned(content):
+            raise RuntimeError('Existing scheduled task is not owned by this Robot/profile.')
+        return {'platform': 'win32', 'name': name, 'content': content}
+    if sys.platform == 'darwin':
+        path = Path.home()/'Library/LaunchAgents'/(label+'.plist')
+        _validate_definition(path)
+        domain = f'gui/{os.getuid()}'
+        active = _run(['launchctl','print',domain+'/'+label],check=False).returncode == 0
+        if active and not path.exists():
+            raise RuntimeError('Loaded LaunchAgent has no owned definition; refusing replacement.')
+        return {'platform':'darwin','path':path,'content':path.read_bytes() if path.exists() else None,
+                'active':active,'domain':domain,'label':label}
+    if sys.platform.startswith('linux'):
+        path = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home()/'.config')/'systemd/user'/(label+'.service')
+        _validate_definition(path)
+        active = _run(['systemctl','--user','is-active',path.name],check=False).returncode == 0
+        enabled = _run(['systemctl','--user','is-enabled',path.name],check=False).returncode == 0
+        if (active or enabled) and not path.exists():
+            raise RuntimeError('Existing systemd service has no owned local definition.')
+        return {'platform':'linux','path':path,'content':path.read_bytes() if path.exists() else None,
+                'active':active,'enabled':enabled}
+    raise RuntimeError('Unsupported operating system.')
+
+
+def restore(previous):
+    """Restore only the service whose ownership was checked by snapshot()."""
+    content = previous['content']
+    if previous['platform'] == 'win32':
+        name = previous['name']
+        _run(['schtasks.exe','/Change','/TN',name,'/Disable'],check=False)
+        _stop_owned_processes()
+        _run(['schtasks.exe','/End','/TN',name],check=False)
+        if content is None:
+            _run(['schtasks.exe','/Delete','/TN',name,'/F'],check=False)
+        else:
+            with tempfile.TemporaryDirectory() as folder:
+                path = Path(folder)/'task.xml';path.write_bytes(content)
+                _run(['schtasks.exe','/Create','/TN',name,'/XML',str(path),'/F'])
+        # The restored task retains its enabled setting and original triggers.
+        return
+    path = previous['path']
+    if previous['platform'] == 'darwin':
+        _run(['launchctl','bootout',previous['domain']+'/'+previous['label']],check=False)
+    else:
+        _run(['systemctl','--user','disable','--now',path.name],check=False)
+    if content is None:
+        path.unlink(missing_ok=True)
+    else:
+        path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_bytes(content);path.chmod(0o600)
+    if previous['platform'] == 'darwin':
+        if previous['active']:
+            _run(['launchctl','bootstrap',previous['domain'],str(path)])
+    else:
+        _run(['systemctl','--user','daemon-reload'])
+        if previous['enabled']:
+            _run(['systemctl','--user','enable',path.name])
+        if previous['active']:
+            _run(['systemctl','--user','start',path.name])
+
+
 def manage(action):
     data=ensure_data_dir(); argv=command(); label=identity()
     if sys.platform=='win32':
@@ -137,6 +226,7 @@ def manage(action):
         _run(['schtasks.exe',*flags,'/TN',name],check=action!='stop')
     elif sys.platform=='darwin':
         path=Path.home()/'Library/LaunchAgents'/(label+'.plist')
+        _validate_definition(path)
         domain=f'gui/{os.getuid()}'
         if action=='status':
             return _run(['launchctl','print',domain+'/'+label],check=False).returncode
@@ -156,6 +246,7 @@ def manage(action):
             _run(['launchctl','bootstrap',domain,str(path)])
     elif sys.platform.startswith('linux'):
         path=Path(os.environ.get('XDG_CONFIG_HOME') or Path.home()/'.config')/'systemd/user'/(label+'.service')
+        _validate_definition(path)
         if action=='status': return _run(['systemctl','--user','is-active',path.name],check=False).returncode
         if action=='install':
             path.parent.mkdir(parents=True,exist_ok=True)

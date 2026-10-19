@@ -11,7 +11,7 @@ python tools/check_distribution.py
 
 测试使用临时 Codex 环境和机器人数据目录。原有业务场景继续覆盖回复、消息来源、内部建议过滤、任务查询、异步提问、额度、图片、表格、插件及安全边界。新增测试覆盖安装配置保留/回滚、旧数据发现、凭据不可用时拒绝明文回退、服务参数转义、单实例互斥、Desktop 包来源和 Unix 真实 socket 分帧及 peer 校验。
 
-GitHub Actions 在 Windows、Ubuntu、macOS 运行 Python 3.11/3.13；原生平台测试仅在对应系统执行。没有 Desktop 或 Telegram 账号的 CI 不执行真实任务投递。
+GitHub Actions 在 Windows、Ubuntu、macOS 运行 Python 3.10/3.11/3.13；原生平台测试仅在对应系统执行。没有 Desktop 或 Telegram 账号的 CI 不执行真实任务投递。
 
 ## 当前电脑只读检查
 

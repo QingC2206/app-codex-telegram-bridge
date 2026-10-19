@@ -1,9 +1,11 @@
 """Installer tests use temporary profiles and never modify OS services."""
 import json
+import importlib.util
 import os
 from pathlib import Path
 import plistlib
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import patch,Mock
 import xml.etree.ElementTree as ET
@@ -20,6 +22,8 @@ class InstallTests(unittest.TestCase):
         from codex_telegram_bridge.codex import desktop
         desktop_patch=patch.object(desktop,'discover_desktop',return_value=Mock());desktop_patch.start();self.addCleanup(desktop_patch.stop)
         service=patch.object(services,'manage');self.service=service.start();self.addCleanup(service.stop)
+        snapshot=patch.object(services,'snapshot',return_value={'original':'service'});snapshot.start();self.addCleanup(snapshot.stop)
+        restore=patch.object(services,'restore');self.restore=restore.start();self.addCleanup(restore.stop)
 
     def test_install_and_uninstall_preserve_unrelated_settings_and_data(self):
         config=self.profile/'config.toml';config.write_text('# keep\nmodel = "example"\n')
@@ -59,6 +63,21 @@ class InstallTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'registration failed'):install.install()
         self.assertEqual(config.read_text(),'# original\n')
         self.assertFalse((self.profile/'hooks.json').exists())
+        self.restore.assert_called_once_with({'original':'service'})
+
+    def test_failed_restart_restores_existing_installation_record(self):
+        install.install()
+        manifest=self.data/'bridge-install.json';original=manifest.read_bytes()
+        self.service.side_effect=[0,RuntimeError('restart failed')]
+        with patch.object(install.sys,'platform','linux'):
+            with self.assertRaisesRegex(RuntimeError,'restart failed'):install.install()
+        self.assertEqual(manifest.read_bytes(),original)
+        self.restore.assert_called_once()
+
+    def test_hook_only_install_does_not_touch_service(self):
+        install.install(service=False)
+        self.service.assert_not_called()
+        self.restore.assert_not_called()
 
     def test_uninstall_respects_new_notify_config_changed_by_user(self):
         install.install();config=self.profile/'config.toml';config.write_text('notify=["new-user-tool"]\n')
@@ -85,3 +104,65 @@ class ServiceDefinitionTests(unittest.TestCase):
         self.assertEqual(values['Command'],'C:\\a space\\pythonw.exe')
         self.assertEqual(values['LogonType'],'InteractiveToken')
         self.assertEqual(values['MultipleInstancesPolicy'],'IgnoreNew')
+
+
+class ServiceRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
+        self.root=Path(temporary.name).resolve()
+        env=patch.dict(os.environ,CODEX_HOME=str(self.root/'codex'),CODEX_TELEGRAM_DATA_DIR=str(self.root/'data'),XDG_CONFIG_HOME=str(self.root/'config'))
+        env.start();self.addCleanup(env.stop)
+        home=patch.object(Path,'home',return_value=self.root);home.start();self.addCleanup(home.stop)
+
+    def test_other_profiles_launch_agent_is_never_removed(self):
+        path=self.root/'Library/LaunchAgents'/(services.identity()+'.plist')
+        path.parent.mkdir(parents=True)
+        path.write_bytes(plistlib.dumps({'ProgramArguments':['python','-m','codex_telegram_bridge','--data-dir','other']}))
+        with patch.object(services.sys,'platform','darwin'),patch.object(services,'_run') as run:
+            with self.assertRaisesRegex(RuntimeError,'not owned'):services.manage('uninstall')
+        run.assert_not_called();self.assertTrue(path.exists())
+
+    def test_linux_service_rollback_restores_content_and_prior_state(self):
+        path=self.root/'config/systemd/user'/(services.identity()+'.service')
+        path.parent.mkdir(parents=True)
+        original=services.linux_unit(services.command()).encode();path.write_bytes(original)
+        with patch.object(services.sys,'platform','linux'),patch.object(services,'_run',return_value=Mock(returncode=0)) as run:
+            previous=services.snapshot();path.write_text('failed replacement')
+            services.restore(previous)
+        self.assertEqual(path.read_bytes(),original)
+        commands=[call.args[0] for call in run.call_args_list]
+        self.assertIn(['systemctl','--user','enable',path.name],commands)
+        self.assertEqual(commands[-1],['systemctl','--user','start',path.name])
+
+    def test_failed_first_install_removes_only_created_agent(self):
+        path=self.root/'Library/LaunchAgents'/(services.identity()+'.plist')
+        previous={'platform':'darwin','path':path,'content':None,'active':False,'domain':'gui/123','label':services.identity()}
+        path.parent.mkdir(parents=True);path.write_bytes(b'partial')
+        with patch.object(services,'_run') as run:services.restore(previous)
+        self.assertFalse(path.exists());self.assertEqual(run.call_count,1)
+
+    def test_windows_service_rollback_reimports_original_xml(self):
+        original=services.windows_task(services.command()); imported=[]
+        def run(argv,**kwargs):
+            if '/XML' in argv:imported.append(Path(argv[argv.index('/XML')+1]).read_bytes())
+            return Mock(returncode=0)
+        with patch.object(services,'_run',side_effect=run),patch.object(services,'_stop_owned_processes'):
+            services.restore({'platform':'win32','name':'test-owned-task','content':original})
+        self.assertEqual(imported,[original])
+
+
+class BootstrapTests(unittest.TestCase):
+    def test_running_service_stops_before_pip_and_recovers_on_failure(self):
+        spec=importlib.util.spec_from_file_location('bridge_bootstrap',Path(__file__).resolve().parents[1]/'install.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        calls=[]
+        def run(argv,**kwargs):
+            calls.append(argv)
+            if 'pip' in argv:raise subprocess.CalledProcessError(1,argv)
+            return Mock(returncode=0)
+        with tempfile.TemporaryDirectory() as folder,patch.object(module.sys,'argv',['install.py','--codex-home',folder]), \
+                patch.object(module.venv,'EnvBuilder'),patch.object(module.subprocess,'run',side_effect=run):
+            with self.assertRaises(subprocess.CalledProcessError):module.main()
+        pip_index=next(i for i,c in enumerate(calls) if 'pip' in c)
+        self.assertEqual(calls[pip_index-1][-2:],['service','stop'])
+        self.assertEqual(calls[pip_index+1][-2:],['service','start'])

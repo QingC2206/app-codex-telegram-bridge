@@ -48,6 +48,12 @@ class PluginTests(unittest.TestCase):
         self.assertEqual(self.execute(old)['actions'][0]['text'],'你好')
         self.assertEqual(self.execute(new)['actions'][0]['text'],'新版')
 
+    def test_worker_keeps_bound_profile_when_inherited_environment_changes(self):
+        p=self.add(code="import os\nfrom plugin_api import *\ndef handle(request,ctx): return result(message(os.environ['CODEX_HOME']))")
+        with patch.object(h,'ROOT',self.root),patch.dict(os.environ,CODEX_HOME=str(self.root/'other-profile')):
+            value=self.execute(p)
+        self.assertEqual(value['actions'][0]['text'],str(self.root.resolve()))
+
     def test_disabled_removed_syntax_invalid_and_conflicting_plugins_isolated(self):
         self.add('good');self.add('bad',code='syntax invalid !')
         self.assertIn('good',self.host.plugins);self.assertIn('bad',self.host.errors)

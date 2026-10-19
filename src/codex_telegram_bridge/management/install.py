@@ -44,7 +44,7 @@ def install(*, service=True, replace_notify=False):
     discover_desktop()
     data=ensure_data_dir(); profile=codex_home()
     config_path=profile/'config.toml'; hooks_path=profile/'hooks.json'; manifest_path=data/'bridge-install.json'
-    originals={p:p.read_bytes() if p.exists() else None for p in (config_path,hooks_path)}
+    originals={p:p.read_bytes() if p.exists() else None for p in (config_path,hooks_path,manifest_path)}
     config=tomlkit.parse((originals[config_path] or b'').decode('utf-8-sig'))
     hooks=json.loads((originals[hooks_path] or b'{"hooks":{}}').decode('utf-8-sig'))
     if not isinstance(hooks,dict) or not isinstance(hooks.get('hooks',{}),dict):
@@ -70,10 +70,13 @@ def install(*, service=True, replace_notify=False):
     backup=data/'backups'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');backup.mkdir(parents=True)
     for p,content in originals.items():
         if content is not None: _write(backup/p.name,content)
+    service_before = services.snapshot() if service else None
+    service_changed = False
     try:
         _write(config_path,tomlkit.dumps(config).encode())
         _write(hooks_path,(json.dumps(hooks,ensure_ascii=False,indent=2)+'\n').encode())
         if service:
+            service_changed = True
             services.manage('install')
             if sys.platform!='darwin': services.manage('start')
         _write(manifest_path,json.dumps(manifest,ensure_ascii=False,indent=2).encode())
@@ -81,6 +84,11 @@ def install(*, service=True, replace_notify=False):
         for p,content in originals.items():
             if content is not None: _write(p,content)
             elif p.exists(): p.unlink()
+        if service_changed:
+            try:
+                services.restore(service_before)
+            except Exception as restore_error:
+                raise RuntimeError(f'Installation failed and service rollback failed; backups: {backup}') from restore_error
         raise
     print('Installed. Restart Codex Desktop to load hooks. Data: '+str(data))
     return 0
