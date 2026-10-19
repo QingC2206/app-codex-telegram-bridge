@@ -145,7 +145,10 @@ class DesktopAppTools:
         endpoint = self.discover()
         if not endpoint.pipe:
             raise DesktopIpcUnavailable(_t('当前 Desktop 未提供原生任务接口。'))
-        transport = self.transport_factory(timeout=self.timeout)
+        remaining = min(self.timeout, getattr(self, '_deadline', float('inf')) - time.monotonic())
+        if remaining <= 0:
+            raise TimeoutError('Desktop read deadline exceeded')
+        transport = self.transport_factory(timeout=remaining)
         transport.PIPE_PATH = endpoint.pipe
         handle = transport._open()
         try:
@@ -159,10 +162,15 @@ class DesktopAppTools:
         request_id = str(uuid.uuid4())
         request = {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
         try:
+            if hasattr(self, '_deadline'):
+                remaining = self._deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError('Desktop read deadline exceeded')
+                transport.timeout = min(self.timeout, remaining)
             # Once a mutating frame is written (even partially), its outcome may
             # be unknown. Never make a second writer or retry through legacy IPC.
             transport._write(handle, request)
-            deadline = time.monotonic() + self.timeout
+            deadline = min(time.monotonic() + self.timeout, getattr(self, '_deadline', float('inf')))
             while True:
                 response = transport._next_message(handle, deadline)
                 if response.get("id") == request_id:
@@ -220,6 +228,30 @@ class DesktopAppTools:
             result = self._call(transport, handle, "read_thread", thread_id,
                                 {"threadId": thread_id, "hostId": "local", "turnLimit": 1,
                                  "includeOutputs": False, "maxOutputCharsPerItem": 0})
+            return _content_json(result)
+        finally:
+            transport._close(handle)
+
+    def read_submission_history(self, thread_id: str, *, timeout: float) -> dict[str, Any]:
+        """Read bounded user items from Desktop when local rollouts lag behind.
+
+        Discovery, catalog lookup and history share one budget. This connection
+        is independent of submissions and never starts or resumes a thread.
+        """
+        if timeout <= 0:
+            raise TimeoutError('Desktop read deadline exceeded')
+        reader = DesktopAppTools(self.transport_factory, min(timeout, self.timeout), self.discover)
+        reader._deadline = time.monotonic() + min(timeout, self.timeout)
+        transport, handle = reader._connect()
+        try:
+            reader._catalog(transport, handle, {'read_thread'})
+            if time.monotonic() >= reader._deadline:
+                raise TimeoutError('Desktop read deadline exceeded')
+            result = reader._call(transport, handle, 'read_thread', thread_id,
+                {'threadId': thread_id, 'hostId': 'local', 'turnLimit': 3,
+                 'includeOutputs': False, 'maxOutputCharsPerItem': 20000})
+            if time.monotonic() >= reader._deadline:
+                raise TimeoutError('Desktop read deadline exceeded')
             return _content_json(result)
         finally:
             transport._close(handle)

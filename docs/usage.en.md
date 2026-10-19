@@ -44,6 +44,8 @@ After an answer, the original card keeps the question and your answer and remove
 
 Replying to a task card continues the task; replying to a question card answers that specific question. A received-message acknowledgment does not itself prove submission. If the outcome is unknown, check the latest Desktop messages before retrying.
 
+After a submission timeout, the bot checks receipts for up to 10 seconds, including read-only live Desktop history when needed. Live verification requires the exact first user message in a turn started after submission, matching the task, text digest, and unique item ID. Steering into older turns or insufficient evidence remains unconfirmed; the bot never resubmits automatically.
+
 Send attachments by replying to a task or side-chat message. Each attachment is limited to 20 MB; send multiple attachments separately. Full replies can be paginated or downloaded as Markdown. Switching interface language does not translate original content or JSON, or filter a response merely because it contains a `suggestion` field.
 
 ## Common commands

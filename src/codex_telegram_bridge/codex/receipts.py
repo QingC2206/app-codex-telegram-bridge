@@ -139,3 +139,42 @@ def completion_turn(thread_id: str, final_message: Any, sessions: Path) -> str:
                 and isinstance(payload.get("turn_id"), str) and payload["turn_id"]):
             matches.add(payload["turn_id"])
     return next(iter(matches)) if len(matches) == 1 else ""
+
+
+def native_start_receipts(history: Any, thread_id: str) -> list[dict[str, Any]]:
+    """Only the first user item of an explicitly dated new turn proves a start.
+
+    Live items lack per-item timestamps. Never use this fallback for steering
+    into an older turn, assistant text, quoted tool output, or truncated input.
+    """
+    import math
+    if (not isinstance(history, dict) or not isinstance(history.get('thread'), dict)
+            or history['thread'].get('id') != thread_id):
+        return []
+    turns = history.get('turns')
+    if not isinstance(turns, list):
+        return []
+    result = []
+    for turn in turns[:3]:
+        if not isinstance(turn, dict):
+            continue
+        started = turn.get('startedAt')
+        turn_id = turn.get('id')
+        items = turn.get('items')
+        if (type(started) not in (int, float) or not math.isfinite(started)
+                or not isinstance(turn_id, str) or not turn_id
+                or not isinstance(items, list) or not items):
+            continue
+        # Restrict to the first item, not an arbitrary later same-text message.
+        item = items[0]
+        if not isinstance(item, dict) or item.get('type') != 'userMessage':
+            continue
+        item_id, content = item.get('id'), item.get('content')
+        if (not isinstance(item_id, str) or not item_id or not isinstance(content, list)
+                or len(content) != 1 or not isinstance(content[0], dict)
+                or content[0].get('type') != 'text' or not isinstance(content[0].get('text'), str)
+                or item.get('truncated') or item.get('textTruncated') or content[0].get('truncated')):
+            continue
+        result.append({'turn_id': turn_id, 'item_id': item_id, 'created': started,
+                       'origin': 'user', 'digest': prompt_digest(thread_id, content[0]['text'])})
+    return sorted(result, key=lambda receipt: receipt['created'])

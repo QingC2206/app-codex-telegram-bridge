@@ -226,6 +226,78 @@ class ReceiptTests(unittest.TestCase):
         self.assertEqual(self.emojis(), ['👀'])
         self.assertEqual(len(self.bot.desktop.mock_calls), 1)
 
+    def live_history(self, text='hello', *, started=None, role='userMessage', thread=None, item='native-item'):
+        return {'thread': {'id': thread or self.thread}, 'turns': [
+            {'id': 'native-turn', 'startedAt': time.time() if started is None else started,
+             'items': [{'id': item, 'type': role, 'content': [{'type': 'text', 'text': text}]}]}]}
+
+    def test_stale_rollout_uses_live_desktop_user_receipt_without_resending(self):
+        self.bot.desktop.send_follow_up.side_effect = b.DesktopSubmissionUnknown('start timeout')
+        self.bot.desktop.native.read_submission_history.side_effect = lambda *a, **kw: self.live_history()
+        with patch.object(b, 'DESKTOP_RECEIPT_TIMEOUT_SECONDS', 10):
+            result = self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.assertTrue(result['receipt_confirmed'])
+        self.assertEqual(result['turn_id'], 'native-turn')
+        self.assertEqual(self.path.read_text(), '')
+        self.assertEqual(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread)['item_id'], 'native-item')
+        self.bot.desktop.send_follow_up.assert_called_once()
+        self.bot.desktop.native.read_submission_history.assert_called_once_with(self.thread, timeout=3.0)
+        self.assertEqual(self.emojis(), ['👀'])
+
+    def test_live_receipt_rejects_old_wrong_thread_assistant_and_changed_text(self):
+        cases = [dict(started=1), dict(role='agentMessage'), dict(thread='another-thread'),
+                 dict(text='hello truncated'), dict(started=float('nan')), dict(started=True),
+                 dict(started=time.time()+3600)]
+        self.track()
+        for case in cases:
+            with self.subTest(case=case):
+                n.resolve_desktop_history_submissions(self.token, self.thread, self.live_history(**case))
+                self.assertIsNone(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread))
+
+    def test_live_receipt_never_guesses_a_steered_item_or_expected_turn(self):
+        self.track()
+        history = self.live_history()
+        history['turns'][0]['items'].insert(0, {'id': 'other-item', 'type': 'agentMessage', 'text': 'hello'})
+        n.resolve_desktop_history_submissions(self.token, self.thread, history)
+        n.resolve_desktop_history_submissions(self.token, self.thread, self.live_history(), expected_turn_id='different-turn')
+        self.assertIsNone(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread))
+
+    def test_live_receipt_duplicate_prompts_cannot_claim_same_item(self):
+        self.track(); self.track(message=43)
+        history = self.live_history()
+        n.resolve_desktop_history_submissions(self.token, self.thread, history)
+        self.assertIsNotNone(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread))
+        self.assertIsNone(n.desktop_submission_receipt(self.token, self.chat, 43, self.thread))
+        n.resolve_desktop_history_submissions(self.token, self.thread, history)
+        self.assertIsNone(n.desktop_submission_receipt(self.token, self.chat, 43, self.thread))
+
+    def test_live_receipt_rejects_malformed_or_truncated_items(self):
+        self.assertEqual(receipts.native_start_receipts({'thread': []}, self.thread), [])
+        self.track()
+        for key, value in [('id', ''), ('truncated', True), ('textTruncated', True), ('content', [])]:
+            history = self.live_history()
+            history['turns'][0]['items'][0][key] = value
+            n.resolve_desktop_history_submissions(self.token, self.thread, history)
+            self.assertIsNone(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread))
+
+    def test_live_query_failure_does_not_resubmit_and_respects_total_budget(self):
+        elapsed = [0.0]
+        def query(*args, **kwargs):
+            elapsed[0] += kwargs['timeout']
+            raise TimeoutError('offline')
+        def wait(seconds):
+            elapsed[0] += seconds
+            return False
+        self.bot.desktop.send_follow_up.side_effect = b.DesktopSubmissionUnknown('start timeout')
+        self.bot.desktop.native.read_submission_history.side_effect = query
+        with patch.object(b, 'DESKTOP_RECEIPT_TIMEOUT_SECONDS', 10), \
+             patch.object(b.time, 'monotonic', side_effect=lambda: elapsed[0]), \
+             patch.object(self.bot.stop_event, 'wait', side_effect=wait), patch.object(b, 'log'):
+            with self.assertRaises(b.DesktopSubmissionUnknown):
+                self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.assertEqual(elapsed[0], 10)
+        self.bot.desktop.send_follow_up.assert_called_once()
+
     def test_receipt_bound_by_background_worker_is_also_accepted(self):
         def accepted(*args, **kwargs):
             self.submitted()

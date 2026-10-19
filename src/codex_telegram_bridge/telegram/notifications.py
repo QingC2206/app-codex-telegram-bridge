@@ -374,6 +374,29 @@ def resolve_desktop_submissions(token, thread_id=None, *, update_reactions=True,
             log_error(f"Desktop reply association failed: {type(exc).__name__}")
 
 
+def resolve_desktop_history_submissions(token, thread_id, history, *, expected_turn_id='', deadline=None):
+    """Correlate live receipts in journal order, without network writes."""
+    receipts = desktop_receipts.native_start_receipts(history, thread_id)
+    if not receipts:
+        return
+    db = _reaction_db(timeout=0)
+    try:
+        rows = db.execute("SELECT chat,message,digest,created FROM desktop_submissions WHERE bot=? AND thread=? AND turn='' AND created>? ORDER BY created,message LIMIT 50",
+                          (token.split(':')[0], thread_id, time.time()-86400)).fetchall()
+    finally:
+        db.close()
+    for chat, message, digest, created in rows:
+        if deadline is not None and time.monotonic() >= deadline:
+            return
+        for receipt in receipts:
+            if (receipt['created'] < created or receipt['created'] > time.time()+1
+                    or receipt['digest'] != digest
+                    or (expected_turn_id and receipt['turn_id'] != expected_turn_id)):
+                continue
+            if bind_desktop_submission(token, chat, message, thread_id, receipt['turn_id'], receipt['item_id'], update_reaction=False):
+                break
+
+
 def payload_turn_id(payload):
     explicit = str(payload.get('turn_id') or payload.get('turn-id') or '')
     if explicit:

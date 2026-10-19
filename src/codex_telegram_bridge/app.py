@@ -3082,6 +3082,7 @@ class TelegramCodexBot:
 
     def _reconcile_desktop_submission(self, source, thread_id, expected_turn_id):
         deadline = time.monotonic() + DESKTOP_RECEIPT_TIMEOUT_SECONDS
+        next_native_check = time.monotonic()
         while True:
             try:
                 # Resolve in journal order so identical pending prompts cannot
@@ -3095,7 +3096,20 @@ class TelegramCodexBot:
                             'turn_id': receipt['turn_id'], 'receipt_confirmed': True}
             except Exception as exc:
                 log(f'Desktop receipt check unavailable: {type(exc).__name__}')
-                return None
+            remaining = deadline - time.monotonic()
+            if remaining > 0 and time.monotonic() >= next_native_check:
+                try:
+                    history = self.desktop.native.read_submission_history(thread_id, timeout=min(3.0, remaining))
+                    telegram_notify_module.resolve_desktop_history_submissions(self.token, thread_id, history,
+                        expected_turn_id=expected_turn_id, deadline=deadline)
+                    receipt = telegram_notify_module.desktop_submission_receipt(self.token, self.chat_id, source, thread_id)
+                    if receipt and (not expected_turn_id or receipt['turn_id'] == expected_turn_id):
+                        log('Desktop submission confirmed by live user history; no resubmission')
+                        return {'mode': 'native', 'route': 'desktop-user-input',
+                                'turn_id': receipt['turn_id'], 'receipt_confirmed': True}
+                except Exception as exc:
+                    log(f'Desktop live receipt check unavailable: {type(exc).__name__}')
+                next_native_check = time.monotonic() + 1.0
             remaining = deadline - time.monotonic()
             if remaining <= 0 or self.stop_event.wait(min(0.25, remaining)):
                 return None

@@ -111,6 +111,28 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(self.native.read_thread('task')['thread']['id'], 'task')
         self.assertFalse(self.mutations())
 
+    def test_receipt_history_read_is_bounded_and_read_only(self):
+        self.native.read_submission_history('task', timeout=3)
+        calls = [r for r in self.transport.requests if r['method'] == 'tools/call']
+        self.assertEqual(calls[0]['params']['tool'], 'read_thread')
+        self.assertEqual(calls[0]['params']['arguments'], {'threadId': 'task', 'hostId': 'local',
+            'turnLimit': 3, 'includeOutputs': False, 'maxOutputCharsPerItem': 20000})
+        self.assertFalse(self.mutations())
+        self.assertEqual(self.transport.closed, [55])
+
+    def test_receipt_history_deadline_covers_catalog_and_history(self):
+        original = self.transport._next_message
+        elapsed = [0.0]
+        def receive(handle, deadline):
+            self.assertEqual(deadline, 3.0)
+            elapsed[0] += 2
+            return original(handle, deadline)
+        with patch.object(d.time, 'monotonic', side_effect=lambda: elapsed[0]), \
+                patch.object(self.transport, '_next_message', side_effect=receive):
+            with self.assertRaises(TimeoutError):
+                self.native.read_submission_history('task', timeout=3)
+        self.assertEqual(self.transport.closed, [55])
+
     def test_live_list_uses_supported_limit_and_real_task_context(self):
         self.assertEqual(self.native.list_threads('actual-task'), self.transport.sidebar)
         params = self.transport.requests[-1]['params']

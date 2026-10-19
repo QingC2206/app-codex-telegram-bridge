@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.6.6
+
+- 修复 Desktop 已接收消息但本地 rollout 文件滞后时的“提交结果未知”误报：增加同环境 Desktop 实时历史的只读回执核对。
+- 严格匹配任务、新回合开始时间、首条用户消息原文摘要和唯一消息 ID；旧回合追加、截断内容或来源不符继续保持结果未知。
+- 回执核对总预算仍为 10 秒，失败不重发，重复提交按本地记录顺序分配独立回执。
+- Reconcile timed-out submissions against read-only live Desktop history when local rollouts lag. Require an exact first user message in a fresh turn, preserve receipt uniqueness and the 10-second budget, and never resubmit.
+
 ## 0.6.5
 
 - 问题卡片统一为 `✒️[问题(状态)] 任务标题`，展示工作区、任务短 ID、原问题和用户回答；任务元数据只读查询，缺失时明确显示未知工作区。
