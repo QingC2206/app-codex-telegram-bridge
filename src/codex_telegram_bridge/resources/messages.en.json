@@ -738,5 +738,6 @@
   "语言已保存，菜单刷新失败。请重新选择语言以重试。": "Language saved, but the menu could not refresh. Select the language again to retry.",
   "**📁 新任务目录**\n\n{p0}\n\n修改：`/settings cwd 绝对路径`\n仅影响之后创建的任务。": "**📁 New task folder**\n\n{p0}\n\nChange: `/settings cwd ABSOLUTE_PATH`\nApplies only to tasks created afterward.",
   "用法：/settings，或 /settings cwd 绝对路径": "Usage: /settings, or /settings cwd ABSOLUTE_PATH",
-  "**💬 直接回复任务 `{p0}`**\n\n请手动回复这条提示并输入文字。普通输入不会自动发送。若任务仍在运行，我会再让你选择追加、中断后发送或取消。取消输入请点击下方的取消回复。": "**💬 Direct reply to task `{p0}`**\n\nReply manually to this prompt and enter text. Ordinary input is not sent automatically. If the task is running, you can choose append, interrupt then send, or cancel. Use the Cancel reply button below to cancel input."
+  "**💬 直接回复任务 `{p0}`**\n\n请手动回复这条提示并输入文字。普通输入不会自动发送。若任务仍在运行，我会再让你选择追加、中断后发送或取消。取消输入请点击下方的取消回复。": "**💬 Direct reply to task `{p0}`**\n\nReply manually to this prompt and enter text. Ordinary input is not sent automatically. If the task is running, you can choose append, interrupt then send, or cancel. Use the Cancel reply button below to cancel input.",
+  "[插件] {p0}": "[Plugin] {p0}"
 }

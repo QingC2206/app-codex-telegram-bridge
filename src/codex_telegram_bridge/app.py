@@ -1239,7 +1239,7 @@ class TelegramCodexBot:
 
     def _command_list(self):
         # Browsing comes first; settings only opens a panel. Task-changing
-        # commands stay last, with stop at the bottom. Legacy aliases still work.
+        # commands follow, then a fixed plugin section. Legacy aliases still work.
         commands = [
             {"command": 'quota', "description": _t('查看剩余额度')},
             {"command": 'tasks', "description": _t('浏览最近任务')},
@@ -1250,7 +1250,6 @@ class TelegramCodexBot:
             {"command": 'usage', "description": _t('查看任务用量')},
             {"command": 'help', "description": _t('查看使用帮助')},
             {"command": 'settings', "description": _t('调整机器人设置')},
-            {"command": 'plugins', "description": _t('查看插件状态')},
         ]
         actions = [
             {"command": 'logs', "description": _t('查看服务日志')},
@@ -1260,8 +1259,12 @@ class TelegramCodexBot:
             {"command": 'new', "description": _t('创建新任务')},
             {"command": 'stop', "description": _t('中止运行任务')},
         ]
-        commands.extend(self.plugins.menu()[:max(0, 100 - len(commands) - len(actions))])
-        return commands + actions
+        commands.extend(actions)
+        commands.append({"command": "plugins", "description": _t('[插件] {p0}', p0=_t('查看插件状态'))})
+        for item in self.plugins.menu()[:max(0, 100 - len(commands))]:
+            # Keep the existing 100-character UI budget, including the marker.
+            commands.append({**item, "description": _t('[插件] {p0}', p0=item["description"])[:100]})
+        return commands
 
     def _remember_reply_source(self, thread_id, turn_id):
         source = getattr(self._ui_local, "source_message_id", None)

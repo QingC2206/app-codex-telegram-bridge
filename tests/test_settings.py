@@ -38,10 +38,10 @@ class SettingsTests(unittest.TestCase):
         with patch.object(n, 'navigation_view', return_value=None):
             self.bot.handle_callback(callback)
 
-    def test_menu_query_first_settings_consolidated_and_stop_last(self):
+    def test_menu_quota_first_settings_consolidated_and_plugins_last(self):
         commands = [item['command'] for item in self.bot._command_list()]
         self.assertEqual(commands[:3], ['quota', 'tasks', 'running'])
-        self.assertEqual(commands[-5:], ['side', 'send', 'steer', 'new', 'stop'])
+        self.assertEqual(commands[-7:], ['side', 'send', 'steer', 'new', 'stop', 'plugins', 'screenshot'])
         self.assertIn('settings', commands)
         self.assertEqual(commands[commands.index('plugins') + 1], 'screenshot')
         self.assertFalse(set(commands) & {'mute', 'unmute', 'language', 'cwd', 'subagents'})
@@ -49,7 +49,23 @@ class SettingsTests(unittest.TestCase):
         self.bot.plugins.menu.return_value = [dict(command=f'plugin{i}', description='Plugin') for i in range(110)]
         commands = self.bot._command_list()
         self.assertEqual(len(commands), 100)
-        self.assertEqual(commands[-1]['command'], 'stop')
+        self.assertEqual(commands[-1]['command'], 'plugin83')
+        self.assertLess([item['command'] for item in commands].index('stop'), [item['command'] for item in commands].index('plugins'))
+
+    def test_plugin_markers_follow_language_and_fit_description_budget(self):
+        original = [{'command': 'screenshot', 'description': 'x' * 256}]
+        self.bot.plugins.menu.return_value = original
+        for language, prefix in [('zh-CN', '[插件] '), ('en', '[Plugin] ')]:
+            with i18n.using_language(language):
+                menu = self.bot._command_list()
+                self.assertEqual([item['command'] for item in menu[-2:]], ['plugins', 'screenshot'])
+                self.assertTrue(all(item['description'].startswith(prefix) for item in menu[-2:]))
+                self.assertTrue(all(len(item['description']) <= 100 for item in menu))
+                self.bot.command_help()
+                self.assertIn(prefix, self.bot.send.call_args.args[0])
+        self.assertEqual(original[0]['description'], 'x' * 256)
+        self.bot.plugins.menu.return_value = []
+        self.assertEqual(self.bot._command_list()[-1]['command'], 'plugins')
 
     def test_browsing_and_help_preserve_preferences_and_pending_inputs(self):
         self.bot.awaiting_continue['123'] = 'thread-a'

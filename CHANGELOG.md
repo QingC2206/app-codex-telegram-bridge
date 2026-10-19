@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.5.3
+
+- 插件入口及插件命令固定在菜单底部，说明统一添加 `[插件]` / `[Plugin]` 标记；额度查询继续保持第一项。
+- Keep plugin status and plugin commands at the bottom, prefix their descriptions with `[插件]` / `[Plugin]`, and retain quota first.
+
 ## 0.5.2
 
 - 将 `/quota` 固定为 Telegram 菜单第一项，同步帮助和双语文档。

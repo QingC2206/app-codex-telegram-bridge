@@ -4,7 +4,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.5.2 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.5.3 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
@@ -123,16 +123,16 @@ For a custom profile, continue passing `--codex-home` and/or `--data-dir` before
 | `/usage [ID]` | View task usage |
 | `/help` | View command help |
 | `/settings` | Adjust notifications, language, and the new task folder |
-| `/plugins` | View plugin status |
-| `/screenshot` | Capture windows and screens (bundled plugin) |
 | `/logs` | View service logs |
 | `/side [ID] <question>` | Ask a side question |
 | `/send [ID] [message]` | Send a task message |
 | `/steer [ID] [message]` | Append to a running task |
 | `/new <request>` | Create a new task |
 | `/stop [ID]` | Stop a running task |
+| `/plugins` | [Plugin] View plugin status |
+| `/screenshot` | [Plugin] Capture windows and screens (bundled plugin) |
 
-The menu groups frequent queries first, followed by help and settings, plugins and logs, then messaging and execution commands. Stop is last. Third-party plugin commands appear after plugin status. Telegram displays up to 100 commands; omitted plugin commands can still be typed directly.
+The menu groups frequent queries first, followed by help and settings, logs, messaging and execution commands, then plugins. Quota is always first. Plugin status and plugin commands stay at the bottom, with a `[Plugin]` description prefix. Telegram displays up to 100 commands; omitted plugin commands can still be typed directly.
 
 `/settings` brings together completion notifications (previously mute), subagent notifications, interface language, and the new task folder. Opening settings changes nothing. Enable/disable buttons set explicit states, so repeated clicks do not toggle them back. Use `/settings cwd ABSOLUTE_PATH` to change the folder, including paths with spaces; it applies only to newly created tasks.
 
