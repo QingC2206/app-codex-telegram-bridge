@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def source_files():
-    names=['README.md','README.zh-CN.md','LICENSE','SECURITY.md','CHANGELOG.md','VERSION','pyproject.toml','MANIFEST.in','install.py']
+    names=['README.md','README.en.md','LICENSE','SECURITY.md','CHANGELOG.md','VERSION','pyproject.toml','MANIFEST.in','install.py']
     # Explicit source roots and suffixes; no developer config, state or logs.
     for folder, suffixes in [('src',{'.py','.json'}),('tests',{'.py'}),('tools',{'.py'}),('docs',{'.md'})]:
         names.extend(p.relative_to(ROOT).as_posix() for p in (ROOT/folder).rglob('*')

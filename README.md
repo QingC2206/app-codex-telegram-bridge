@@ -1,93 +1,93 @@
 # App Codex Telegram Bridge
 
-**English** | [简体中文](README.zh-CN.md)
+**简体中文** | [English](README.en.md)
 
-Control Codex Desktop from Telegram — notifications, task management, and messaging.
+通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.4.1 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.4.1 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
-This README is available in English and Chinese. Telegram menus, interaction prompts, and detailed documentation are currently primarily in Chinese.
+本 README 提供中英文版本；Telegram 菜单、交互提示及详细文档目前主要使用中文。
 
-The bridge connects only to **Codex Desktop** and its bundled backend. It never falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
+本项目只连接 **Codex Desktop** 及其配套后端，禁止回退到 VS Code 扩展或 PATH 中的独立 Codex CLI。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
 
-## Platform support and verification
+## 平台与验收范围
 
-| Platform | Implementation | Verification on a real desktop |
+| 平台 | 实现 | 实机验收 |
 | --- | --- | --- |
-| Windows | Named pipes, DPAPI, Task Scheduler, native window and screen capture | Notifications, mobile direct replies, `/send`, question-card answers, and user-origin receipts verified |
-| macOS | Unix sockets, Keychain, LaunchAgent, window and screen capture | Automated tests covered; real Desktop/Telegram communication awaits verification on a Mac |
-| Linux | Unix sockets, Secret Service, systemd user service, X11/Wayland capture | Automated tests covered; real Desktop/Telegram communication awaits verification on a Linux desktop |
+| Windows | 命名管道、DPAPI、任务计划、原生窗口/屏幕截图 | 已实测通知、手机直接回复、`/send`、提问卡片回答及用户来源回执 |
+| macOS | Unix socket、Keychain、LaunchAgent、窗口/屏幕截图 | 自动测试覆盖；真实 Desktop/Telegram 闭环待 Mac 用户验收 |
+| Linux | Unix socket、Secret Service、systemd 用户服务、X11/Wayland 截图 | 自动测试覆盖；真实 Desktop/Telegram 闭环待 Linux 桌面验收 |
 
-CI runs Python 3.10, 3.11, and 3.13 on all three systems, covering application regressions, installation configuration, and native process and connection tests. **Passing CI does not prove real Desktop or mobile communication.** macOS and Linux support remains experimental until verified on those systems.
+跨平台 CI 在三个系统上分别运行 Python 3.10、3.11、3.13，覆盖业务回归、安装配置及各系统原生进程/连接测试。**CI 通过不代表真实 Desktop 或手机通信已经通过。** macOS/Linux 在完成对应实机验收前按实验性支持发布。
 
-Desktop's local interfaces may change between versions. If connection verification fails, submission stops. The bridge does not switch clients or bypass operating-system process or screenshot permissions. See [architecture and compatibility boundaries (Chinese)](docs/architecture.zh-CN.md) and [verification steps (Chinese)](docs/testing.zh-CN.md).
+Desktop 的本地接口可能随版本变化。连接验证失败时停止提交，不改用其他客户端，也不关闭系统的进程/截图权限检查。详情见 [架构与兼容边界](docs/architecture.zh-CN.md) 和 [验收步骤](docs/testing.zh-CN.md)。
 
-## Features
+## 功能
 
-- **Notifications and two-way messaging:** completion notifications, full replies, Markdown and tables, pagination, and downloads. Reply to a task card or use `/send` to continue the original task.
-- **Task management:** `/running` checks live task status. Browse tasks, details, progress, diffs, and token usage; append instructions or stop a turn when supported.
-- **Questions and approvals:** options, text answers, asynchronous questions, and compatible approval requests. Expired or answered buttons are invalidated; submissions with an unknown outcome are not automatically retried.
-- **Attachments and plugins:** upload images and files, display local images, use the bundled `/screenshot` plugin, or add custom Python plugins.
-- **Side chats and quota:** read-only side questions, quota information, low-quota alerts, and reset-card operations supported by the account and interface.
-- **Background service:** starts with the current user's desktop session through Windows Task Scheduler, a macOS LaunchAgent, or a Linux systemd user service.
+- **通知和双向消息**：完成通知、完整回复、Markdown/表格、分页和下载；回复任务卡片或使用 `/send` 继续原任务。
+- **任务管理**：`/running` 实时核验运行任务；列表、详情、进度、Diff、Token 用量、追加指令及能力允许时中止 Turn。
+- **提问与审批**：支持选项、文字、异步提问和兼容的审批；过期或已回答按钮失效，结果未知的提交不自动重试。
+- **附件和插件**：上传图片/文件、显示本地图片，随包 `/screenshot` 插件与自定义 Python 插件。
+- **侧边聊天与额度**：只读侧边提问、额度查询、低额度提醒，以及账户和接口支持的重置卡操作。
+- **后台服务**：随当前用户桌面会话启动；Windows 任务计划、macOS LaunchAgent、Linux systemd 用户服务。
 
-## Installation
+## 安装
 
-You need a running, signed-in Codex Desktop, 64-bit Python 3.10+, and access to the Telegram Bot API. Python 3.11 or later is recommended.
+需要已登录并运行的 Codex Desktop、64 位 Python 3.10+ 和可访问的 Telegram Bot API。推荐 Python 3.11 或更新版本。
 
-1. Open the official [@BotFather](https://t.me/BotFather) in Telegram and send `/newbot`. Choose a name and a username ending in `bot`, save the token privately, then open your new bot and send `/start`. The installer will ask for the token and identify the receiving chat. See the [detailed setup guide (Chinese)](docs/setup.zh-CN.md).
-2. Clone the repository:
+1. 在 Telegram 的官方 [@BotFather](https://t.me/BotFather) 创建机器人，并对新机器人发送 `/start`。详见 [配置指南](docs/setup.zh-CN.md)。
+2. 克隆项目：
 
 ```text
 git clone https://github.com/QingC2206/app-codex-telegram-bridge.git
 cd app-codex-telegram-bridge
 ```
 
-3. On Windows, run:
+3. Windows 执行：
 
 ```powershell
 py -3 install.py
 ```
 
-On macOS or Linux, run:
+macOS / Linux 执行：
 
 ```sh
 python3 install.py
 ```
 
-The installer creates a private Python virtual environment at `telegram-bridge-runtime/` inside the selected Codex home. It installs dependencies and configures Telegram credentials, notification hooks, and the user service. It does not modify your global Python installation or require a PowerShell installation script. Installation failures return an error; do not retry as administrator or root.
+安装器会在当前 Codex 环境下创建独立 Python 虚拟环境 `telegram-bridge-runtime/`，安装依赖，配置 Telegram 凭据、通知 Hook 和用户服务。无需修改全局 Python，也不需要 PowerShell 安装脚本。安装失败会返回错误；不要用管理员/root 用户重跑。
 
-4. Fully quit and reopen Codex Desktop, review the new hooks when prompted, then send `/help` or `/running` in Telegram.
+4. 完全退出并重新打开 Codex Desktop，按应用要求审核新增 Hook。在 Telegram 发送 `/help` 或 `/running`。
 
-The first installation downloads dependencies from PyPI. On macOS, use a Python installation that supports `venv`. Linux requires your distribution's Python venv support, a Secret Service keyring, and a systemd user session. Headless servers are outside the scope of this Desktop bridge.
+首次安装需要从 PyPI 下载依赖。macOS 应使用可运行 `venv` 的 Python；Linux 需安装发行版的 Python venv 支持、Secret Service 密钥环、systemd 用户会话。无桌面会话的服务器不属于本项目 Desktop 模式的运行目标。
 
-### Platform permissions
+### 平台权限
 
-- **Windows:** credentials use the current user's DPAPI protection. The background service does not require administrator privileges.
-- **macOS:** the first Keychain access may request permission. For screenshots, grant Screen Recording permission to the Python executable that actually runs the bot. Missing permission produces an explicit error.
-- **Linux:** the Secret Service keyring should be unlocked after login. A missing or locked keyring does not trigger a plaintext fallback. X11 window capture includes the visible region and may contain overlapping windows. Wayland uses the desktop screenshot portal and requires confirmation at the computer; unattended per-window capture is not guaranteed.
+- **Windows**：凭据继续使用当前用户的 DPAPI，后台服务不要求管理员权限。
+- **macOS**：首次访问 Keychain 可能要求授权。截图需要为实际运行机器人的 Python 程序允许“屏幕录制”；未授权时返回明确错误。
+- **Linux**：登录后应有解锁的 Secret Service 密钥环；缺失或锁定时不降级为明文存储。X11 的窗口截图是可见区域，可能包含遮挡。Wayland 使用桌面截图 Portal，需在电脑上确认，无法承诺无人值守的逐窗口截图。
 
-### Isolated profiles and custom directories
+### 隔离环境和自定义目录
 
-Use `CODEX_HOME` or `--codex-home` to select the Desktop profile. The bridge still verifies that the running Desktop instance belongs to that profile.
+`CODEX_HOME` 或 `--codex-home` 指定要连接的 Desktop 环境；机器人仍会核验实际运行实例的环境归属。
 
 ```text
-python install.py --codex-home <absolute-codex-home> --data-dir <absolute-bot-data-directory>
+python install.py --codex-home <Codex环境绝对路径> --data-dir <机器人数据绝对路径>
 ```
 
-Use `--no-service` to configure hooks without installing a background service, for manual startup. If another notification command already exists, installation stops; use `--replace-notify` only when you intend to replace it.
+`--no-service` 只配置 Hook，供手动启动；已有其他通知命令时，安装器会停止，确认确实需要替换后才使用 `--replace-notify`。
 
-## Updating, managing, and uninstalling
+## 更新、管理与卸载
 
 ```text
 git pull --ff-only
 ```
 
-Then rerun `install.py` with the command for your platform. If exactly one legacy credential directory is found, the bridge keeps using its credentials, state, reply associations, and attachments. If multiple legacy directories are found, specify `--data-dir` explicitly. Do not copy Windows DPAPI credentials to another operating system; run the setup wizard on the new computer.
+然后重新运行本平台的 `install.py`。检测到唯一的旧版凭据目录时，会继续使用该目录里的凭据、状态、回复关联和附件；有多个旧目录时要求明确指定 `--data-dir`。不要把 Windows DPAPI 凭据复制到其他系统；在新电脑运行配置向导。
 
-Use a separate Telegram bot on each computer when testing multiple machines. Do not give the same bot token to multiple running long-polling services. This also prevents Mac test messages from reaching Windows tasks.
+多台电脑同时测试时，请各用一个 Telegram Bot；同一个 Bot Token 不能交给多个正在运行的长轮询服务。这样也能避免把 Mac 测试消息交给 Windows 任务。
 
-Run management commands with the Python executable created by the installer. Examples for macOS and Linux:
+管理命令使用安装器创建的 Python。macOS/Linux 示例：
 
 ```sh
 ~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge doctor
@@ -96,65 +96,65 @@ Run management commands with the Python executable created by the installer. Exa
 ~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge uninstall
 ```
 
-Windows example:
+Windows 示例：
 
 ```powershell
 & "$env:USERPROFILE\.codex\telegram-bridge-runtime\Scripts\python.exe" -m codex_telegram_bridge doctor
 ```
 
-Other subcommands include `setup`, `service install/start/stop/status/uninstall`, and `doctor --offline`. You can also run `python -m pip install .` in a virtual environment you manage yourself, then use the `codex-telegram-bridge` command.
+其他子命令：`setup`、`service install/start/stop/status/uninstall`、`doctor --offline`。也可在自己管理的虚拟环境中 `python -m pip install .`，再使用 `codex-telegram-bridge` 命令。
 
-For a custom profile, continue passing `--codex-home` and/or `--data-dir` before the subcommand. **Uninstall removes only the services and hooks managed by this tool; credentials, history, plugins, and backups remain.** The private Python virtual environment also remains and can be removed manually after verifying its path.
+自定义环境的管理命令仍需传入 `--codex-home` / `--data-dir`，放在子命令之前。**卸载仅移除本工具管理的服务和 Hook，保留凭据、历史、插件和备份。** 已创建的独立 Python 虚拟环境也保留，可在确认路径后手动删除。
 
-## Common commands
+## 常用命令
 
-| Command | Purpose |
+| 命令 | 功能 |
 | --- | --- |
-| `/running` | Show currently running tasks, workspaces, and waiting states |
-| `/tasks` | Browse recent tasks; filter running, pending, and recently completed tasks |
-| `/task [ID]` | Show task details and recent output |
-| `/send [ID] [message]` | Select and continue a task |
-| `/steer [ID] [message]` | Append instructions to a running task |
-| `/stop [ID]` | Stop a task that the current Desktop or bot can control |
-| `/watch [ID]` | Open a task progress card |
-| `/diff [ID]` | Show file changes from the latest turn |
-| `/usage [ID]` | Show token usage and elapsed time |
-| `/new <request>` | Create a bot-managed task in the default working directory |
-| `/cwd [absolute-path]` | View or set the working directory for new tasks |
-| `/side [ID] <question>` | Ask an independent, read-only side question about a task |
-| `/screenshot` | Capture Codex windows and displays through the bundled plugin |
-| `/quota` | Show quota, alerts, and reset-card operations supported by the account |
-| `/plugins` | Show local plugins, commands, and loading status |
-| `/mute`, `/unmute` | Disable or restore completion notifications |
-| `/subagents [on\|off]` | Configure subagent completion notifications; disabled by default |
-| `/logs` | Show service logs |
-| `/help` | Show help and clear pending reply input states |
+| `/running` | 查看当前运行中的任务、工作区和等待状态 |
+| `/tasks` | 浏览最近任务，筛选运行中、待处理和最近完成 |
+| `/task [ID]` | 查看任务详情和最近输出 |
+| `/send [ID] [消息]` | 选择并继续任务 |
+| `/steer [ID] [消息]` | 向运行中的任务追加指令 |
+| `/stop [ID]` | 中止可由当前 Desktop 或机器人控制的任务 |
+| `/watch [ID]` | 打开任务进度卡片 |
+| `/diff [ID]` | 查看最近一轮文件修改 |
+| `/usage [ID]` | 查看 Token 用量和耗时 |
+| `/new <需求>` | 在默认工作目录新建机器人任务 |
+| `/cwd [绝对路径]` | 查看或设置新任务的工作目录 |
+| `/side [ID] <问题>` | 对任务发起独立的只读侧边提问 |
+| `/screenshot` | 通过随包插件获取 Codex 窗口和显示器截图 |
+| `/quota` | 查看额度、提醒及账户支持的重置卡操作 |
+| `/plugins` | 查看本地插件、命令和加载状态 |
+| `/mute`、`/unmute` | 关闭或恢复完成通知 |
+| `/subagents [on\|off]` | 设置子代理完成通知，默认关闭 |
+| `/logs` | 查看服务日志 |
+| `/help` | 查看帮助并清除待回复输入状态 |
 
-Most commands that accept a task ID let you omit it and select a task using buttons. You can attach an image or file when replying to a task card. The limit is 20 MB per attachment; send multiple attachments separately.
+多数带任务 ID 的命令可省略 ID，通过按钮选择任务。回复任务卡片时可以附带图片或文件，单附件上限为 20 MB；多附件请分次发送。
 
-## Task ownership and message delivery
+## 任务归属与投递规则
 
-- The bridge verifies the Desktop executable's origin, user, profile, and the server process behind the local connection. It rejects ambiguous profiles or unverifiable connection identities.
-- Existing external tasks continue only through their current Desktop owner. If the owner cannot be found, open the task in the correct Desktop instance first.
-- Bot-managed tasks created with `/new` use a separate App Server bundled with Desktop. This backend does not automatically resume or take over existing Desktop tasks.
-- Human messages from Telegram use the user-input channel and retain their user origin. Agent-to-agent delegation tools are not used to impersonate user input.
-- A JSON response containing `suggestion` is not filtered merely because of that field. Prediction suggestions are identified using the record type and explicit internal-source evidence.
-- An unknown submission outcome does not trigger automatic rerouting or resending. Check the task's latest messages before retrying manually.
-- `/running` verifies current status and explicitly reports timeouts, pagination limits, or records it cannot verify.
+- 验证 Desktop 程序来源、用户、环境和本地连接的服务端进程；环境重复、连接身份不明时拒绝提交。
+- 外部任务只经 Desktop 当前持有者继续；找不到持有者时，先在正确 Desktop 中打开该任务。
+- `/new` 创建的机器人任务使用 Desktop 配套的独立 App Server；不会自动恢复并接管原 Desktop 任务。
+- Telegram 人类消息使用用户输入通道，保留用户来源；不使用代理间委派工具伪装用户输入。
+- `suggestion` JSON 本身不会触发过滤；结合记录类型和明确内部来源识别预测建议。
+- 发送结果不明时不自动换路或重发。先核对任务最新消息，避免手动重复执行。
+- `/running` 使用当前状态核验；超时、分页上限或部分记录无法核验时明确提示。
 
-## Quota and reset cards
+## 额度与重置卡
 
-`/quota` shows account quota and provides weekly-quota alerts and reset-card controls. A reservation can last 6, 12, or 24 hours and is bound to an account, quota cycle, and specific card. It attempts redemption only when the remaining weekly quota is strictly below 3%. An immediate reset requires remaining weekly quota of 5% or less and a second confirmation. Expiration, quota recovery, a cycle or account change, or a service restart invalidates the reservation. Redemption with an unknown outcome is not automatically retried, and the bridge does not switch to another card.
+`/quota` 展示账户额度，保留周额度提醒与重置卡机制。预约可选 6 / 12 / 24 小时，绑定账户、周期和指定卡，周剩余严格低于 3% 时才尝试使用。立即重置要求周剩余不高于 5%，并需要二次确认。到期、额度恢复、周期或账户变化、服务重启会使预约失效。结果未知的兑换不会自动重试或换卡。
 
-## Data and privacy
+## 数据与隐私
 
-New installations store runtime data in `CODEX_HOME/telegram-bridge/` by default. Existing installations keep their original data directory. Credentials, logs, and chat caches are not stored in the Python package directory.
+新安装默认把运行数据放在所选 `CODEX_HOME/telegram-bridge/`；旧安装继续使用原数据目录。Python 包目录中不保存凭据、日志或聊天缓存。
 
-Windows configuration stores DPAPI-encrypted values. macOS and Linux configuration stores references to the system credential store, where the token is held. Configuration files still contain chat information and should not be published. Task replies, explicitly requested screenshots, and attachments are sent to Telegram. Plugins run with the current user's permissions.
+Windows 配置保存 DPAPI 加密值；macOS/Linux 保存系统钥匙串引用，Token 保留在系统凭据存储。配置文件仍包含聊天信息，不应公开。任务回复、主动请求的截图和附件会发送到 Telegram；插件具有当前用户权限。
 
-Full-reply caches are kept for seven days by default. Downloaded attachments are not automatically deleted with the reply cache. Logs, databases, screenshots, and acceptance reports are excluded from Git and release packages. See the [security policy (Chinese)](SECURITY.md).
+完整回复缓存默认保留 7 天；下载附件不会随回复缓存自动清理。日志、数据库、截图和验收报告均排除在 Git 和发布包之外。详见 [安全说明](SECURITY.md)。
 
-## Development and testing
+## 开发与测试
 
 ```text
 python -m pip install -e ".[dev]"
@@ -163,34 +163,34 @@ python -m build
 python tools/check_distribution.py
 ```
 
-Tests use temporary environments and synthetic credentials. They do not connect to real Telegram accounts or submit messages to Desktop tasks. Available test groups include `Communication`, `Notifications`, `Quota`, `Interactions`, `Screenshots`, `Plugins`, `SideChat`, `Security`, `Images`, `Feedback`, and `Platforms`.
+测试使用临时环境和合成凭据，不连接真实 Telegram 或向 Desktop 任务提交消息。可选分组：`Communication`、`Notifications`、`Quota`、`Interactions`、`Screenshots`、`Plugins`、`SideChat`、`Security`、`Images`、`Feedback`、`Platforms`。
 
-`python -m build` creates development wheel and source distributions; it does not certify real communication. Building a release ZIP uses a separate gate that submits one test input to an explicitly selected active task, verifies the corresponding user-message receipt, and checks Telegram delivery:
+`python -m build` 生成开发用 wheel/sdist，不宣称通过真实通信验收。发布安装 ZIP 使用独立门禁，向明确指定的活动任务提交一次测试输入，核对对应用户消息回执并验证 Telegram 发送：
 
 ```text
-python tools/build_release.py --thread-id <full-active-task-id-authorized-for-testing>
+python tools/build_release.py --thread-id <允许验收的活动任务完整ID>
 ```
 
-Pass `--credentials` if credential selection is ambiguous, and `--codex-home` for a custom profile. Output goes to `dist/`. Files in `.validation/` and `*.validation.json` contain local task associations and must not be published. See [testing and real-device verification (Chinese)](docs/testing.zh-CN.md).
+凭据有歧义时传入 `--credentials`，自定义环境传入 `--codex-home`。输出位于 `dist/`；`.validation/` 和 `*.validation.json` 含本机任务关联，不得公开。详见 [测试与实机验收](docs/testing.zh-CN.md)。
 
-## Project structure
+## 项目结构
 
 ```text
-README.md / README.zh-CN.md English and Chinese entry points
+README.md / README.en.md    中文与英文入口
 src/codex_telegram_bridge/
-  app.py / cli.py           Service orchestration and unified entry point
-  config.py / paths.py      Credential configuration and data paths
-  telegram/                Messaging, formatting, and notifications
-  codex/                   Desktop protocol, history, and receipts
-  features/                Running tasks, questions, quota, and side chats
-  storage/                 Persistent state
-  platforms/               Windows / macOS / Linux and shared POSIX adapters
-  management/              Installation, services, and diagnostics
-  plugins/                 Plugin host and API
-  resources/               Bundled plugins and manifests (also in the wheel)
-tests/                     Offline regressions and native platform tests
-tools/                     Python tools for tests, verification, and releases
-docs/                      Setup, architecture, plugin, and verification guides
+  app.py / cli.py           服务编排与统一入口
+  config.py / paths.py      凭据配置与数据路径
+  telegram/                消息收发、格式和通知
+  codex/                   Desktop 协议、历史和回执
+  features/                运行任务、提问、额度、侧边聊天
+  storage/                 持久状态
+  platforms/               Windows / macOS / Linux 与 POSIX 共用适配
+  management/              安装、服务和诊断
+  plugins/                 插件宿主和接口
+  resources/               随包插件及清单（wheel 内同样携带）
+tests/                     离线回归与平台原生测试
+tools/                     Python 测试、验收和发布工具
+docs/                      安装、架构、插件与验收文档
 ```
 
-See the [plugin API (Chinese)](docs/plugins.zh-CN.md) for plugin development and the [changelog (Chinese)](CHANGELOG.md) for version history. Licensed under the [MIT License](LICENSE).
+插件开发见 [插件 API](docs/plugins.zh-CN.md)，版本变化见 [CHANGELOG](CHANGELOG.md)。本项目采用 [MIT License](LICENSE)。
