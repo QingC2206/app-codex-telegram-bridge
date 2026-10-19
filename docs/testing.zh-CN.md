@@ -15,7 +15,7 @@ GitHub Actions 在 Windows、Ubuntu、macOS 运行 Python 3.10/3.11/3.13；原�
 
 ## 当前电脑只读检查
 
-0.4.0 发布验收：Windows 上完成真实任务投递、同一 Turn 的用户来源回执、Telegram 发送，以及独立 wheel 安装/随包插件检查。三系统 CI 覆盖 426 项测试，各系统跳过不适用的原生测试。macOS/Linux 的真实 Desktop 连接、密钥环、服务启动和截图仍需对应电脑验收；手机发送 `/send` 和直接回复没有由 CI 模拟为实测通过。
+0.4.1 发布验收：Windows 上完成真实任务投递、同一 Turn 的用户来源回执、Telegram 发送，以及独立 wheel 安装/随包插件检查。三系统 CI 覆盖 428 项测试，各系统跳过不适用的原生测试。macOS/Linux 的真实 Desktop 连接、密钥环、服务启动和截图仍需对应电脑验收；手机发送 `/send` 和直接回复没有由 CI 模拟为实测通过。
 
 安装后使用安装器虚拟环境中的 Python：
 

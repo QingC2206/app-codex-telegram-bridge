@@ -73,13 +73,29 @@ def windows_task(argv):
     return ET.tostring(root,encoding='utf-16',xml_declaration=True)
 
 
+def _task_xml(value):
+    """schtasks may emit UTF-8/ANSI bytes with a UTF-16 XML declaration."""
+    if isinstance(value, bytes):
+        if value.startswith((b'\xff\xfe',b'\xfe\xff')) or b'\x00' in value[:40]:
+            value = value.decode('utf-16')
+        else:
+            try:
+                value = value.decode('utf-8-sig')
+            except UnicodeDecodeError:
+                if os.name != 'nt':
+                    raise
+                value = value.decode('mbcs')
+    root = ET.fromstring(value)
+    return ET.tostring(root,encoding='utf-16',xml_declaration=True)
+
+
 def _legacy_owned(xml):
     try:
-        root=ET.fromstring(xml)
+        root=ET.fromstring(_task_xml(xml))
         args=' '.join(n.text or '' for n in root.iter() if n.tag.endswith('Arguments'))
         return ('codex_telegram_bridge' in args and str(codex_home()) in args) or (
             str(data_dir()/'telegram_bot.py').lower() in args.lower())
-    except ET.ParseError:
+    except (ET.ParseError,UnicodeError):
         return False
 
 
@@ -133,7 +149,7 @@ def snapshot():
     if sys.platform == 'win32':
         name = 'Codex Telegram Bot' if codex_home() == (Path.home()/'.codex').resolve() else label
         result = _run(['schtasks.exe', '/Query', '/TN', name, '/XML'], check=False)
-        content = result.stdout if result.returncode == 0 else None
+        content = _task_xml(result.stdout) if result.returncode == 0 else None
         if content is not None and not _legacy_owned(content):
             raise RuntimeError('Existing scheduled task is not owned by this Robot/profile.')
         return {'platform': 'win32', 'name': name, 'content': content}
@@ -202,6 +218,8 @@ def manage(action):
         name='Codex Telegram Bot' if codex_home()==default else label
         query=_run(['schtasks.exe','/Query','/TN',name,'/XML'],check=False)
         exists=query.returncode==0
+        if exists:
+            query.stdout = _task_xml(query.stdout)
         if exists and not _legacy_owned(query.stdout):
             raise RuntimeError('The existing scheduled task is not owned by this Robot/profile.')
         if action=='status':

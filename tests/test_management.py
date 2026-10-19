@@ -86,6 +86,21 @@ class InstallTests(unittest.TestCase):
 
 
 class ServiceDefinitionTests(unittest.TestCase):
+    def test_schtasks_text_with_utf16_declaration_is_normalized(self):
+        data=Path(tempfile.gettempdir()).resolve()/'robot-test'
+        xml=services.windows_task(['python','-m','codex_telegram_bridge','--codex-home',str(data)])
+        emitted=xml.decode('utf-16').encode('utf-8')
+        with patch.object(services,'codex_home',return_value=data):
+            self.assertTrue(services._legacy_owned(emitted))
+        self.assertEqual(ET.tostring(ET.fromstring(services._task_xml(emitted))),ET.tostring(ET.fromstring(xml)))
+
+    def test_task_xml_preserves_unicode_and_rejects_malformed_definitions(self):
+        xml=services.windows_task(['C:/测试/python.exe','run'])
+        for value in (xml,xml.decode('utf-16'),xml.decode('utf-16').encode('utf-8')):
+            root=ET.fromstring(services._task_xml(value))
+            self.assertEqual(next(x.text for x in root.iter() if x.tag.endswith('Command')),'C:/测试/python.exe')
+        self.assertFalse(services._legacy_owned(b'<Task>broken'))
+
     def test_launch_agent_has_exact_argument_boundaries(self):
         argv=['/a space/python','-m','codex_telegram_bridge','--data-dir','/a "quoted" dir','run']
         definition=plistlib.loads(services.macos_agent(argv,'label',Path('/tmp/data')))

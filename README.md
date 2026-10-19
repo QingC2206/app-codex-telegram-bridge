@@ -2,7 +2,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.4.0 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.4.1 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
 本项目只连接 **Codex Desktop** 及其配套后端，禁止回退到 VS Code 扩展或 PATH 中的独立 Codex CLI。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
 
