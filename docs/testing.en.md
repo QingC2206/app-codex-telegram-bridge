@@ -63,4 +63,4 @@ The release gate verifies real submission, a user-message receipt, Telegram deli
 
 ## Settings and menu acceptance
 
-Check that `/tasks`, `/running`, and `/quota` lead the menu and `/stop` is last. Opening `/settings` pages must preserve preferences and pending input. Enable and disable completion/subagent notifications separately; repeat clicks must keep the selected state. Switch languages through settings and verify menu text and back navigation, then restore the original preferences. Check `/settings cwd PATH` and legacy aliases; `/help` must preserve pending input.
+Check that `/quota` is always first, followed by `/tasks` and `/running` and `/stop` is last. Opening `/settings` pages must preserve preferences and pending input. Enable and disable completion/subagent notifications separately; repeat clicks must keep the selected state. Switch languages through settings and verify menu text and back navigation, then restore the original preferences. Check `/settings cwd PATH` and legacy aliases; `/help` must preserve pending input.

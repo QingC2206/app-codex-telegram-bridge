@@ -40,7 +40,7 @@ class SettingsTests(unittest.TestCase):
 
     def test_menu_query_first_settings_consolidated_and_stop_last(self):
         commands = [item['command'] for item in self.bot._command_list()]
-        self.assertEqual(commands[:3], ['tasks', 'running', 'quota'])
+        self.assertEqual(commands[:3], ['quota', 'tasks', 'running'])
         self.assertEqual(commands[-5:], ['side', 'send', 'steer', 'new', 'stop'])
         self.assertIn('settings', commands)
         self.assertEqual(commands[commands.index('plugins') + 1], 'screenshot')

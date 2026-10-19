@@ -1241,9 +1241,9 @@ class TelegramCodexBot:
         # Browsing comes first; settings only opens a panel. Task-changing
         # commands stay last, with stop at the bottom. Legacy aliases still work.
         commands = [
+            {"command": 'quota', "description": _t('查看剩余额度')},
             {"command": 'tasks', "description": _t('浏览最近任务')},
             {"command": 'running', "description": _t('查看运行任务')},
-            {"command": 'quota', "description": _t('查看剩余额度')},
             {"command": 'task', "description": _t('查看任务详情')},
             {"command": 'watch', "description": _t('跟踪任务进度')},
             {"command": 'diff', "description": _t('查看文件修改')},

@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.5.2
+
+- 将 `/quota` 固定为 Telegram 菜单第一项，同步帮助和双语文档。
+- Keep `/quota` first in the Telegram menu, help, and bilingual documentation.
+
 ## 0.5.1
 
 - Telegram 菜单按查询、设置、插件和执行操作分组排序；常用查询靠前，中止任务最后，中英文说明统一精简。

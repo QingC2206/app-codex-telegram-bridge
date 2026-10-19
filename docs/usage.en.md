@@ -46,9 +46,9 @@ Send attachments by replying to a task or side-chat message. Each attachment is 
 
 | Command | Purpose |
 | --- | --- |
+| `/quota` | View remaining quota, alerts, and reset cards |
 | `/tasks` | Browse recent tasks |
 | `/running` | View running tasks |
-| `/quota` | View remaining quota, alerts, and reset cards |
 | `/task [ID]` | View task details |
 | `/watch [ID]` | Track task progress |
 | `/diff [ID]` | View file changes |
