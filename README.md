@@ -4,9 +4,11 @@
 
 通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.4.1 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.5.0 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
-本 README 提供中英文版本；Telegram 菜单、交互提示及详细文档目前主要使用中文。
+文档和 Telegram 界面均支持中英文，默认中文。发送 `/language` 通过按钮选择，或用 `/language en` / `/language zh` 切换；重启和升级后保留。任务正文、模型答复与用户输入不自动翻译。
+
+[安装指南](docs/setup.zh-CN.md) · [使用指南](docs/usage.zh-CN.md) · [插件 API](docs/plugins.zh-CN.md) · [文档目录](docs/README.md)
 
 本项目只连接 **Codex Desktop** 及其配套后端，禁止回退到 VS Code 扩展或 PATH 中的独立 Codex CLI。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
 
@@ -59,6 +61,8 @@ python3 install.py
 
 4. 完全退出并重新打开 Codex Desktop，按应用要求审核新增 Hook。在 Telegram 发送 `/help` 或 `/running`。
 
+需要英文配置向导和初始界面时，在安装命令后加 `--language en`；不传参数时首次安装为中文，升级保留现有语言。
+
 首次安装需要从 PyPI 下载依赖。macOS 应使用可运行 `venv` 的 Python；Linux 需安装发行版的 Python venv 支持、Secret Service 密钥环、systemd 用户会话。无桌面会话的服务器不属于本项目 Desktop 模式的运行目标。
 
 ### 平台权限
@@ -110,6 +114,7 @@ Windows 示例：
 
 | 命令 | 功能 |
 | --- | --- |
+| `/language [zh\|en]` | 选择中文或英文界面，默认中文，重启后保留 |
 | `/running` | 查看当前运行中的任务、工作区和等待状态 |
 | `/tasks` | 浏览最近任务，筛选运行中、待处理和最近完成 |
 | `/task [ID]` | 查看任务详情和最近输出 |
@@ -151,6 +156,8 @@ Windows 示例：
 新安装默认把运行数据放在所选 `CODEX_HOME/telegram-bridge/`；旧安装继续使用原数据目录。Python 包目录中不保存凭据、日志或聊天缓存。
 
 Windows 配置保存 DPAPI 加密值；macOS/Linux 保存系统钥匙串引用，Token 保留在系统凭据存储。配置文件仍包含聊天信息，不应公开。任务回复、主动请求的截图和附件会发送到 Telegram；插件具有当前用户权限。
+
+语言偏好单独存放在数据目录的 `telegram_language.json`。它属于当前机器人配置，授权群聊成员共享同一语言；旧消息不批量重写，刷新卡片后使用新语言。第三方插件可通过 `ctx.language` / `ctx.tr()` 及 `command_descriptions` 提供双语，未提供时保留原文。
 
 完整回复缓存默认保留 7 天；下载附件不会随回复缓存自动清理。日志、数据库、截图和验收报告均排除在 Git 和发布包之外。详见 [安全说明](SECURITY.md)。
 

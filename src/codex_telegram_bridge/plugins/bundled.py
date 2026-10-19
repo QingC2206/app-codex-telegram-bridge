@@ -1,4 +1,5 @@
 """Install/update explicitly packaged plugins, preserving locally modified copies."""
+from codex_telegram_bridge.i18n import tr as _t
 import hashlib
 import json
 import os
@@ -13,7 +14,7 @@ def tree_digest(folder):
     digest=hashlib.sha256()
     for path in sorted(folder.rglob('*')):
         if '__pycache__' in path.parts or not path.is_file():continue
-        if not path.resolve().is_relative_to(folder.resolve()):raise ValueError('插件文件链接越界')
+        if not path.resolve().is_relative_to(folder.resolve()):raise ValueError(_t('插件文件链接越界'))
         digest.update(path.relative_to(folder).as_posix().encode()+b'\0'+path.read_bytes())
     return digest.hexdigest()
 
@@ -26,19 +27,19 @@ def install_bundled(package, root, state):
     installed=json.loads(receipt.read_text(encoding='utf-8')) if receipt.exists() else {}
     notes=[]
     def checked(ident):
-        if not re.fullmatch(r'[a-z][a-z0-9_]{0,31}',ident):raise ValueError('非法随包插件 ID')
+        if not re.fullmatch(r'[a-z][a-z0-9_]{0,31}',ident):raise ValueError(_t('非法随包插件 ID'))
         target=root/ident
-        if target.exists() and target.resolve().parent!=root.resolve():raise ValueError('插件目录越界')
+        if target.exists() and target.resolve().parent!=root.resolve():raise ValueError(_t('插件目录越界'))
         return target
     def backup(target):
         destination=state/'bundled-backups'/(target.name+'-'+uuid.uuid4().hex)
         destination.parent.mkdir(parents=True,exist_ok=True)
-        if target.resolve().parent!=root.resolve() or not destination.resolve().is_relative_to(state.resolve()):raise ValueError('备份路径越界')
+        if target.resolve().parent!=root.resolve() or not destination.resolve().is_relative_to(state.resolve()):raise ValueError(_t('备份路径越界'))
         shutil.move(str(target),str(destination))
         return destination
     for ident in catalog.get('retired',[]):
         target=checked(ident)
-        if target.exists():backup(target);notes.append(ident+' 已移除（代码已备份）')
+        if target.exists():backup(target);notes.append(ident+_t(' 已移除（代码已备份）'))
         installed.pop(ident,None)
     for ident,files in catalog['plugins'].items():
         target=checked(ident);source=package/'bundled_plugins'/ident
@@ -47,16 +48,16 @@ def install_bundled(package, root, state):
         try:
             for name in files:
                 relative=Path(name)
-                if relative.is_absolute() or '..' in relative.parts:raise ValueError('非法插件文件路径')
+                if relative.is_absolute() or '..' in relative.parts:raise ValueError(_t('非法插件文件路径'))
                 src=source/relative
-                if not src.resolve().is_relative_to(source.resolve()):raise ValueError('随包文件越界')
+                if not src.resolve().is_relative_to(source.resolve()):raise ValueError(_t('随包文件越界'))
                 dest=stage/relative;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dest)
             new=tree_digest(stage)
             if target.exists():
                 current=tree_digest(target)
                 if current==new:installed[ident]=new;continue
                 if installed.get(ident)!=current:
-                    notes.append(ident+' 存在本地修改，保留本地版本；随包新版位于程序目录 bundled_plugins');continue
+                    notes.append(ident+_t(' 存在本地修改，保留本地版本；随包新版位于程序目录 bundled_plugins'));continue
                 previous=backup(target)
             stage.rename(target);installed[ident]=new
         except Exception:
@@ -64,7 +65,7 @@ def install_bundled(package, root, state):
             raise
         finally:
             if stage.exists():
-                if stage.resolve().parent!=root.resolve():raise ValueError('暂存目录越界')
+                if stage.resolve().parent!=root.resolve():raise ValueError(_t('暂存目录越界'))
                 shutil.rmtree(stage)
     temp=receipt.with_suffix('.tmp');temp.write_text(json.dumps(installed),encoding='utf-8');os.replace(temp,receipt)
     return notes

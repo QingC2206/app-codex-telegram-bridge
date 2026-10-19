@@ -1,4 +1,5 @@
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 import json,time,uuid
 from typing import Any, Callable
 from .errors import *
@@ -62,17 +63,17 @@ class CodexDesktopIpc(Transport):
                     break
         except Exception as exc:
             if mutating:
-                raise DesktopSubmissionUnknown('Desktop 提交结果未知：发送期间连接中断。请先查看任务，避免重复发送。') from exc
-            raise DesktopIpcUnavailable('Desktop 持有者查询失败，消息尚未发送。') from exc
+                raise DesktopSubmissionUnknown(_t('Desktop 提交结果未知：发送期间连接中断。请先查看任务，避免重复发送。')) from exc
+            raise DesktopIpcUnavailable(_t('Desktop 持有者查询失败，消息尚未发送。')) from exc
         if response.get("resultType") != "success":
-            error = DesktopIpcError(str(response.get("error") or "Codex Desktop 请求失败"))
+            error = DesktopIpcError(str(response.get("error") or _t('Codex Desktop 请求失败')))
             # Only explicit pre-dispatch/inactive errors prove non-delivery.
             rejected = ('no-client-found' in str(error).lower()
                         or 'client-not-found' in str(error).lower()
                         or method == 'thread-follower-steer-turn' and self._is_inactive_steer_error(error))
             if mutating and not rejected:
-                raise DesktopSubmissionUnknown('Desktop 未确认提交结果：' + str(error)[:300]
-                                               + '。请先查看任务，避免重复发送。')
+                raise DesktopSubmissionUnknown(_t('Desktop 未确认提交结果：') + str(error)[:300]
+                                               + _t('。请先查看任务，避免重复发送。'))
             raise error
         return response
 
@@ -124,7 +125,7 @@ class CodexDesktopIpc(Transport):
             result = initialized.get("result")
             client_id = result.get("clientId") if isinstance(result, dict) else None
             if not isinstance(client_id, str) or not client_id:
-                raise DesktopIpcError("Codex Desktop IPC 初始化未返回 Client ID。")
+                raise DesktopIpcError(_t('Codex Desktop IPC 初始化未返回 Client ID。'))
             try:
                 owner = self._request(
                     handle,
@@ -178,14 +179,14 @@ class CodexDesktopIpc(Transport):
                 )
                 turn_id = self._turn_id(steered)
                 if not turn_id:
-                    raise DesktopSubmissionUnknown('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。')
+                    raise DesktopSubmissionUnknown(_t('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。'))
                 return {"mode": "steer", "turn_id": turn_id, "route": "desktop-user-input",
                         "client_message_id": client_message_id}
             except DesktopIpcError as exc:
                 if not self._is_inactive_steer_error(exc):
                     raise
                 if not start_if_inactive:
-                    raise DesktopIpcInactive("该 Desktop 任务当前没有运行中的 Turn。") from exc
+                    raise DesktopIpcInactive(_t('该 Desktop 任务当前没有运行中的 Turn。')) from exc
 
             started = self._request(
                 handle,
@@ -206,7 +207,7 @@ class CodexDesktopIpc(Transport):
             )
             turn_id = self._turn_id(started)
             if not turn_id:
-                raise DesktopSubmissionUnknown('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。')
+                raise DesktopSubmissionUnknown(_t('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。'))
             return {"mode": "start", "turn_id": turn_id, "route": "desktop-user-input",
                     "client_message_id": client_message_id}
         finally:
@@ -225,7 +226,7 @@ class CodexDesktopIpc(Transport):
             result = initialized.get("result")
             client_id = result.get("clientId") if isinstance(result, dict) else None
             if not isinstance(client_id, str) or not client_id:
-                raise DesktopIpcError("Codex Desktop IPC 初始化未返回 Client ID。")
+                raise DesktopIpcError(_t('Codex Desktop IPC 初始化未返回 Client ID。'))
             try:
                 owner = self._request(
                     handle,
@@ -252,14 +253,14 @@ class CodexDesktopIpc(Transport):
             )
             result = response.get('result')
             if not isinstance(result, dict) or 'interruptedTurnId' not in result:
-                raise DesktopSubmissionUnknown('Desktop 未确认实际中止的 Turn ID，请先在 Desktop 核对；不会自动重试。')
+                raise DesktopSubmissionUnknown(_t('Desktop 未确认实际中止的 Turn ID，请先在 Desktop 核对；不会自动重试。'))
             interrupted = result['interruptedTurnId']
             if interrupted is None:
-                raise DesktopIpcInactive('原 Turn 已结束或发生变化，未中止其他 Turn，也未发送后续消息。')
+                raise DesktopIpcInactive(_t('原 Turn 已结束或发生变化，未中止其他 Turn，也未发送后续消息。'))
             if not isinstance(interrupted, str) or not interrupted or turn_id and interrupted != turn_id:
-                raise DesktopSubmissionUnknown('Desktop 返回的中止 Turn ID 与预期不一致，请先核对；不会继续发送消息。')
+                raise DesktopSubmissionUnknown(_t('Desktop 返回的中止 Turn ID 与预期不一致，请先核对；不会继续发送消息。'))
             if result.get('goalPauseError'):
-                raise DesktopIpcError('Turn 已中止，但 Desktop 未确认暂停长期目标，请在 Desktop 核对后再继续。')
+                raise DesktopIpcError(_t('Turn 已中止，但 Desktop 未确认暂停长期目标，请在 Desktop 核对后再继续。'))
             return True
         finally:
             self._close(handle)
@@ -271,7 +272,7 @@ class CodexDesktopIpc(Transport):
             initialized = self._request(handle, self._INITIAL_CLIENT_ID, 'initialize', {'clientType': 'telegram-bot'})
             client_id = (initialized.get('result') or {}).get('clientId')
             if not isinstance(client_id, str) or not client_id:
-                raise DesktopIpcError('Desktop IPC 未返回 Client ID。')
+                raise DesktopIpcError(_t('Desktop IPC 未返回 Client ID。'))
             try:
                 response = self._request(handle, client_id, 'thread-owner-discovery',
                                          {'hostId': 'local', 'conversationId': thread_id})

@@ -1,5 +1,6 @@
 """Read explicit local Markdown images and retain paths for Telegram fallbacks."""
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 from dataclasses import dataclass
 import json
@@ -129,18 +130,18 @@ def find_local_images(text: str, base_dir: str = "") -> list[LocalImage]:
 def read_photo(path: str, remaining: int = MAX_PHOTO_BYTES) -> tuple[bytes, str]:
     """Bound reads, reject network/device paths and files without image signatures."""
     if path.startswith("//") or ":" in path[2:] or not Path(path).is_absolute():
-        raise ValueError("图片路径不是本地绝对路径")
+        raise ValueError(_t('图片路径不是本地绝对路径'))
     resolved = Path(path).resolve()
     if resolved.as_posix().startswith("//"):
-        raise ValueError("图片路径指向网络或设备")
+        raise ValueError(_t('图片路径指向网络或设备'))
     info = resolved.stat()
     if not stat.S_ISREG(info.st_mode) or info.st_size > min(MAX_PHOTO_BYTES, remaining):
-        raise ValueError("图片超过上传限制")
+        raise ValueError(_t('图片超过上传限制'))
     with resolved.open("rb") as source:
         info = os.fstat(source.fileno())
         limit = min(MAX_PHOTO_BYTES, remaining)
         if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
-            raise ValueError("图片超过上传限制")
+            raise ValueError(_t('图片超过上传限制'))
         prefix = source.read(32)
         if prefix.startswith(b"\x89PNG\r\n\x1a\n") and prefix[12:16] == b"IHDR":
             content_type = "image/png"
@@ -151,16 +152,16 @@ def read_photo(path: str, remaining: int = MAX_PHOTO_BYTES) -> tuple[bytes, str]
         elif prefix.startswith(b"RIFF") and prefix[8:12] == b"WEBP":
             content_type = "image/webp"
         else:
-            raise ValueError("文件不是可上传的图片")
+            raise ValueError(_t('文件不是可上传的图片'))
         content = prefix + source.read(max(0, limit + 1 - len(prefix)))
         if len(content) > limit:
-            raise ValueError("图片超过上传限制")
+            raise ValueError(_t('图片超过上传限制'))
         return content, content_type
 
 
 def path_button(token: str, chat_id: str, path: str) -> dict:
     if len(path.encode("utf-16-le")) // 2 <= 256:
-        return {"text": "📋 复制图片路径", "copy_text": {"text": path}}
+        return {"text": _t('📋 复制图片路径'), "copy_text": {"text": path}}
     PATH_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cutoff = time.time() - PATH_RETENTION
     for cached in PATH_CACHE_DIR.glob("*.json"):
@@ -172,22 +173,22 @@ def path_button(token: str, chat_id: str, path: str) -> dict:
     temporary = target.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
     temporary.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
     os.replace(temporary, target)
-    return {"text": "📂 查看图片路径", "callback_data": "localpath|" + key}
+    return {"text": _t('📂 查看图片路径'), "callback_data": "localpath|" + key}
 
 
 def load_path(token: str, chat_id: str, key: str) -> str:
     if not re.fullmatch(r"[0-9a-f]{16}", key):
-        raise ValueError("图片路径按钮无效")
+        raise ValueError(_t('图片路径按钮无效'))
     target = PATH_CACHE_DIR / (key + ".json")
     try:
         if target.stat().st_size > 20 * 1024:
-            raise ValueError("图片路径记录无效")
+            raise ValueError(_t('图片路径记录无效'))
         record = json.loads(target.read_text(encoding="utf-8"))
         path = record.get("path")
         if (record.get("bot") != token.split(":")[0] or record.get("chat") != str(chat_id)
                 or float(record.get("created", 0)) < time.time() - PATH_RETENTION
                 or not isinstance(path, str) or not path or len(path) > 4096):
-            raise ValueError("图片路径按钮无效或已过期")
+            raise ValueError(_t('图片路径按钮无效或已过期'))
         return path
     except (OSError, ValueError, TypeError, AttributeError) as exc:
-        raise ValueError("图片路径按钮无效或已过期") from exc
+        raise ValueError(_t('图片路径按钮无效或已过期')) from exc

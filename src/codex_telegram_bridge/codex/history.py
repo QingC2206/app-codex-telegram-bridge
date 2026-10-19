@@ -1,5 +1,6 @@
 """Bounded, read-only hydration through the current paginated history API."""
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 from typing import Any
 
@@ -9,7 +10,7 @@ def read_thread_history(app: Any, thread_id: str, *, turn_limit: int = 3,
                         timeout: float = 30, cancelled=None) -> dict[str, Any]:
     def request(method, params):
         if cancelled is not None and cancelled():
-            raise RuntimeError('任务历史读取已取消。')
+            raise RuntimeError(_t('任务历史读取已取消。'))
         return app.request(method, params, timeout=timeout)
     result = request('thread/read', {'threadId': thread_id, 'includeTurns': False})
     thread = result.get('thread')
@@ -25,12 +26,12 @@ def read_thread_history(app: Any, thread_id: str, *, turn_limit: int = 3,
         'itemsView': 'notLoaded'})
     turns = page.get('data')
     if not isinstance(turns, list):
-        raise ValueError('任务历史分页返回格式无效。')
+        raise ValueError(_t('任务历史分页返回格式无效。'))
     hydrated = []
     truncated = False
     for original in turns[:turn_limit]:
         if not isinstance(original, dict) or not isinstance(original.get('id'), str):
-            raise ValueError('任务历史缺少明确的 Turn ID。')
+            raise ValueError(_t('任务历史缺少明确的 Turn ID。'))
         turn = dict(original)
         collected = []
         cursor = None
@@ -43,17 +44,17 @@ def read_thread_history(app: Any, thread_id: str, *, turn_limit: int = 3,
             items = request('thread/items/list', params)
             data = items.get('data')
             if not isinstance(data, list):
-                raise ValueError('任务消息分页返回格式无效。')
+                raise ValueError(_t('任务消息分页返回格式无效。'))
             for entry in data:
                 if (not isinstance(entry, dict) or entry.get('turnId') != turn['id']
                         or not isinstance(entry.get('item'), dict)):
-                    raise ValueError('任务消息与请求的 Turn 不一致。')
+                    raise ValueError(_t('任务消息与请求的 Turn 不一致。'))
                 collected.append(entry['item'])
             cursor = items.get('nextCursor')
             if not cursor:
                 break
             if not isinstance(cursor, str) or cursor in visited:
-                raise ValueError('任务消息分页游标无效或重复。')
+                raise ValueError(_t('任务消息分页游标无效或重复。'))
             visited.add(cursor)
             if len(collected) >= item_limit:
                 truncated = True

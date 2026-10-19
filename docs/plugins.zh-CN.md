@@ -1,5 +1,7 @@
 # 本地 Telegram 插件接口 v1
 
+**简体中文** | [English](plugins.en.md) · [返回 README](../README.md)
+
 本插件机制属于 Codex Telegram Robot，和 Codex 应用自身的插件市场、SKILL.md 互相独立。插件用纯 Python 执行，不会自动调用模型。
 
 ## 安装和动态发现
@@ -78,6 +80,8 @@ def handle(request, ctx):
 | ctx.output_dir | 本次发送附件的临时目录；必须把输出文件写到这里 |
 | ctx.state_dir | 此插件的持久目录，可保存缓存、数据库等 |
 | ctx.config | 配置对象，见下文 |
+| ctx.language | 当前界面语言：`zh-CN` 或 `en`；默认中文 |
+| ctx.tr(中文文案, 英文文案) | 按当前语言选择插件自己提供的文案 |
 | ctx.load_state() | 读取 state.json；未创建时返回空对象 |
 | ctx.save_state(value) | 原子替换 state.json；插件按 id 串行执行 |
 
@@ -86,6 +90,33 @@ def handle(request, ctx):
 插件只能接收当前命令参数或按钮数据，机器人不会向插件传递 Bot Token、聊天历史、Codex 会话状态或任意环境变量。插件不必了解 Telegram 消息 ID、鉴权或发送 API。
 
 这是**可信本地 Python 扩展**，不是系统权限沙箱：独立进程隔离崩溃与超时，但 Python 代码仍拥有当前桌面用户的权限。只安装自己编写或审核过的插件。不要将远程聊天内容作为 shell 命令执行，不要在插件中自行调用 getUpdates。插件如需第三方库，应由用户在机器人所使用的 Python 环境中安装，宿主不会自动安装依赖。
+
+## 双语支持与兼容
+
+`commands` 仍是必需的默认命令说明。可选 `command_descriptions` 按 `zh-CN` / `en` 提供现有命令的翻译，每条 1–100 字符；缺失时回退到 `commands`，不自动翻译第三方内容。例如：
+
+```json
+{
+  "commands": {"hello": "显示问候信息"},
+  "command_descriptions": {"en": {"hello": "Show a greeting"}}
+}
+```
+
+在插件入口中使用：
+
+```python
+from plugin_api import result, message, button
+
+def handle(request, ctx):
+    if request["kind"] == "command":
+        return result(message(
+            ctx.tr("你好！", "Hello!"),
+            [[button(ctx.tr("下一页", "Next"), {"view": "next"})]],
+        ))
+    return result(message(ctx.tr("这是下一页。", "This is the next page.")))
+```
+
+`ctx.language`、`ctx.tr` 是 API v1 的兼容扩展，旧插件和原有四参数 `Context` 构造仍可用。单次执行固定使用启动时的语言。不要翻译用户参数或模型正文，也不要用翻译后的标签作为按钮 action。切换语言不改变 action、参数或插件状态。内置截图插件已提供双语；可分别用 `/language en` 和 `/language zh` 验证插件命令及按钮。
 
 ## 返回动作
 
@@ -112,7 +143,7 @@ result(photos([
 result(message("部分项目无法读取。"), ok=False)
 ```
 
-一次返回 1–12 个动作；单消息 3500 字符，最多 12 行按钮，每行 4 个。长文可使用 `telegram_notify.split_markdown_pages(text, limit=2700)` 按页返回，在按钮 action 中放页码等引用，勿放整篇正文。按钮参数由宿主在本机保存，Telegram 仅收到随机令牌；按钮绑定聊天、插件版本和面板，30 分钟到期，点击后一次性消费。后续页面会生成新按钮。
+一次返回 1–12 个动作；单消息 3500 字符，最多 12 行按钮，每行 4 个。长文可使用 `codex_telegram_bridge.telegram.notifications.split_markdown_pages(text, limit=2700)` 按页返回，在按钮 action 中放页码等引用，勿放整篇正文。按钮参数由宿主在本机保存，Telegram 仅收到随机令牌；按钮绑定聊天、插件版本和面板，30 分钟到期，点击后一次性消费。后续页面会生成新按钮。
 
 命令结果引用原 Telegram 命令；按钮返回的第一条消息编辑插件自己的面板，后续消息及附件引用原命令。插件不能编辑任意任务消息。附件单个最多 49 MB，总计 150 MB；照片还受 Telegram 照片尺寸和大小限制。一次 photos 最多 20 张，超过 10 张由宿主拆为多组。原图上传不改为文件兜底。
 
@@ -124,7 +155,7 @@ Markdown 阅读插件在 v0.3.0 移除。升级后 `/md` 不再加载；原文�
 
 ## 内置截图插件
 
-`/screenshot` 不变，旧截图按钮继续兼容。截图算法仍在 screen_capture.py，插件只编排采集目标并返回照片动作；身份验证、相册上传、原消息引用、表情、并发和冷却统一由插件宿主管理。Codex 被遮挡时独立捕获，最小化时短暂恢复到后台并还原；每个显示器单独一张。锁屏等无法采集的情况明确返回提示。
+`/screenshot` 不变，旧截图按钮继续兼容。插件编排采集目标并返回照片动作；身份验证、相册上传、原消息引用、表情、并发和冷却统一由宿主管理。截图由平台适配层完成：Windows 使用原生窗口/显示器捕获，macOS 需录屏授权，Linux 使用 X11 可见区域或 Wayland Portal 确认。锁屏等无法采集的情况明确返回提示，权限说明见 [安装指南](setup.zh-CN.md)。
 
 ## 给 Codex 扩展功能
 

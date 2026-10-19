@@ -1,4 +1,5 @@
 """Legacy DPAPI encryption; imported only on Windows."""
+from codex_telegram_bridge.i18n import tr as _t
 import base64,ctypes,os
 from ctypes import wintypes
 from typing import Any
@@ -12,7 +13,7 @@ class DataBlob(ctypes.Structure):
 
 def _dpapi_function(name: str):
     if os.name != "nt":
-        raise RuntimeError("此配置方式仅支持 Windows DPAPI。")
+        raise RuntimeError(_t('此配置方式仅支持 Windows DPAPI。'))
 
     crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
     function = getattr(crypt32, name)

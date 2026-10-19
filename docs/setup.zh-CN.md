@@ -1,6 +1,14 @@
-# 使用 BotFather 创建 Telegram Robot 并获取 Token
+# 安装与 Telegram 配置
 
-整个过程通常只需要几分钟。
+**简体中文** | [English](setup.en.md) · [返回 README](../README.md)
+
+## 环境要求
+
+需要已登录并运行的 Codex Desktop、64 位 Python 3.10+（推荐 3.11 或更新版本），以及 Telegram Bot API 与首次安装时的 PyPI 网络访问。
+
+macOS 需要支持 `venv` 的 Python 和可用 Keychain，截图需录屏授权。Linux 需要 Python venv 支持、解锁的 Secret Service 密钥环、systemd 用户会话和桌面环境；Wayland 截图需 Portal 确认。
+
+仅连接 Desktop 及其配套后端，不回退到 VS Code 或独立 CLI。Windows 已完成实机通信验收；macOS/Linux 仍需对应设备验收，按实验性支持发布。多台电脑同时运行时各用一个 Bot Token。
 
 ## 1. 打开官方 BotFather
 
@@ -70,11 +78,16 @@ Token 相当于机器人的密码。任何拿到 Token 的人都可以控制机�
 
 ## 5. 运行安装向导
 
-解压 Codex Telegram Bot 安装包，双击：
+克隆仓库，或解压源码安装包后在目录中打开终端：
 
 ```text
-python install.py
+git clone https://github.com/QingC2206/app-codex-telegram-bridge.git
+cd app-codex-telegram-bridge
 ```
+
+Windows 执行 `py -3 install.py`；macOS/Linux 执行 `python3 install.py`。默认中文；希望安装向导和 Telegram 从一开始使用英文时，在命令末尾加 `--language en`。升级时不传该参数会保留现有选择。
+
+安装器在所选 Codex 环境下创建 `telegram-bridge-runtime/`，安装 Python 包，配置安全凭据、通知 Hook 和当前用户后台服务，不改全局 Python。安装失败时不要改用管理员/root 用户重跑。
 
 根据提示完成以下操作：
 
@@ -92,9 +105,43 @@ python install.py
 
 查看机器人支持的全部 Codex 指令。
 
+发送 `/language` 可通过按钮选择中文或英文；`/language en` 切换英文，`/language zh` 切回中文。选择会保留到下次启动和升级。
+
+## 自定义环境与服务管理
+
+```text
+python install.py --codex-home <Codex环境绝对路径> --data-dir <机器人数据绝对路径>
+```
+
+新数据默认位于 `<CODEX_HOME>/telegram-bridge/`；唯一旧凭据目录可原位复用，保留消息关联。多个候选目录时须指定 `--data-dir`。`--no-service` 仅配置 Hook、不安装服务；`--replace-notify` 用于明确替换已有通知命令。
+
+Windows 使用当前用户 DPAPI，macOS 使用 Keychain，Linux 使用 Secret Service；密钥环缺失或锁定时不降级为明文。不要把 Windows 加密凭据复制到其他系统，在新设备重新配置。
+
+管理命令使用安装器创建的 Python。macOS/Linux 示例：
+
+```sh
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge doctor
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge service status
+~/.codex/telegram-bridge-runtime/bin/python -m codex_telegram_bridge language en
+```
+
+Windows 示例：
+
+```powershell
+& "$env:USERPROFILE\.codex\telegram-bridge-runtime\Scripts\python.exe" -m codex_telegram_bridge doctor
+```
+
+可将 `doctor` 替换为 `setup`、`language zh`、`language en`、`service start`、`service stop` 或 `uninstall`。自定义环境的 `--codex-home` / `--data-dir` 放在子命令之前。本机 CLI 修改语言后，发送 Telegram `/language` 或重启服务刷新命令菜单。
+
+## 更新与卸载
+
+执行 `git pull --ff-only` 后重新运行本平台安装命令。现有凭据、消息关联和语言偏好会保留。同一 Token 不应交给多个运行中的轮询服务。
+
+使用安装器的 Python 执行 `python -m codex_telegram_bridge uninstall`，只移除本工具管理的服务和 Hook，保留凭据、历史关联、插件、备份、语言偏好和虚拟环境。
+
 ## Token 泄露或丢失怎么办
 
-重新打开 [@BotFather](https://t.me/BotFather)，发送 `/token`，选择对应机器人并生成新的 Token，然后重新运行：
+重新打开 [@BotFather](https://t.me/BotFather)，撤销泄露 Token 并生成新 Token，然后使用上面的安装器 Python 运行配置命令：
 
 ```powershell
 python -m codex_telegram_bridge setup
@@ -108,4 +155,4 @@ python -m codex_telegram_bridge setup
 - [Telegram：获取 Bot Token](https://core.telegram.org/bots/tutorial#obtain-your-bot-token)
 
 
-新增菜单命令：`screenshot - 一次回传 Codex 和各显示器截图相册`。机器人启动时会自动同步。
+继续阅读 [使用指南](usage.zh-CN.md)、[插件 API](plugins.zh-CN.md) 和 [实机验收](testing.zh-CN.md)。命令菜单在服务启动和语言切换时同步。

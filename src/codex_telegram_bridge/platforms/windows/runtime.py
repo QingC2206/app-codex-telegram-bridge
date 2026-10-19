@@ -1,4 +1,5 @@
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 import os,json,subprocess,logging
 from pathlib import Path
 from ...paths import codex_home
@@ -48,7 +49,7 @@ def _running_desktop_codex(runtime_root: Path) -> list[Path]:
 def locate_codex(discover=None) -> Path:
     local = os.environ.get("LOCALAPPDATA")
     if not local:
-        raise FileNotFoundError("缺少 LOCALAPPDATA，无法定位 Codex Desktop 配套程序。")
+        raise FileNotFoundError(_t('缺少 LOCALAPPDATA，无法定位 Codex Desktop 配套程序。'))
     runtime_root = Path(local) / "OpenAI/Codex/bin"
     configured = os.environ.get("CODEX_CLI_PATH")
     config_path = codex_home() / "config.toml"
@@ -68,10 +69,10 @@ def locate_codex(discover=None) -> Path:
             log(f"could not read CODEX_CLI_PATH from config: {exc}")
 
     if configured and not _desktop_codex_path(Path(configured), runtime_root):
-        raise ValueError("CODEX_CLI_PATH 必须指向 Codex Desktop 的 OpenAI/Codex/bin 配套程序；禁止 VS Code、CLI 和其他来源。")
+        raise ValueError(_t('CODEX_CLI_PATH 必须指向 Codex Desktop 的 OpenAI/Codex/bin 配套程序；禁止 VS Code、CLI 和其他来源。'))
     running = (discover or _running_desktop_codex)(runtime_root)
     if len(running) > 1:
-        raise RuntimeError("检测到多个不同版本的 Desktop 后端；请关闭旧版本实例后重试。")
+        raise RuntimeError(_t('检测到多个不同版本的 Desktop 后端；请关闭旧版本实例后重试。'))
     if running:
         return running[0]
     if configured and Path(configured).is_file():
@@ -79,5 +80,5 @@ def locate_codex(discover=None) -> Path:
     existing = [path.resolve() for path in runtime_root.glob("*/codex.exe")
                 if path.is_file() and _desktop_codex_path(path, runtime_root)]
     if not existing:
-        raise FileNotFoundError("未找到 Codex Desktop 配套程序。请先启动或更新 Desktop；不会回退到 VS Code 或 PATH 中的 CLI。")
+        raise FileNotFoundError(_t('未找到 Codex Desktop 配套程序。请先启动或更新 Desktop；不会回退到 VS Code 或 PATH 中的 CLI。'))
     return max(existing, key=lambda path: path.stat().st_mtime_ns)

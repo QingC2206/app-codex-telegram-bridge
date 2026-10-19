@@ -42,6 +42,21 @@ class PluginTests(unittest.TestCase):
         self.assertEqual(value['actions'][0]['text'],'None|hello')
         self.bot.app.request.assert_not_called()
 
+    def test_worker_language_and_translated_menu_with_legacy_fallback(self):
+        from codex_telegram_bridge.i18n import using_language
+        p=self.add(code="from plugin_api import *\ndef handle(request,ctx): return result(message(ctx.language+'|'+ctx.tr('你好','Hello')+'|'+request['argument']))",
+                   command_descriptions={'en':{'demo':'Demo plugin'}})
+        with using_language('en'):
+            self.assertEqual(self.host.menu()[0]['description'],'Demo plugin')
+            value=self.execute(p,{'kind':'command','argument':'你好 {p0}'})
+            self.assertEqual(value['actions'][0]['text'],'en|Hello|你好 {p0}')
+        with using_language('zh'):
+            self.assertEqual(self.host.menu()[0]['description'],'测试插件')
+        path=self.host.root/'demo/plugin.json';data=json.loads(path.read_text())
+        data['command_descriptions']={'en':{'unknown':'Bad'}}
+        path.write_text(json.dumps(data));self.host.discover()
+        self.assertNotIn('demo',self.host.plugins)
+
     def test_hot_update_uses_new_code_and_inflight_snapshot_is_immutable(self):
         old=self.add();new=self.add(code="from codex_telegram_bridge.plugins.api import *\ndef handle(request,ctx): return result(message('新版'))")
         self.assertNotEqual(old.revision,new.revision)
@@ -68,7 +83,7 @@ class PluginTests(unittest.TestCase):
     def test_reserved_commands_and_unknown_api_rejected(self):
         self.add()
         path=self.host.root/'demo/plugin.json';data=json.loads(path.read_text())
-        for command in ('quota', 'running'):
+        for command in ('quota', 'running', 'language'):
             data['commands']={command:'覆盖'};path.write_text(json.dumps(data));self.host.discover()
             self.assertNotIn('demo',self.host.plugins)
         data['commands']={'demo':'测试'};data['api_version']=99;path.write_text(json.dumps(data));self.host.discover()

@@ -5,7 +5,7 @@ import re
 import tarfile
 import zipfile
 
-FORBIDDEN = re.compile(r'(^|/)(?:\.env(?:\..*)?|auth\.json|hooks\.json|config\.toml|.*credentials.*\.json|.*\.sqlite(?:3)?(?:-.*)?|.*\.log(?:\..*)?|.*\.validation\.json|bridge-install\.json|telegram_(?:replies|attachments|message_routes|image_paths))(?:/|$)', re.I)
+FORBIDDEN = re.compile(r'(^|/)(?:\.env(?:\..*)?|auth\.json|hooks\.json|config\.toml|.*credentials.*\.json|.*\.sqlite(?:3)?(?:-.*)?|.*\.log(?:\..*)?|.*\.validation\.json|bridge-install\.json|telegram_language\.json|telegram_(?:replies|attachments|message_routes|image_paths))(?:/|$)', re.I)
 TOKEN = re.compile(rb'(?<![\w-])\d{6,}:[A-Za-z0-9_-]{20,}(?![\w-])|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}')
 
 

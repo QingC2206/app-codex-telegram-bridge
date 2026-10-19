@@ -1,5 +1,7 @@
 # 架构与兼容边界
 
+**简体中文** | [English](architecture.en.md) · [返回 README](../README.md)
+
 主程序、安装、卸载、测试、发布使用同一 Python 包。`platforms/` 内封装系统能力，业务代码复用消息类型、投递日志、任务归属和权限判断。
 
 ## 消息流
@@ -46,6 +48,8 @@ Unix follower 端点按所选环境的 `ipc/ipc.sock` 发现，兼容旧版当�
 - 源码和 wheel 使用同一份 `resources/bundled_plugins/`，没有两个需要同步的插件副本。
 - 插件工作进程保留 v1 的 `plugin_api` 导入；它是可信本地代码扩展，不是权限沙箱。
 - 系统服务绑定绝对 Python 路径、Codex 环境和数据目录；本机运行数据不会进入 wheel、源码 ZIP 或 Git。
+- `i18n.py` 只通过 `resources/messages.en.json` 翻译显式标记的界面模板，参数原样插入，不扫描或翻译整条待发送正文。
+- 语言默认 `zh-CN`，单独保存在机器人数据目录。通知进程读取同一偏好，插件工作进程接收明确语言；按钮路由和用户输入不依赖翻译后的标签。
 
 ## 模块迁移
 

@@ -4,6 +4,7 @@ Discovery reads only the Desktop process environment. No task is resumed by
 this module, and a possibly submitted call is never retried on another route.
 """
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 from dataclasses import dataclass, field
 import json
@@ -47,27 +48,27 @@ def discover_desktop(expected_home: Path | None = None) -> DesktopEndpoint:
         if not profile_hint:
             user_profile, home = environment.get("USERPROFILE"), environment.get("HOME")
             if user_profile and home and Path(user_profile).resolve() != Path(home).resolve():
-                raise DesktopBridgeSafetyError("Desktop 的用户目录存在歧义，未提交消息。")
+                raise DesktopBridgeSafetyError(_t('Desktop 的用户目录存在歧义，未提交消息。'))
             # A launcher can isolate USERPROFILE without setting CODEX_HOME.
             # Never substitute the bot's own home for another process's home.
             desktop_home = Path(user_profile or home or Path.home())
             profile_hint = str(desktop_home / ".codex")
         profile = Path(profile_hint).expanduser()
         if not profile.is_absolute():
-            raise DesktopBridgeSafetyError("Desktop 的环境目录不是绝对路径，未提交消息。")
+            raise DesktopBridgeSafetyError(_t('Desktop 的环境目录不是绝对路径，未提交消息。'))
         if profile.resolve() != expected:
             other_profiles.add(profile.resolve())
             continue
         pipe = environment.get("CODEX_APP_TOOLS_PIPE_PATH") or None
         if pipe and not valid_native_endpoint(pipe):
-            raise DesktopBridgeSafetyError("Desktop 原生连接地址无法验证，未提交消息。")
+            raise DesktopBridgeSafetyError(_t('Desktop 原生连接地址无法验证，未提交消息。'))
         candidates.append(DesktopEndpoint(int(record["ProcessId"]), pipe))
     if len(candidates) > 1:
-        raise DesktopBridgeSafetyError("同一环境有多个 Codex Desktop 实例，请关闭重复实例后再发送。")
+        raise DesktopBridgeSafetyError(_t('同一环境有多个 Codex Desktop 实例，请关闭重复实例后再发送。'))
     if not candidates:
         if roots:
-            raise DesktopBridgeSafetyError("运行中的 Desktop 使用另一个环境，未向其他订阅实例提交消息。")
-        raise DesktopIpcUnavailable("Codex Desktop 未运行，请启动 Desktop 后再发送。")
+            raise DesktopBridgeSafetyError(_t('运行中的 Desktop 使用另一个环境，未向其他订阅实例提交消息。'))
+        raise DesktopIpcUnavailable(_t('Codex Desktop 未运行，请启动 Desktop 后再发送。'))
     chosen = candidates[0]
     return DesktopEndpoint(chosen.pid, chosen.pipe, expected, tuple(other_profiles))
 
@@ -93,9 +94,9 @@ def validate_thread_profile(endpoint: DesktopEndpoint, thread_id: str) -> None:
             finally:
                 db.close()
         except (OSError, sqlite3.Error) as exc:
-            raise DesktopBridgeSafetyError('无法排除另一 Desktop 环境中的同名任务，未提交消息。') from exc
+            raise DesktopBridgeSafetyError(_t('无法排除另一 Desktop 环境中的同名任务，未提交消息。')) from exc
         if duplicate:
-            raise DesktopBridgeSafetyError('同一任务编号存在于多个运行中的 Desktop 环境，未提交消息。')
+            raise DesktopBridgeSafetyError(_t('同一任务编号存在于多个运行中的 Desktop 环境，未提交消息。'))
 
 
 
@@ -143,7 +144,7 @@ class DesktopAppTools:
     def _connect(self) -> tuple[Any, int]:
         endpoint = self.discover()
         if not endpoint.pipe:
-            raise DesktopIpcUnavailable("当前 Desktop 未提供原生任务接口。")
+            raise DesktopIpcUnavailable(_t('当前 Desktop 未提供原生任务接口。'))
         transport = self.transport_factory(timeout=self.timeout)
         transport.PIPE_PATH = endpoint.pipe
         handle = transport._open()
@@ -168,21 +169,21 @@ class DesktopAppTools:
                     break
         except Exception as exc:
             if mutating:
-                raise DesktopSubmissionUnknown("Desktop 提交结果未知：连接在发送期间中断。请先查看任务最新消息，避免重复发送。") from exc
-            raise DesktopIpcUnavailable("Desktop 原生接口查询失败，消息尚未发送。") from exc
+                raise DesktopSubmissionUnknown(_t('Desktop 提交结果未知：连接在发送期间中断。请先查看任务最新消息，避免重复发送。')) from exc
+            raise DesktopIpcUnavailable(_t('Desktop 原生接口查询失败，消息尚未发送。')) from exc
         error = response.get("error")
         if error:
             # Invalid parameters/method are rejected before dispatch. A generic
             # application error could occur after queuing, so keep it uncertain.
             rejected = isinstance(error, dict) and error.get("code") in (-32600, -32601, -32602)
             if mutating and not rejected:
-                raise DesktopSubmissionUnknown("Desktop 未能确认提交结果。请先查看任务最新消息，避免重复发送。")
-            raise DesktopIpcError("Desktop 拒绝了任务请求，消息未提交。")
+                raise DesktopSubmissionUnknown(_t('Desktop 未能确认提交结果。请先查看任务最新消息，避免重复发送。'))
+            raise DesktopIpcError(_t('Desktop 拒绝了任务请求，消息未提交。'))
         result = response.get("result")
         if not isinstance(result, dict):
             if mutating:
-                raise DesktopSubmissionUnknown("Desktop 返回的提交结果不完整。请先查看任务最新消息，避免重复发送。")
-            raise DesktopIpcUnavailable("Desktop 原生接口返回无效查询结果，消息尚未发送。")
+                raise DesktopSubmissionUnknown(_t('Desktop 返回的提交结果不完整。请先查看任务最新消息，避免重复发送。'))
+            raise DesktopIpcUnavailable(_t('Desktop 原生接口返回无效查询结果，消息尚未发送。'))
         return result
 
     def _catalog(self, transport: Any, handle: int, required: set[str]) -> None:
@@ -190,7 +191,7 @@ class DesktopAppTools:
         names = {tool.get("name") for tool in result.get("tools", [])
                  if isinstance(tool, dict) and tool.get("namespace") == "codex_app"}
         if not required.issubset(names):
-            raise DesktopIpcUnavailable("Desktop 原生接口缺少所需任务功能，消息尚未发送。")
+            raise DesktopIpcUnavailable(_t('Desktop 原生接口缺少所需任务功能，消息尚未发送。'))
 
     def _call(self, transport: Any, handle: int, tool: str, thread_id: str,
               arguments: dict[str, Any], *, mutating: bool = False) -> dict[str, Any]:
@@ -205,13 +206,13 @@ class DesktopAppTools:
         if result.get("success") is not True:
             text = " ".join(str(item.get("text", "")) for item in result.get("contentItems", [])
                             if isinstance(item, dict) and item.get("type") == "inputText")
-            raise DesktopIpcError("Desktop 未接受任务请求：" + (text[:500] or "未返回成功状态。"))
+            raise DesktopIpcError(_t('Desktop 未接受任务请求：') + (text[:500] or _t('未返回成功状态。')))
         return result
 
     def read_thread(self, thread_id: str, *, timeout: float | None = None) -> dict[str, Any]:
         if timeout is not None:
             if timeout <= 0:
-                raise ValueError('查询超时必须为正数。')
+                raise ValueError(_t('查询超时必须为正数。'))
             return DesktopAppTools(self.transport_factory, min(timeout, self.timeout), self.discover).read_thread(thread_id)
         transport, handle = self._connect()
         try:
@@ -231,7 +232,7 @@ class DesktopAppTools:
         """
         if timeout is not None:
             if timeout <= 0:
-                raise ValueError('查询超时必须为正数。')
+                raise ValueError(_t('查询超时必须为正数。'))
             return DesktopAppTools(self.transport_factory, min(timeout, self.timeout), self.discover).list_threads(context_thread_id)
         transport, handle = self._connect()
         try:
@@ -239,7 +240,7 @@ class DesktopAppTools:
             result = self._call(transport, handle, 'list_threads', context_thread_id, {'limit': 50})
             content = _content_json(result)
             if not isinstance(content.get('threads'), list) or not isinstance(content.get('pinnedThreads'), list):
-                raise DesktopIpcUnavailable('Desktop 未返回有效任务列表，无法确认运行状态。')
+                raise DesktopIpcUnavailable(_t('Desktop 未返回有效任务列表，无法确认运行状态。'))
             return content
         finally:
             transport._close(handle)
@@ -288,33 +289,33 @@ class DesktopControl:
     def send_follow_up(self, thread_id: str, text: str, cwd: str, *, start_if_inactive: bool = True,
                        expected_turn_id: str = '') -> dict[str, Any] | None:
         if not text.strip():
-            raise ValueError('回复内容不能为空。')
+            raise ValueError(_t('回复内容不能为空。'))
         owner = self._legacy_for_current_desktop(thread_id)
 
         def guard() -> None:
             # Run after owner discovery and immediately before the one input
             # request. The native read is profile-specific and never resumes.
             if self.native.discover().pid != owner.expected_server_pid:
-                raise DesktopBridgeSafetyError('Desktop 在提交前已重启，未发送消息；请重新检查任务。')
+                raise DesktopBridgeSafetyError(_t('Desktop 在提交前已重启，未发送消息；请重新检查任务。'))
             state = self.native.read_thread(thread_id)
             thread = state.get('thread')
             if not isinstance(thread, dict) or thread.get('id') != thread_id:
-                raise DesktopBridgeSafetyError('Desktop 返回的任务与目标不一致，未提交消息。')
+                raise DesktopBridgeSafetyError(_t('Desktop 返回的任务与目标不一致，未提交消息。'))
             if not start_if_inactive or expected_turn_id:
                 status = thread.get('status')
                 if not isinstance(status, dict) or status.get('type') != 'active':
-                    raise DesktopIpcInactive('该 Desktop 任务当前没有运行中的 Turn。')
+                    raise DesktopIpcInactive(_t('该 Desktop 任务当前没有运行中的 Turn。'))
             if expected_turn_id:
                 turns = state.get('turns')
                 if (not isinstance(turns, list) or not turns or not isinstance(turns[0], dict)
                         or turns[0].get('id') != expected_turn_id):
-                    raise DesktopIpcInactive('Desktop 当前 Turn 与原问题不一致，未提交回答。')
+                    raise DesktopIpcInactive(_t('Desktop 当前 Turn 与原问题不一致，未提交回答。'))
 
         result = owner.send_follow_up(thread_id, text, cwd,
                                       start_if_inactive=start_if_inactive and not expected_turn_id,
                                       before_submit=guard)
         if result is not None and expected_turn_id and result.get('turn_id') != expected_turn_id:
-            raise DesktopSubmissionUnknown('Desktop 接收消息的 Turn 与原问题不一致，请先核对；不会重发回答。')
+            raise DesktopSubmissionUnknown(_t('Desktop 接收消息的 Turn 与原问题不一致，请先核对；不会重发回答。'))
         return result
 
     def interrupt_turn(self, thread_id: str, turn_id: str = "") -> bool:

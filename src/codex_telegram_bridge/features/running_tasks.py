@@ -1,5 +1,6 @@
 """Read-only enumeration and live verification of running local Codex tasks."""
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 from dataclasses import dataclass
 import time
@@ -35,7 +36,7 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
         for _ in range(max_pages):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise TimeoutError('任务范围查询超时')
+                raise TimeoutError(_t('任务范围查询超时'))
             params = {'limit': 100, 'sortKey': 'updated_at', 'sortDirection': 'desc',
                       'sourceKinds': source_kinds, 'useStateDbOnly': True}
             if cursor:
@@ -43,7 +44,7 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
             page = app.request('thread/list', params, timeout=min(8, remaining))
             data = page.get('data')
             if not isinstance(data, list):
-                raise ValueError('任务元数据格式无效')
+                raise ValueError(_t('任务元数据格式无效'))
             for entry in data:
                 if isinstance(entry, dict) and isinstance(entry.get('id'), str) and entry['id']:
                     metadata.setdefault(entry['id'], entry)
@@ -51,16 +52,16 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
             if not cursor:
                 break
             if not isinstance(cursor, str) or cursor in cursors:
-                raise ValueError('任务分页游标重复或无效')
+                raise ValueError(_t('任务分页游标重复或无效'))
             cursors.add(cursor)
         else:
-            raise ValueError('任务范围超过本次核验上限')
+            raise ValueError(_t('任务范围超过本次核验上限'))
     except Exception:
-        notes.append('历史任务范围未完整核验，列表可能有遗漏；请刷新重试。')
+        notes.append(_t('历史任务范围未完整核验，列表可能有遗漏；请刷新重试。'))
 
     if not metadata:
         if notes:
-            raise ValueError('任务范围查询失败，无法核验运行状态；请稍后重试。')
+            raise ValueError(_t('任务范围查询失败，无法核验运行状态；请稍后重试。'))
         return RunningTasks([], [])
     # Use a real, local thread ID as tool context; Desktop validates this ID.
     native = native.for_current_instance()
@@ -69,23 +70,23 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
     for group in ('pinnedThreads', 'threads'):
         entries = sidebar.get(group)
         if not isinstance(entries, list):
-            raise ValueError('Desktop 任务列表格式无效，无法核验运行状态。')
+            raise ValueError(_t('Desktop 任务列表格式无效，无法核验运行状态。'))
         for entry in entries:
             if (isinstance(entry, dict) and entry.get('kind') == 'codex'
                     and entry.get('hostId') == 'local' and isinstance(entry.get('id'), str) and entry['id']):
                 local[entry['id']] = entry
     if any(host == 'local' or isinstance(host, dict) and host.get('hostId') == 'local'
            for host in sidebar.get('unavailableHosts', [])):
-        raise ValueError('当前 Desktop 本机连接不可用，无法核验运行状态。')
+        raise ValueError(_t('当前 Desktop 本机连接不可用，无法核验运行状态。'))
     if any(source == 'codex' or isinstance(source, dict) and source.get('source') == 'codex'
            for source in sidebar.get('unavailableSources', [])):
-        raise ValueError('Desktop 的 Codex 任务来源不可用，无法核验运行状态。')
+        raise ValueError(_t('Desktop 的 Codex 任务来源不可用，无法核验运行状态。'))
 
     running = []
     unverified = 0
     for tid in dict.fromkeys([*local, *metadata]):
         if time.monotonic() >= deadline:
-            notes.append('本次核验超时，列表可能有遗漏；请刷新重试。')
+            notes.append(_t('本次核验超时，列表可能有遗漏；请刷新重试。'))
             break
         entry = metadata.get(tid, {})
         live = local.get(tid)
@@ -110,7 +111,7 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
             state = native.read_thread(tid, timeout=min(5, max(0.1, deadline - time.monotonic())))
             thread = state.get('thread')
             if not isinstance(thread, dict) or thread.get('id') != tid or not isinstance(thread.get('status'), dict):
-                raise ValueError('Desktop 返回了不匹配的任务状态')
+                raise ValueError(_t('Desktop 返回了不匹配的任务状态'))
             if not _active(thread['status']):
                 continue
             merged = {**entry, **thread}
@@ -122,7 +123,7 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
         except Exception:
             unverified += 1
     if unverified:
-        notes.append(f'另有 {unverified} 项状态未能核实，未计入运行中；请刷新重试。')
+        notes.append(_t('另有 {p0} 项状态未能核实，未计入运行中；请刷新重试。', p0=format(unverified, '')))
     def order(thread: dict[str, Any]) -> tuple[float, str]:
         updated = thread.get('updatedAt')
         return (float(updated) if isinstance(updated, (int, float)) else 0, thread['id'])

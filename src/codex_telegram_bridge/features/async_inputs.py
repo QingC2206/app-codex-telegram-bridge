@@ -4,6 +4,7 @@ Observation uses read-only history queries. Answer submission is journaled
 before dispatch and never retried after an uncertain result.
 """
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 from contextlib import contextmanager
 import json
@@ -121,7 +122,7 @@ class AsyncInputs:
             current = self.get(row['key'])
             if (current and current['status'] in {'answered', 'expired'} and current['status'] != row['status']
                     and isinstance(current.get('message'), int)):
-                self.bot.enqueue_edit(current['message'], '该异步问题已回答或结束。', {'inline_keyboard': []})
+                self.bot.enqueue_edit(current['message'], _t('该异步问题已回答或结束。'), {'inline_keyboard': []})
 
     def current_history(self, thread_id, *, item_limit=240):
         history = read_thread_history(self.bot.app, thread_id, turn_limit=1, item_limit=item_limit,
@@ -137,10 +138,10 @@ class AsyncInputs:
         thread = live.get('thread') or {}
         summaries = live.get('turns') or []
         if thread.get('id') != thread_id or not summaries:
-            raise ValueError('Desktop 未返回可验证的当前任务状态。')
+            raise ValueError(_t('Desktop 未返回可验证的当前任务状态。'))
         latest = ((history.get('thread') or {}).get('turns') or [{}])[-1]
         if latest.get('id') != summaries[0].get('id'):
-            raise ValueError('当前 Turn 尚未写入可读历史，暂缓异步问题处理。')
+            raise ValueError(_t('当前 Turn 尚未写入可读历史，暂缓异步问题处理。'))
         latest['status'] = summaries[0].get('status')
         return history
 
@@ -176,15 +177,15 @@ class AsyncInputs:
             options = json.loads(row['options'])
             keyboard = [[{'text': label[:50], 'callback_data': f"asyncq|{row['key']}:{index}"}]
                         for index, label in enumerate(options)]
-            keyboard.append([{'text': '文字回答', 'callback_data': f"asyncq|{row['key']}:other"}])
+            keyboard.append([{'text': _t('文字回答'), 'callback_data': f"asyncq|{row['key']}:other"}])
             try:
-                sent = self.bot.send('**❓ Codex 的异步提问**\n\n任务：`' + row['thread'][:8]
+                sent = self.bot.send(_t('**❓ Codex 的异步提问**\n\n任务：`') + row['thread'][:8]
                     + '`\n\n' + row['title'][:2800]
-                    + '\n\n任务可以继续运行。请选择选项，或回复此消息填写答案。',
+                    + _t('\n\n任务可以继续运行。请选择选项，或回复此消息填写答案。'),
                     {'inline_keyboard': keyboard})
                 message = sent.get('message_id') if isinstance(sent, dict) else None
                 if not isinstance(message, int) or message <= 0:
-                    raise ValueError('Telegram 未确认提问消息 ID；不会重复发送。')
+                    raise ValueError(_t('Telegram 未确认提问消息 ID；不会重复发送。'))
                 with self.db() as db:
                     db.execute('UPDATE questions SET message=? WHERE bot=? AND chat=? AND key=?',
                                (message, *self.identity, row['key']))
@@ -208,22 +209,22 @@ class AsyncInputs:
         key, separator, choice = value.partition(':')
         row = self.get(key)
         if not separator or not row or row['status'] not in {'waiting', 'publishing'}:
-            raise ValueError('这条异步问题已回答、失效或提交结果未确认。')
+            raise ValueError(_t('这条异步问题已回答、失效或提交结果未确认。'))
         if choice == 'other':
             self.bot.pending_free_text[self.bot.chat_id] = 'async:' + key
-            self.bot.send('请发送文字回答，或使用 Telegram 的“回复”回复原问题。')
+            self.bot.send(_t('请发送文字回答，或使用 Telegram 的“回复”回复原问题。'))
             return
         options = json.loads(row['options'])
         if not choice.isdecimal() or not 0 <= int(choice) < len(options):
-            raise ValueError('选项无效。')
+            raise ValueError(_t('选项无效。'))
         self.submit(key, options[int(choice)])
 
     def submit(self, key, answer):
         row = self.get(key)
         if not row or row['status'] not in {'waiting', 'publishing'}:
-            raise ValueError('这条异步问题已回答、失效或提交结果未确认。')
+            raise ValueError(_t('这条异步问题已回答、失效或提交结果未确认。'))
         if not isinstance(answer, str) or not answer.strip() or len(answer) > 20000:
-            raise ValueError('请提供不超过 20000 字符的回答。')
+            raise ValueError(_t('请提供不超过 20000 字符的回答。'))
         history = self.current_history(row['thread'], item_limit=400)
         self.reconcile(row['thread'], history)
         latest = ((history.get('thread') or {}).get('turns') or [{}])[-1]
@@ -231,10 +232,10 @@ class AsyncInputs:
         row = self.get(key)
         if (row['status'] not in {'waiting', 'publishing'} or latest.get('id') != row['turn']
                 or latest.get('status') != 'inProgress' or item is None):
-            raise ValueError('无法确认原问题仍在当前 Turn 中待回答，请回 Desktop 核对；未提交消息。')
+            raise ValueError(_t('无法确认原问题仍在当前 Turn 中待回答，请回 Desktop 核对；未提交消息。'))
         questions = item.get('questions') or []
         if (row['qindex'] >= len(questions) or questions[row['qindex']].get('title') != row['title']):
-            raise ValueError('原问题内容已改变，未提交消息。')
+            raise ValueError(_t('原问题内容已改变，未提交消息。'))
         payload = [{'questionItemId': question_id(row['item'], row['qindex']),
                     'question': row['title'], 'answer': answer}]
         prompt = REPLY_OPEN + '\n' + json.dumps(payload, ensure_ascii=False) + '\n' + REPLY_CLOSE
@@ -242,7 +243,7 @@ class AsyncInputs:
             changed = db.execute("UPDATE questions SET status='submitting' WHERE bot=? AND chat=? AND key=? AND status IN ('waiting','publishing')",
                                  (*self.identity, key)).rowcount
         if not changed:
-            raise ValueError('该回答已进入提交流程，不会重复发送。')
+            raise ValueError(_t('该回答已进入提交流程，不会重复发送。'))
         try:
             if self.bot._owns_thread(row['thread']) and self.bot.active_turns.get(row['thread']) == row['turn']:
                 self.bot.app.request('turn/steer', {'threadId': row['thread'],
@@ -269,7 +270,7 @@ class AsyncInputs:
         if self.bot.pending_free_text.get(self.bot.chat_id) == 'async:' + key:
             self.bot.pending_free_text.pop(self.bot.chat_id, None)
         self.bot._submission_feedback(row['thread'], row['turn'],
-            '✅ 已将回答关联到原问题并提交。', {'inline_keyboard': []})
+            _t('✅ 已将回答关联到原问题并提交。'), {'inline_keyboard': []})
 
     def poll(self):
         threads = self.bot._list_threads(limit=30)

@@ -1,5 +1,6 @@
 """Small typed MCP forms; URL and device verification remain in Desktop."""
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 import math
 from typing import Any
@@ -65,6 +66,6 @@ def form_content(params: dict[str, Any], answers: dict[str, Any]) -> dict[str, A
             if kind in {'integer', 'number'} and not field.get('minimum', -math.inf) <= value <= field.get('maximum', math.inf):
                 raise ValueError()
         except (TypeError, ValueError, OverflowError):
-            raise ValueError(f'字段 {key} 的回答不符合表单约束。') from None
+            raise ValueError(_t('字段 {p0} 的回答不符合表单约束。', p0=format(key, ''))) from None
         result[key] = value
     return result

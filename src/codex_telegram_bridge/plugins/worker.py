@@ -1,4 +1,5 @@
 """One invocation per process. stdout is not a protocol channel; results use a file."""
+from codex_telegram_bridge.i18n import tr as _t
 import importlib.util
 import json
 from pathlib import Path
@@ -7,6 +8,7 @@ import traceback
 from codex_telegram_bridge.plugins.api import Context
 from . import api
 from ..platforms import capture
+from ..i18n import using_language, normalize_language
 # Compatibility for the documented v1 plugin API, limited to the worker.
 sys.modules["plugin_api"] = api
 sys.modules["screen_capture"] = capture
@@ -20,12 +22,14 @@ def main():
         sys.path.insert(0, str(folder))
         spec = importlib.util.spec_from_file_location('local_telegram_plugin', folder / request['entrypoint'])
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        ctx = Context(folder, Path(request['output_dir']), Path(request['state_dir']), request['config'])
-        value = module.handle(request['request'], ctx)
+        language = normalize_language(request.get('language')) or 'zh-CN'
+        with using_language(language):
+            spec.loader.exec_module(module)
+            ctx = Context(folder, Path(request['output_dir']), Path(request['state_dir']), request['config'], language)
+            value = module.handle(request['request'], ctx)
         serialized = json.dumps(value, ensure_ascii=False)
         if len(serialized.encode('utf-8')) > 262144:
-            raise ValueError('插件结果超过 256 KB')
+            raise ValueError(_t('插件结果超过 256 KB'))
         output.write_text(serialized, encoding='utf-8')
     except BaseException:
         # Captured by the host into a local diagnostic; never includes bot credentials.

@@ -11,6 +11,11 @@ class Context:
     output_dir: Path
     state_dir: Path
     config: dict
+    language: str = 'zh-CN'
+
+    def tr(self, zh: str, en: str) -> str:
+        """Choose plugin-owned UI text; do not translate user content."""
+        return en if self.language == 'en' else zh
 
     def save_state(self, value):
         self.state_dir.mkdir(parents=True, exist_ok=True)

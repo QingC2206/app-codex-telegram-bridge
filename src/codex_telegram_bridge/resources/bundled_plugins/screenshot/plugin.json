@@ -1,9 +1,10 @@
 {
   "api_version": 1,
   "id": "screenshot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "entrypoint": "main.py",
   "commands": {"screenshot": "截图：Codex 和每个显示器，照片相册回发"},
+  "command_descriptions": {"en": {"screenshot": "Capture Codex windows and displays as a photo album"}},
   "timeout_seconds": 180,
   "cooldown_seconds": 5
 }

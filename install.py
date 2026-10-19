@@ -14,6 +14,7 @@ def main():
     parser.add_argument('--no-service', action='store_true')
     parser.add_argument('--replace-notify', action='store_true')
     parser.add_argument('--skip-setup', action='store_true')
+    parser.add_argument('--language', choices=['zh-CN', 'zh', 'en'], help='initial UI language; omitted preserves the existing choice (Chinese by default)')
     args = parser.parse_args()
     root = Path(__file__).resolve().parent
     env = {**os.environ, 'CODEX_HOME': str(args.codex_home.expanduser().resolve())}
@@ -47,6 +48,10 @@ def main():
         if stopped and (code or args.no_service):
             subprocess.run([*command, 'service', 'start'], env=env)
         return code
+    if args.language:
+        result = subprocess.run([*command, 'language', args.language], env=env)
+        if result.returncode:
+            return finish(result.returncode)
     # Existing users retain their credential store and do not reconfigure.
     probe = subprocess.run([str(python), '-c',
         'from codex_telegram_bridge.paths import data_dir; raise SystemExit(0 if (data_dir()/"telegram_notify.credentials.json").is_file() else 3)'],env=env)

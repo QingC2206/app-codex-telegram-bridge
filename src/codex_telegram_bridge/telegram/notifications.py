@@ -6,6 +6,7 @@ The hook never writes notification output to stdout.
 """
 
 from __future__ import annotations
+from codex_telegram_bridge.i18n import tr as _t
 
 import base64
 from datetime import datetime
@@ -48,7 +49,7 @@ REACTION_DB = HOOK_DIR / "telegram_reactions.sqlite3"
 
 def workspace_name(cwd):
     if not cwd:
-        return "未知工作区"
+        return _t('未知工作区')
     # History may contain Windows workspaces even when viewed on another OS.
     path = PureWindowsPath(cwd)
     return path.name if path.drive else Path(cwd).name
@@ -448,7 +449,7 @@ def telegram_call(
             raise RuntimeError(f"Telegram HTTP {exc.code}") from exc
         raise TelegramApiError(exc.code, str(rejection.get("description", ""))) from exc
     except URLError as exc:
-        raise RuntimeError(f"无法连接 Telegram API: {exc.reason}") from exc
+        raise RuntimeError(_t('无法连接 Telegram API: {p0}', p0=format(exc.reason, ''))) from exc
 
     if not result.get("ok"):
         raise TelegramApiError(int(result.get("error_code", 0)), str(result.get("description", "unknown error")))
@@ -542,7 +543,7 @@ def telegram_multipart_call(
             raise RuntimeError(f"Telegram HTTP {exc.code}") from exc
         raise TelegramApiError(exc.code, str(rejection.get("description", ""))) from exc
     except URLError as exc:
-        raise RuntimeError(f"无法连接 Telegram API: {exc.reason}") from exc
+        raise RuntimeError(_t('无法连接 Telegram API: {p0}', p0=format(exc.reason, ''))) from exc
     if not result.get("ok"):
         raise TelegramApiError(int(result.get("error_code", 0)), str(result.get("description", "unknown error")))
     return result.get("result")
@@ -551,11 +552,11 @@ def telegram_multipart_call(
 def send_screenshot_album(token, chat_id, pictures, silent=False, reply_to=None):
     """Upload full-resolution photos; Bot API has no documented HD/SD switch."""
     if not pictures:
-        raise ValueError("没有可发送的截图。")
+        raise ValueError(_t('没有可发送的截图。'))
     for picture in pictures:
         width, height = picture['width'], picture['height']
         if min(width, height) <= 0 or width+height > 10000 or max(width, height)/min(width, height) > 20 or len(picture['content']) > 10*1024*1024:
-            raise ValueError("截图超出 Telegram 照片限制，未改为文件发送。")
+            raise ValueError(_t('截图超出 Telegram 照片限制，未改为文件发送。'))
     for offset in range(0, len(pictures), 10):
         batch = pictures[offset:offset+10]
         kind = "photo"
@@ -735,7 +736,7 @@ def format_markdown_tables(text: str) -> str:
             if output and output[-1] != "":
                 output.append("")
             for column, (label, value) in enumerate(zip(header, row), 1):
-                label = label.strip().removeprefix("**").removesuffix("**") or f"第 {column} 列"
+                label = label.strip().removeprefix("**").removesuffix("**") or _t('第 {p0} 列', p0=format(column, ''))
                 value = re.sub(r"<br\s*/?>", "\n", value, flags=re.IGNORECASE) or "—"
                 output.append(f"**{label}：** {value}")
             output.append("")
@@ -945,7 +946,7 @@ def markdown_preview(text: str, limit: int) -> str:
     if len(value) <= limit:
         return value
     pages = split_markdown_pages(value, limit - 32)
-    return (pages[0] if pages else "") + "\n\n…（查看完整回复）"
+    return (pages[0] if pages else "") + _t('\n\n…（查看完整回复）')
 
 
 def cleanup_reply_cache(now: float | None = None) -> None:
@@ -998,16 +999,16 @@ def cache_full_reply(payload: dict[str, Any], thread_id: str = "") -> str | None
 
 def load_cached_reply(cache_id: str) -> dict[str, Any]:
     if not re.fullmatch(r"[0-9a-f]{16}", cache_id):
-        raise ValueError("完整回复链接无效。")
+        raise ValueError(_t('完整回复链接无效。'))
     cleanup_reply_cache()
     path = REPLY_CACHE_DIR / f"{cache_id}.json"
     if not path.is_file():
-        raise FileNotFoundError("完整回复已过期或不存在。")
+        raise FileNotFoundError(_t('完整回复已过期或不存在。'))
     if path.stat().st_size > MAX_CACHED_REPLY_BYTES + 64 * 1024:
-        raise ValueError("完整回复缓存文件异常。")
+        raise ValueError(_t('完整回复缓存文件异常。'))
     record = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(record, dict) or not isinstance(record.get("text"), str):
-        raise ValueError("完整回复缓存内容无效。")
+        raise ValueError(_t('完整回复缓存内容无效。'))
     return record
 
 
@@ -1015,13 +1016,13 @@ def build_notification_keyboard(thread_id: str = "", cache_id: str | None = None
     rows: list[list[dict[str, str]]] = []
     if thread_id and len(thread_id) <= 52:
         rows.append([
-            {"text": "查看任务详情", "callback_data": f"task|{thread_id}"},
-            {"text": "💬 直接回复", "callback_data": f"direct|{thread_id}"},
+            {"text": _t('查看任务详情'), "callback_data": f"task|{thread_id}"},
+            {"text": _t('💬 直接回复'), "callback_data": f"direct|{thread_id}"},
         ])
     if cache_id:
         rows.append([
-            {"text": "📖 查看完整回复", "callback_data": f"reply|{cache_id}|0"},
-            {"text": "⬇️ 下载 Markdown", "callback_data": f"replyfile|{cache_id}"},
+            {"text": _t('📖 查看完整回复'), "callback_data": f"reply|{cache_id}|0"},
+            {"text": _t('⬇️ 下载 Markdown'), "callback_data": f"replyfile|{cache_id}"},
         ])
     return {"inline_keyboard": rows} if rows else None
 
@@ -1097,7 +1098,7 @@ def prepare_local_image_reply(token: str, payload: dict[str, Any], *, upload: bo
                 sent = telegram_multipart_call(token, "sendPhoto", fields, file_field="photo",
                     filename=Path(image.path).name, content=content, content_type=content_type, timeout=30)
                 if not isinstance(sent, dict) or not isinstance(sent.get("message_id"), int):
-                    raise RuntimeError("图片发送结果未确认")
+                    raise RuntimeError(_t('图片发送结果未确认'))
                 remember_task_message(token, payload, sent)
                 outcome = "sent"
                 log_error(f"local image delivered; message_id={sent['message_id']}", token)
@@ -1125,12 +1126,12 @@ def prepare_local_image_reply(token: str, payload: dict[str, Any], *, upload: bo
         label = escaped(image.label or Path(image.path).name)
         outcome = outcomes[os.path.normcase(image.path)]
         if outcome == "sent":
-            pieces.append(f"**📷 图片已发送：** {label}")
+            pieces.append(_t('**📷 图片已发送：** {p0}', p0=format(label, '')))
         else:
-            status = {"path": "", "failed": "（上传失败）", "uncertain": "（发送未确认）"}[outcome]
+            status = {"path": "", "failed": _t('（上传失败）'), "uncertain": _t('（发送未确认）')}[outcome]
             width = max((len(run) for run in re.findall(r"`+", image.path)), default=0) + 1
             delimiter = "`" * max(3, width)
-            pieces.append(f"**📂 图片路径{status}：** {label}\n\n{delimiter}text\n{image.path}\n{delimiter}")
+            pieces.append(_t('**📂 图片路径{p0}：** {p1}\n\n{p2}text\n{p3}\n{p4}', p0=format(status, ''), p1=format(label, ''), p2=format(delimiter, ''), p3=format(image.path, ''), p4=format(delimiter, '')))
         offset = image.end
     pieces.append(original[offset:])
     prepared = dict(payload, text="".join(pieces))
@@ -1193,15 +1194,15 @@ def download_telegram_attachment(token: str, attachment: dict[str, Any]) -> Path
     from urllib.parse import quote
     file_id = attachment.get("file_id")
     if not isinstance(file_id, str) or not file_id:
-        raise ValueError("附件缺少有效文件 ID。")
+        raise ValueError(_t('附件缺少有效文件 ID。'))
     if int(attachment.get("file_size") or 0) > ATTACHMENT_LIMIT:
-        raise ValueError("附件超过 20 MB，请拆分后发送。")
+        raise ValueError(_t('附件超过 20 MB，请拆分后发送。'))
     metadata = telegram_call(token, "getFile", {"file_id": file_id}, timeout=30)
     remote = str(metadata.get("file_path") or "")
     if not remote or remote.startswith('/') or '..' in remote.split('/') or '\\' in remote:
-        raise ValueError("Telegram 返回的附件路径无效。")
+        raise ValueError(_t('Telegram 返回的附件路径无效。'))
     if int(metadata.get("file_size") or 0) > ATTACHMENT_LIMIT:
-        raise ValueError("附件超过 20 MB，请拆分后发送。")
+        raise ValueError(_t('附件超过 20 MB，请拆分后发送。'))
     filename = str(attachment.get("file_name") or "attachment.bin").replace('\\', '/').split('/')[-1]
     filename = re.sub(r'[^\w.\- ]', '_', filename)[:120].strip(' .') or 'attachment.bin'
     folder = ATTACHMENT_DIR / secrets.token_hex(16)
@@ -1217,14 +1218,14 @@ def download_telegram_attachment(token: str, attachment: dict[str, Any]) -> Path
                         break
                     total += len(chunk)
                     if total > ATTACHMENT_LIMIT:
-                        raise ValueError("附件超过 20 MB，请拆分后发送。")
+                        raise ValueError(_t('附件超过 20 MB，请拆分后发送。'))
                     output.write(chunk)
         return path.resolve()
     except Exception:
         path.unlink(missing_ok=True)
         folder.rmdir()
         # urllib exceptions can contain the credential-bearing URL.
-        raise ValueError("附件下载失败或超过 20 MB；未转交任务，请稍后重试。") from None
+        raise ValueError(_t('附件下载失败或超过 20 MB；未转交任务，请稍后重试。')) from None
 
 
 def task_from_keyboard(markup: dict[str, Any] | None) -> str | None:
@@ -1348,57 +1349,57 @@ def _chat_candidates(updates: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def choose_chat_id(token: str) -> str:
     while True:
-        manual = input("Chat ID（直接回车可从你发给机器人的消息中自动识别）: ").strip()
+        manual = input(_t('Chat ID（直接回车可从你发给机器人的消息中自动识别）: ')).strip()
         if manual:
             return manual
 
-        input("请在 Telegram 打开机器人并发送 /start，然后回到这里按回车继续...")
+        input(_t('请在 Telegram 打开机器人并发送 /start，然后回到这里按回车继续...'))
         try:
             updates = telegram_call(token, "getUpdates", {"limit": 100, "timeout": 0})
         except Exception as exc:
-            print(f"无法自动读取 Chat ID：{exc}")
-            print("如果机器人配置过 Webhook，请手动输入 Chat ID。\n")
+            print(_t('无法自动读取 Chat ID：{p0}', p0=format(exc, '')))
+            print(_t('如果机器人配置过 Webhook，请手动输入 Chat ID。\n'))
             continue
 
         candidates = _chat_candidates(updates or [])
         if not candidates:
-            print("尚未找到聊天记录。请确认你已经向机器人发送 /start。\n")
+            print(_t('尚未找到聊天记录。请确认你已经向机器人发送 /start。\n'))
             continue
         if len(candidates) == 1:
             selected = candidates[0]
-            print(f"已识别：{selected['name']} ({selected['type']}, {selected['id']})")
+            print(_t('已识别：{p0} ({p1}, {p2})', p0=format(selected['name'], ''), p1=format(selected['type'], ''), p2=format(selected['id'], '')))
             return selected["id"]
 
-        print("检测到多个聊天，请选择：")
+        print(_t('检测到多个聊天，请选择：'))
         for index, item in enumerate(candidates, start=1):
             print(f"  {index}. {item['name']} ({item['type']}, {item['id']})")
-        selection = input("序号: ").strip()
+        selection = input(_t('序号: ')).strip()
         if selection.isdigit() and 1 <= int(selection) <= len(candidates):
             return candidates[int(selection) - 1]["id"]
-        print("选择无效，请重试。\n")
+        print(_t('选择无效，请重试。\n'))
 
 
 def setup() -> int:
-    print("Codex → Telegram 通知配置\n")
-    print("1. 在 Telegram 找 @BotFather 创建机器人并取得 Bot Token。")
-    print("2. Token 只会在本机输入，并保存到当前系统的安全凭据存储。\n")
+    print(_t('Codex → Telegram 通知配置\n'))
+    print(_t('1. 在 Telegram 找 @BotFather 创建机器人并取得 Bot Token。'))
+    print(_t('2. Token 只会在本机输入，并保存到当前系统的安全凭据存储。\n'))
 
     HOOK_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
-    token = getpass.getpass("Bot Token（输入时不会显示）: ").strip()
+    token = getpass.getpass(_t('Bot Token（输入时不会显示）: ')).strip()
     if not token:
-        print("未输入 Token，配置已取消。")
+        print(_t('未输入 Token，配置已取消。'))
         return 1
 
     try:
         bot = telegram_call(token, "getMe")
         username = bot.get("username", "unknown") if isinstance(bot, dict) else "unknown"
-        print(f"机器人验证成功：@{username}")
+        print(_t('机器人验证成功：@{p0}', p0=format(username, '')))
         chat_id = choose_chat_id(token)
-        preview_answer = input("通知中包含 Codex 最后回复的预览？[y/N]: ").strip().lower()
+        preview_answer = input(_t('通知中包含 Codex 最后回复的预览？[y/N]: ')).strip().lower()
         include_preview = preview_answer in {"y", "yes", "是"}
-        subagent_answer = input("接收 Codex 子代理任务的完成通知？[y/N]: ").strip().lower()
+        subagent_answer = input(_t('接收 Codex 子代理任务的完成通知？[y/N]: ')).strip().lower()
         include_subagents = subagent_answer in {"y", "yes", "是"}
-        silent_answer = input("以静默消息发送（不响铃）？[y/N]: ").strip().lower()
+        silent_answer = input(_t('以静默消息发送（不响铃）？[y/N]: ')).strip().lower()
         silent = silent_answer in {"y", "yes", "是"}
 
         config = {
@@ -1417,27 +1418,27 @@ def setup() -> int:
         temporary.chmod(0o600)
         os.replace(temporary, CONFIG_PATH)
     except Exception as exc:
-        print(f"配置失败：{str(exc).replace(token, '<redacted-token>')}")
+        print(_t('配置失败：{p0}', p0=format(str(exc).replace(token, '<redacted-token>'), '')))
         return 1
 
-    print("\n加密凭据已保存，正在发送测试消息（网络较慢时会自动重试）...")
+    print(_t('\n加密凭据已保存，正在发送测试消息（网络较慢时会自动重试）...'))
     try:
         send_message(
             token,
             {
                 "chat_id": chat_id,
-                "text": "✅ Codex → Telegram 通知测试成功",
+                "text": _t('✅ Codex → Telegram 通知测试成功'),
                 "disable_notification": silent,
             },
         )
     except Exception as exc:
         safe_error = str(exc).replace(token, "<redacted-token>")
-        print(f"测试消息发送失败，但配置已经保存：{safe_error}")
-        print("稍后可重新运行向导，或使用 --test 再次测试。")
+        print(_t('测试消息发送失败，但配置已经保存：{p0}', p0=format(safe_error, '')))
+        print(_t('稍后可重新运行向导，或使用 --test 再次测试。'))
         return 2
 
-    print("Telegram 中应已收到测试消息。")
-    print("请完全退出并重新打开 Codex Desktop；无需 CLI，也无需 /hooks。")
+    print(_t('Telegram 中应已收到测试消息。'))
+    print(_t('请完全退出并重新打开 Codex Desktop；无需 CLI，也无需 /hooks。'))
     return 0
 
 
@@ -1464,10 +1465,10 @@ def subagent_notifications_enabled(config: dict[str, Any] | None = None) -> bool
 def set_subagent_notifications(enabled: bool) -> None:
     """Persist the subagent notification preference without touching the DPAPI token."""
     if not CONFIG_PATH.exists():
-        raise FileNotFoundError("Telegram 通知尚未配置。")
+        raise FileNotFoundError(_t('Telegram 通知尚未配置。'))
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     if not isinstance(config, dict):
-        raise ValueError("Telegram 通知配置无效。")
+        raise ValueError(_t('Telegram 通知配置无效。'))
     config["include_subagent_notifications"] = bool(enabled)
     temporary = CONFIG_PATH.with_name(f"{CONFIG_PATH.name}.tmp.{os.getpid()}")
     temporary.write_text(
@@ -1737,26 +1738,26 @@ def build_user_input_request_message(payload: dict[str, Any]) -> str:
     tool_input = payload.get("tool_input")
     questions = tool_input.get("questions") if isinstance(tool_input, dict) else None
     lines = [
-        "**❓ Codex 正在等待你的回答**",
-        f"**工作区：** {workspace}",
+        _t('**❓ Codex 正在等待你的回答**'),
+        _t('**工作区：** {p0}', p0=format(workspace, '')),
     ]
     if session_id:
-        lines.append(f"**任务：** `{session_id[:8]}`")
+        lines.append(_t('**任务：** `{p0}`', p0=format(session_id[:8], '')))
     if payload.get("permission_mode") == "plan":
-        lines.append("**模式：** Plan")
+        lines.append(_t('**模式：** Plan'))
 
     if isinstance(questions, list):
         for question_index, question in enumerate(questions[:3], start=1):
             if not isinstance(question, dict):
                 continue
-            header = str(question.get("header") or f"问题 {question_index}").strip()
-            body = str(question.get("question") or "请输入回答").strip()
+            header = str(question.get("header") or _t('问题 {p0}', p0=format(question_index, ''))).strip()
+            body = str(question.get("question") or _t('请输入回答')).strip()
             lines.extend(["", f"**{question_index}. {header}**", body])
             options = question.get("options")
             if isinstance(options, list):
                 for option_index, option in enumerate(options[:4], start=1):
                     if isinstance(option, dict):
-                        label = str(option.get("label") or f"选项 {option_index}").strip()
+                        label = str(option.get("label") or _t('选项 {p0}', p0=format(option_index, ''))).strip()
                         description = str(option.get("description") or "").strip()
                     else:
                         label = str(option).strip()
@@ -1765,7 +1766,7 @@ def build_user_input_request_message(payload: dict[str, Any]) -> str:
                     if description:
                         option_line += f" — {description}"
                     lines.append(option_line)
-    lines.extend(["", "请回到 Codex Desktop 选择或输入回答。"])
+    lines.extend(["", _t('请回到 Codex Desktop 选择或输入回答。')])
     message = message_sections(lines)
     if len(message) > MAX_TELEGRAM_MESSAGE:
         message = message[: MAX_TELEGRAM_MESSAGE - 1].rstrip() + "…"
@@ -1806,7 +1807,7 @@ CODEX_STATE_ROOT = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
 
 def conversation_title(thread_id: str) -> str:
     """Read the Desktop display name, without model calls or stale title caching."""
-    fallback = f"对话 {thread_id[:8]}" if thread_id else "Codex 对话"
+    fallback = _t('对话 {p0}', p0=format(thread_id[:8], '')) if thread_id else _t('Codex 对话')
     if not re.fullmatch(r"[A-Za-z0-9-]{6,64}", thread_id):
         return fallback
     try:
@@ -1852,23 +1853,23 @@ def build_message(payload: dict[str, Any], include_preview: bool) -> str:
     title = notification_heading(thread_id)
     lines = [
         title,
-        f"**工作区：** {workspace}",
-        f"**时间：** {completed_at}",
+        _t('**工作区：** {p0}', p0=format(workspace, '')),
+        _t('**时间：** {p0}', p0=format(completed_at, '')),
     ]
 
     if payload.get("_is_subagent"):
-        lines.append("**类型：** 子代理")
+        lines.append(_t('**类型：** 子代理'))
 
     model = payload.get("model")
     if isinstance(model, str) and model.strip():
-        lines.insert(2, f"**模型：** {model.strip()}")
+        lines.insert(2, _t('**模型：** {p0}', p0=format(model.strip(), '')))
 
     last_message = payload.get("last_assistant_message")
     if include_preview and isinstance(last_message, str) and last_message.strip():
         preview = markdown_preview(last_message, REPLY_PREVIEW_LIMIT)
         if len(preview) > REPLY_PREVIEW_LIMIT:
             preview = preview[: REPLY_PREVIEW_LIMIT - 1].rstrip() + "…"
-        lines.extend(["**最后回复：**", preview])
+        lines.extend([_t('**最后回复：**'), preview])
 
     message = "\n\n".join(lines)
     if len(message) > MAX_TELEGRAM_MESSAGE:
@@ -2051,7 +2052,7 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str) -> int:
 def send_manual_test() -> int:
     loaded = load_config()
     if loaded is None:
-        print("尚未配置，请先运行 --setup。")
+        print(_t('尚未配置，请先运行 --setup。'))
         return 1
     config, token = loaded
     try:
@@ -2059,14 +2060,14 @@ def send_manual_test() -> int:
             token,
             {
                 "chat_id": str(config["chat_id"]),
-                "text": "✅ Codex Telegram 手动测试成功",
+                "text": _t('✅ Codex Telegram 手动测试成功'),
                 "disable_notification": bool(config.get("silent")),
             },
         )
     except Exception as exc:
-        print(f"测试失败：{str(exc).replace(token, '<redacted-token>')}")
+        print(_t('测试失败：{p0}', p0=format(str(exc).replace(token, '<redacted-token>'), '')))
         return 1
-    print("测试消息已发送。")
+    print(_t('测试消息已发送。'))
     return 0
 
 

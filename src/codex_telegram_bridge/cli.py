@@ -12,6 +12,8 @@ def main(argv=None):
     parser.add_argument('--data-dir', type=Path)
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('setup', help='configure Telegram and secure credentials')
+    language = commands.add_parser('language', help='show or persist the UI language (default: Chinese)')
+    language.add_argument('value', nargs='?', choices=['zh-CN', 'zh', 'en'])
     run = commands.add_parser('run', help='run the Telegram service in this desktop session')
     run.add_argument('--quiet-start', action='store_true')
     commands.add_parser('notify', help='Codex notification / hook entry point')
@@ -33,6 +35,10 @@ def main(argv=None):
         os.environ['CODEX_TELEGRAM_DATA_DIR'] = str(args.data_dir.expanduser().resolve())
     from .paths import ensure_data_dir
     ensure_data_dir()
+    if args.command == 'language':
+        from .i18n import get_language, set_language
+        print(set_language(args.value) if args.value else get_language())
+        return 0
     if args.command == 'setup':
         from .telegram.notifications import setup
         return setup()

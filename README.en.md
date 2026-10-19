@@ -4,9 +4,11 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.4.1 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.5.0 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
-This README is available in English and Chinese. Telegram menus, interaction prompts, and detailed documentation are currently primarily in Chinese.
+Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Send `/language` to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
+
+[Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Documentation index](docs/README.en.md)
 
 The bridge connects only to **Codex Desktop** and its bundled backend. It never falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
 
@@ -20,7 +22,7 @@ The bridge connects only to **Codex Desktop** and its bundled backend. It never 
 
 CI runs Python 3.10, 3.11, and 3.13 on all three systems, covering application regressions, installation configuration, and native process and connection tests. **Passing CI does not prove real Desktop or mobile communication.** macOS and Linux support remains experimental until verified on those systems.
 
-Desktop's local interfaces may change between versions. If connection verification fails, submission stops. The bridge does not switch clients or bypass operating-system process or screenshot permissions. See [architecture and compatibility boundaries (Chinese)](docs/architecture.zh-CN.md) and [verification steps (Chinese)](docs/testing.zh-CN.md).
+Desktop's local interfaces may change between versions. If connection verification fails, submission stops. The bridge does not switch clients or bypass operating-system process or screenshot permissions. See [architecture and compatibility boundaries](docs/architecture.en.md) and [verification steps](docs/testing.en.md).
 
 ## Features
 
@@ -35,7 +37,7 @@ Desktop's local interfaces may change between versions. If connection verificati
 
 You need a running, signed-in Codex Desktop, 64-bit Python 3.10+, and access to the Telegram Bot API. Python 3.11 or later is recommended.
 
-1. Open the official [@BotFather](https://t.me/BotFather) in Telegram and send `/newbot`. Choose a name and a username ending in `bot`, save the token privately, then open your new bot and send `/start`. The installer will ask for the token and identify the receiving chat. See the [detailed setup guide (Chinese)](docs/setup.zh-CN.md).
+1. Open the official [@BotFather](https://t.me/BotFather) in Telegram and send `/newbot`. Choose a name and a username ending in `bot`, save the token privately, then open your new bot and send `/start`. The installer will ask for the token and identify the receiving chat. See the [detailed setup guide](docs/setup.en.md).
 2. Clone the repository:
 
 ```text
@@ -58,6 +60,8 @@ python3 install.py
 The installer creates a private Python virtual environment at `telegram-bridge-runtime/` inside the selected Codex home. It installs dependencies and configures Telegram credentials, notification hooks, and the user service. It does not modify your global Python installation or require a PowerShell installation script. Installation failures return an error; do not retry as administrator or root.
 
 4. Fully quit and reopen Codex Desktop, review the new hooks when prompted, then send `/help` or `/running` in Telegram.
+
+Add `--language en` to the installation command for English setup prompts and the initial interface. Without it, new installations default to Chinese and upgrades preserve the current choice.
 
 The first installation downloads dependencies from PyPI. On macOS, use a Python installation that supports `venv`. Linux requires your distribution's Python venv support, a Secret Service keyring, and a systemd user session. Headless servers are outside the scope of this Desktop bridge.
 
@@ -110,6 +114,7 @@ For a custom profile, continue passing `--codex-home` and/or `--data-dir` before
 
 | Command | Purpose |
 | --- | --- |
+| `/language [zh\|en]` | Choose Chinese or English; defaults to Chinese and persists across restarts |
 | `/running` | Show currently running tasks, workspaces, and waiting states |
 | `/tasks` | Browse recent tasks; filter running, pending, and recently completed tasks |
 | `/task [ID]` | Show task details and recent output |
@@ -152,6 +157,8 @@ New installations store runtime data in `CODEX_HOME/telegram-bridge/` by default
 
 Windows configuration stores DPAPI-encrypted values. macOS and Linux configuration stores references to the system credential store, where the token is held. Configuration files still contain chat information and should not be published. Task replies, explicitly requested screenshots, and attachments are sent to Telegram. Plugins run with the current user's permissions.
 
+The language preference is stored separately in `telegram_language.json` in the bot data directory. It belongs to the current bot configuration; authorized group members share one language. Old messages are not rewritten in bulk; refresh cards for the new language. Third-party plugins can use `ctx.language` / `ctx.tr()` and `command_descriptions` to provide translations, otherwise their original text is retained.
+
 Full-reply caches are kept for seven days by default. Downloaded attachments are not automatically deleted with the reply cache. Logs, databases, screenshots, and acceptance reports are excluded from Git and release packages. See the [security policy (Chinese)](SECURITY.md).
 
 ## Development and testing
@@ -171,7 +178,7 @@ Tests use temporary environments and synthetic credentials. They do not connect 
 python tools/build_release.py --thread-id <full-active-task-id-authorized-for-testing>
 ```
 
-Pass `--credentials` if credential selection is ambiguous, and `--codex-home` for a custom profile. Output goes to `dist/`. Files in `.validation/` and `*.validation.json` contain local task associations and must not be published. See [testing and real-device verification (Chinese)](docs/testing.zh-CN.md).
+Pass `--credentials` if credential selection is ambiguous, and `--codex-home` for a custom profile. Output goes to `dist/`. Files in `.validation/` and `*.validation.json` contain local task associations and must not be published. See [testing and real-device verification](docs/testing.en.md).
 
 ## Project structure
 
@@ -193,4 +200,4 @@ tools/                     Python tools for tests, verification, and releases
 docs/                      Setup, architecture, plugin, and verification guides
 ```
 
-See the [plugin API (Chinese)](docs/plugins.zh-CN.md) for plugin development and the [changelog (Chinese)](CHANGELOG.md) for version history. Licensed under the [MIT License](LICENSE).
+See the [plugin API](docs/plugins.en.md) for plugin development and the [changelog (Chinese)](CHANGELOG.md) for version history. Licensed under the [MIT License](LICENSE).
