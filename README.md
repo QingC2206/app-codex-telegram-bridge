@@ -4,7 +4,7 @@
 
 通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.0 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.1 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
 文档和 Telegram 界面均支持中英文，默认中文。发送 `/settings` → **语言** 通过按钮选择，或用 `/language en` / `/language zh` 切换；重启和升级后保留。任务正文、模型答复与用户输入不自动翻译。
 
@@ -23,6 +23,8 @@
 跨平台 CI 在三个系统上分别运行 Python 3.10、3.11、3.13，覆盖业务回归、安装配置及各系统原生进程/连接测试。**CI 通过不代表真实 Desktop 或手机通信已经通过。** macOS/Linux 在完成对应实机验收前按实验性支持发布。
 
 Desktop 的本地接口可能随版本变化。连接验证失败时停止提交，不改用其他客户端，也不关闭系统的进程/截图权限检查。详情见 [架构与兼容边界](docs/architecture.zh-CN.md) 和 [验收步骤](docs/testing.zh-CN.md)。
+
+Desktop 用户消息请求的默认等待为 **10 秒**。若返回超时或提交结果未知，Robot 再进行最多 **10 秒**的本地回执核对：只认可本次提交后、同一任务内内容匹配的用户消息及明确的消息/回合 ID；追加到指定回合时还要求回合一致。核对成功按已接收处理，否则提示“提交结果未知”，保留待核对记录且不自动重发。Desktop 自身的内部超时可能更短，此设置不会修改 Desktop 程序。
 
 ## 功能
 

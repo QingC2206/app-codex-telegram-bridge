@@ -4,7 +4,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.0 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.1 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
@@ -23,6 +23,8 @@ The bridge connects only to **Codex Desktop** and its bundled backend. It never 
 CI runs Python 3.10, 3.11, and 3.13 on all three systems, covering application regressions, installation configuration, and native process and connection tests. **Passing CI does not prove real Desktop or mobile communication.** macOS and Linux support remains experimental until verified on those systems.
 
 Desktop's local interfaces may change between versions. If connection verification fails, submission stops. The bridge does not switch clients or bypass operating-system process or screenshot permissions. See [architecture and compatibility boundaries](docs/architecture.en.md) and [verification steps](docs/testing.en.md).
+
+Desktop user-input requests default to a **10-second** timeout. On a timeout or unknown submission outcome, the bot spends up to **10 more seconds** checking local receipts. Confirmation requires a matching user message recorded after this submission in the same task, with explicit message and turn IDs; an expected target turn must also match. A verified receipt counts as accepted. Otherwise the outcome stays unknown, the journal is retained, and nothing is automatically resent. Desktop may have its own shorter internal timeout; this setting does not modify Desktop itself.
 
 ## Features
 

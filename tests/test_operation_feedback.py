@@ -113,6 +113,25 @@ class OperationFeedbackTests(unittest.TestCase):
             self.update('/help')
         self.assertEqual(self.emojis(), ['👀', '🤔', '👎'])
 
+    def test_unknown_submission_neither_claims_failure_nor_success(self):
+        self.bot.awaiting_continue['123'] = 'task-a'
+        self.bot.start_turn = Mock(side_effect=b.DesktopSubmissionUnknown('not confirmed'))
+        with self.assertRaises(b.DesktopSubmissionUnknown):
+            self.update('continue')
+        self.assertNotIn('👎', self.emojis())
+        self.assertNotIn('👌', self.emojis())
+        self.assertTrue(self.bot._command_error_text(b.DesktopSubmissionUnknown('not confirmed')).startswith('⚠️'))
+        self.assertTrue(self.bot._command_error_text(RuntimeError('rejected')).startswith('❌'))
+
+    def test_unknown_callback_submission_shows_warning(self):
+        self.bot._handle_direct_reply_choice = Mock(side_effect=b.DesktopSubmissionUnknown('not confirmed'))
+        self.bot.handle_update({'callback_query': {'id': 'cb', 'from': {'id': 123},
+            'data': 'directchoice|1:steer', 'message': {'message_id': 55, 'chat': {'id': 123, 'type': 'private'}}}})
+        texts = [call.args[1]['text'] for call in self.send_markdown_message.call_args_list + self.edit_markdown_message.call_args_list]
+        self.assertTrue(any(text.startswith('⚠️') for text in texts))
+        self.assertNotIn('👎', self.emojis())
+        self.assertNotIn('👌', self.emojis())
+
     def test_error_reply_is_detected_even_when_handler_returns_normally(self):
         with patch.object(self.bot, 'command_tasks', side_effect=lambda _: self.bot.send('❌ 查询失败')):
             self.update('/tasks')

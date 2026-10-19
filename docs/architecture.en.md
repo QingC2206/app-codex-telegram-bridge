@@ -22,6 +22,8 @@ App Tools are used for queries only. Human Telegram input uses follower IPC star
 
 Notification filtering uses message types and verifiable internal origins. A normal JSON reply containing `suggestion` is not sufficient evidence for filtering. Asynchronous questions are bound to task, turn, item, and question index. Submission is journaled before dispatch; timeouts and unknown outcomes do not trigger automatic resending.
 
+Desktop user-input requests default to a **10-second** timeout. On a timeout or unknown submission outcome, the bot spends up to **10 more seconds** checking local receipts. Confirmation requires a matching user message recorded after this submission in the same task, with explicit message and turn IDs; an expected target turn must also match. A verified receipt counts as accepted. Otherwise the outcome stays unknown, the journal is retained, and nothing is automatically resent. Desktop may have its own shorter internal timeout; this setting does not modify Desktop itself.
+
 ## Operating-system boundaries
 
 | Capability | Windows | macOS | Linux |

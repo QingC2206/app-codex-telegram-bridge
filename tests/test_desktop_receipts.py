@@ -27,6 +27,8 @@ class ReceiptTests(unittest.TestCase):
         self.path.write_text('', encoding='utf-8')
         self.token, self.chat, self.message = '111:fixture', '123', 42
         for context in (patch.object(n, 'REACTION_DB', self.root / 'reactions.db'),
+                        patch.object(b, 'DESKTOP_RECEIPT_TIMEOUT_SECONDS', 0),
+                        patch.object(b.time, 'monotonic', return_value=0),
                         patch.object(n, 'SESSION_ROOT', self.sessions),
                         patch.object(n, 'telegram_call'), patch.object(n, 'log_error')):
             value = context.start(); self.addCleanup(context.stop)
@@ -209,6 +211,108 @@ class ReceiptTests(unittest.TestCase):
         with self.assertRaises(b.DesktopIpcError):
             self.bot._desktop_follow_up(self.thread, 'hello', '')
         self.assertIsNone(n.desktop_submission_turn(self.token, self.chat, 42, self.thread))
+
+    def test_timeout_after_acceptance_uses_receipt_without_resending(self):
+        def accepted(*args, **kwargs):
+            self.submitted()
+            raise b.DesktopSubmissionUnknown('thread-follower-start-turn-timeout')
+        self.bot.desktop.send_follow_up.side_effect = accepted
+        result = self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.assertEqual(result['turn_id'], 'turn-new')
+        self.assertTrue(result['receipt_confirmed'])
+        self.assertEqual(result['mode'], 'native')
+        self.bot.desktop.send_follow_up.assert_called_once()
+        # Verification does not block on Telegram reactions or call another RPC.
+        self.assertEqual(self.emojis(), ['👀'])
+        self.assertEqual(len(self.bot.desktop.mock_calls), 1)
+
+    def test_receipt_bound_by_background_worker_is_also_accepted(self):
+        def accepted(*args, **kwargs):
+            self.submitted()
+            n.resolve_desktop_submissions(self.token, update_reactions=False)
+            raise b.DesktopSubmissionUnknown('lost acknowledgement')
+        self.bot.desktop.send_follow_up.side_effect = accepted
+        self.assertTrue(self.bot._desktop_follow_up(self.thread, 'hello', '')['receipt_confirmed'])
+        self.bot.desktop.send_follow_up.assert_called_once()
+
+    def test_delayed_receipt_is_checked_within_ten_second_budget(self):
+        self.bot.desktop.send_follow_up.side_effect = b.DesktopSubmissionUnknown('timeout')
+        elapsed = [0.0]
+        def wait(seconds):
+            elapsed[0] += seconds
+            if elapsed[0] >= 9.75:
+                self.submitted()
+            return False
+        with patch.object(b, 'DESKTOP_RECEIPT_TIMEOUT_SECONDS', 10), \
+             patch.object(b.time, 'monotonic', side_effect=lambda: elapsed[0]), \
+             patch.object(self.bot.stop_event, 'wait', side_effect=wait):
+            result = self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.assertTrue(result['receipt_confirmed'])
+        self.assertEqual(elapsed[0], 9.75)
+        self.bot.desktop.send_follow_up.assert_called_once()
+
+    def test_no_receipt_stops_at_ten_seconds_and_retains_journal(self):
+        self.bot.desktop.send_follow_up.side_effect = b.DesktopSubmissionUnknown('timeout')
+        elapsed = [0.0]
+        def wait(seconds):
+            elapsed[0] += seconds
+            return False
+        with patch.object(b, 'DESKTOP_RECEIPT_TIMEOUT_SECONDS', 10), \
+             patch.object(b.time, 'monotonic', side_effect=lambda: elapsed[0]), \
+             patch.object(self.bot.stop_event, 'wait', side_effect=wait):
+            with self.assertRaises(b.DesktopSubmissionUnknown):
+                self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.assertEqual(elapsed[0], 10)
+        self.assertEqual(n.desktop_submission_turn(self.token, self.chat, 42, self.thread), '')
+        self.bot.desktop.send_follow_up.assert_called_once()
+
+    def test_mismatched_receipts_cannot_turn_timeout_into_success(self):
+        cases = [{'created': 1}, {'text': 'other input'}, {'origin': 'delegation'},
+                 {'turn': 'other-turn'}]
+        for case in cases:
+            with self.subTest(case=case):
+                self.path.write_text('', encoding='utf-8')
+                self.bot.desktop.reset_mock()
+                def accepted(*args, **kwargs):
+                    self.submitted(**case)
+                    raise b.DesktopSubmissionUnknown('timeout')
+                self.bot.desktop.send_follow_up.side_effect = accepted
+                with self.assertRaises(b.DesktopSubmissionUnknown):
+                    self.bot._desktop_follow_up(self.thread, 'hello', '', expected_turn_id='turn-new')
+                self.bot.desktop.send_follow_up.assert_called_once()
+
+    def test_local_receipt_read_failure_preserves_unknown_without_retry(self):
+        self.bot.desktop.send_follow_up.side_effect = b.DesktopSubmissionUnknown('timeout')
+        with patch.object(n, 'resolve_desktop_submissions', side_effect=OSError('unavailable')):
+            with self.assertRaises(b.DesktopSubmissionUnknown):
+                self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.bot.desktop.send_follow_up.assert_called_once()
+        self.assertEqual(n.desktop_submission_turn(self.token, self.chat, 42, self.thread), '')
+
+    def test_acknowledged_turn_without_user_item_is_not_receipt_proof(self):
+        def accepted(*args, **kwargs):
+            n.bind_desktop_submission(self.token, self.chat, 42, self.thread, 'turn-new', update_reaction=False)
+            raise b.DesktopSubmissionUnknown('timeout')
+        self.bot.desktop.send_follow_up.side_effect = accepted
+        with self.assertRaises(b.DesktopSubmissionUnknown):
+            self.bot._desktop_follow_up(self.thread, 'hello', '')
+        self.bot.desktop.send_follow_up.assert_called_once()
+
+    def test_receipt_check_does_not_wait_for_another_database_writer(self):
+        self.track()
+        db = n._reaction_db()
+        try:
+            db.execute('BEGIN IMMEDIATE')
+            self.submitted()
+            # Binding fails immediately while another worker holds the write
+            # lock, instead of using the normal 30-second SQLite busy timeout.
+            n.resolve_desktop_submissions(self.token, update_reactions=False)
+            self.assertIsNone(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread))
+        finally:
+            db.rollback()
+            db.close()
+        n.resolve_desktop_submissions(self.token, update_reactions=False)
+        self.assertEqual(n.desktop_submission_receipt(self.token, self.chat, 42, self.thread)['turn_id'], 'turn-new')
 
     def test_partial_rollout_line_is_retained_until_complete(self):
         self.track()

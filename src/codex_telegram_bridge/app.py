@@ -73,6 +73,7 @@ MAX_TEXT = 3900
 TASK_LIMIT = 10
 WATCH_POLL_SECONDS = 5
 BOT_OPERATION_THREAD = "telegram-operation"
+DESKTOP_RECEIPT_TIMEOUT_SECONDS = 10
 OPERATION_CALLBACKS = {"quotaview", "tasklist", "task", "watch", "unwatch", "diff", "usage",
                        "reply", "replypage", "replyfile", "localpath", "screenshot", "subagents", "asyncq"}
 QUOTA_MONITOR_SECONDS = 300
@@ -1241,7 +1242,7 @@ class TelegramCodexBot:
                     except Exception as exc:
                         log(f"update handler failed: {exc}\n{traceback.format_exc()}", self.token)
                         try:
-                            self.send(_t('❌ 处理命令失败：{p0}', p0=format(truncate(exc, 800), '')))
+                            self.send(self._command_error_text(exc))
                         except Exception:
                             pass
             except KeyboardInterrupt:
@@ -1342,6 +1343,20 @@ class TelegramCodexBot:
         if feedback:
             feedback["failed"] = True
 
+    def _feedback_exception(self, exc):
+        if isinstance(exc, DesktopSubmissionUnknown):
+            feedback = getattr(self._ui_local, "feedback", None)
+            if feedback:
+                feedback["uncertain"] = True
+        else:
+            self._feedback_error()
+
+    @staticmethod
+    def _command_error_text(exc):
+        if isinstance(exc, DesktopSubmissionUnknown):
+            return _t('⚠️ 提交结果未知：{p0}', p0=truncate(exc, 800))
+        return _t('❌ 处理命令失败：{p0}', p0=truncate(exc, 800))
+
     def _observe_feedback_text(self, text):
         if str(text).lstrip().startswith(("❌", "**❌", "用法：", "用法:", "Usage:")):
             self._feedback_error()
@@ -1349,7 +1364,10 @@ class TelegramCodexBot:
     def _finish_feedback(self):
         feedback = getattr(self._ui_local, "feedback", None)
         if feedback:
-            if feedback.get("failed"):
+            if feedback.get("uncertain"):
+                if not feedback.get("deferred"):
+                    self._operation_reaction("👀")
+            elif feedback.get("failed"):
                 self._operation_reaction("👎")
             elif not feedback.get("deferred"):
                 self._operation_reaction("👌")
@@ -1474,8 +1492,8 @@ class TelegramCodexBot:
             result = self._handle_update_inner(update)
             self._finish_feedback()
             return result
-        except Exception:
-            self._feedback_error()
+        except Exception as exc:
+            self._feedback_exception(exc)
             self._finish_feedback()
             raise
         finally:
@@ -2873,6 +2891,8 @@ class TelegramCodexBot:
         self._ui_local.message_id = receipt.get("message_id") if isinstance(receipt, dict) else None
         try:
             self._submit_direct_reply(thread_id, text)
+        except DesktopSubmissionUnknown:
+            raise
         except Exception:
             self._reaction("")
             # The update handler reports the actual error once. A definite
@@ -2944,6 +2964,8 @@ class TelegramCodexBot:
         self._ui_local.source_message_id = pending.get("source_message_id")
         try:
             return self._direct_reply_choice_inner(value)
+        except DesktopSubmissionUnknown:
+            raise
         except Exception:
             self._reaction("")
             raise
@@ -3037,9 +3059,12 @@ class TelegramCodexBot:
                 result = self.desktop.send_follow_up(thread_id, text, cwd)
             else:
                 result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False)
-        except DesktopSubmissionUnknown:
-            # Keep the receipt for read-only reconciliation; never resend.
-            raise
+        except DesktopSubmissionUnknown as exc:
+            # Desktop may accept the input after its own acknowledgement timer
+            # expires. Reconcile local user receipts, never submit a second time.
+            result = self._reconcile_desktop_submission(source, thread_id, expected_turn_id) if tracked else None
+            if result is None:
+                raise DesktopSubmissionUnknown(_t('未能核实接收回执，未重发。请先查看 Desktop 任务，避免重复发送。')) from exc
         except BaseException:
             if tracked:
                 telegram_notify_module.forget_desktop_submission(self.token, self.chat_id, source, thread_id)
@@ -3048,11 +3073,32 @@ class TelegramCodexBot:
             if result is None:
                 telegram_notify_module.forget_desktop_submission(self.token, self.chat_id, source, thread_id)
             elif result.get('turn_id'):
-                telegram_notify_module.bind_desktop_submission(self.token, self.chat_id, source, thread_id, result['turn_id'])
+                if not result.get('receipt_confirmed'):
+                    telegram_notify_module.bind_desktop_submission(self.token, self.chat_id, source, thread_id, result['turn_id'])
             else:
                 telegram_notify_module.resolve_desktop_submissions(self.token, thread_id)
                 result['turn_id'] = telegram_notify_module.desktop_submission_turn(self.token, self.chat_id, source, thread_id) or ''
         return result
+
+    def _reconcile_desktop_submission(self, source, thread_id, expected_turn_id):
+        deadline = time.monotonic() + DESKTOP_RECEIPT_TIMEOUT_SECONDS
+        while True:
+            try:
+                # Resolve in journal order so identical pending prompts cannot
+                # claim each other's receipt. No Telegram requests in this loop.
+                telegram_notify_module.resolve_desktop_submissions(self.token, thread_id, update_reactions=False, deadline=deadline)
+                receipt = telegram_notify_module.desktop_submission_receipt(self.token, self.chat_id, source, thread_id)
+                if receipt:
+                    if expected_turn_id and receipt['turn_id'] != expected_turn_id:
+                        return None
+                    return {'mode': 'native', 'route': 'desktop-user-input',
+                            'turn_id': receipt['turn_id'], 'receipt_confirmed': True}
+            except Exception as exc:
+                log(f'Desktop receipt check unavailable: {type(exc).__name__}')
+                return None
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or self.stop_event.wait(min(0.25, remaining)):
+                return None
 
     def start_turn(self, thread_id: str, text: str) -> None:
         self._require_task_actions()
@@ -3490,7 +3536,7 @@ class TelegramCodexBot:
                     telegram_notify_module.advance_navigation(self.token,self.chat_id,message['message_id'])
                 return self._handle_callback_scoped(callback)
             except Exception as exc:
-                self._feedback_error()
+                self._feedback_exception(exc)
                 if callback.get('id'):
                     self._answer_callback(callback['id'],truncate(exc,180),True)
                 else:
@@ -3630,10 +3676,10 @@ class TelegramCodexBot:
             if callback_id:
                 self._answer_callback(str(callback_id), _t('已处理'), False)
         except Exception as exc:
-            self._feedback_error()
+            self._feedback_exception(exc)
             if callback_id:
                 self._answer_callback(str(callback_id), truncate(exc, 180), True)
-            self.send(f"❌ {exc}")
+            self.send(self._command_error_text(exc) if isinstance(exc, DesktopSubmissionUnknown) else f"❌ {exc}")
 
     def _answer_callback(self, callback_id: str, text: str, alert: bool) -> None:
         try:

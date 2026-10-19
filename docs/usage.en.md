@@ -89,6 +89,8 @@ Reply to a main-task message with `/side question`, or use `/side ID question`. 
 
 `/screenshot` uses a bundled plugin. macOS requires Screen Recording permission; Linux Wayland requires desktop portal confirmation. Custom plugins are trusted local Python code. See the [plugin API](plugins.en.md).
 
+Desktop user-input requests default to a **10-second** timeout. On a timeout or unknown submission outcome, the bot spends up to **10 more seconds** checking local receipts. Confirmation requires a matching user message recorded after this submission in the same task, with explicit message and turn IDs; an expected target turn must also match. A verified receipt counts as accepted. Otherwise the outcome stays unknown, the journal is retained, and nothing is automatically resent. Desktop may have its own shorter internal timeout; this setting does not modify Desktop itself.
+
 ## Troubleshooting
 
 | Symptom | What to check |

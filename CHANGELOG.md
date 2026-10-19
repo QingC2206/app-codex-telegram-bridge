@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.6.1
+
+- Desktop 用户输入默认超时改为 10 秒；提交结果未知时再只读核对接收回执，最多等待 10 秒，禁止自动重发。
+- 已匹配的新用户消息回执按成功处理；未确认、来源不符或回合不符继续显示“结果未知”，不再误报普通命令失败。
+- 保留直接回复与 `/send` 的消息关联、Desktop 专用限制和静默设置，补充延迟回执与去重回归测试。
+- Use a 10-second Desktop request timeout and up to 10 seconds of local receipt reconciliation, without resubmission. Confirmed user receipts count as accepted; unverified outcomes remain unknown instead of being reported as command failures.
+
 ## 0.6.0
 
 - 新增持久化静默模式，默认关闭，通过设置启用，仅保留查询和设置，禁用任务提交、问题作答、插件执行和额度重置。

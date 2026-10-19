@@ -251,7 +251,7 @@ class DesktopControl:
     send_message_to_thread deliberately represents an agent delegation. It is
     never a fallback for human Telegram input, even when no owner is found.
     """
-    def __init__(self, transport_factory: Callable[..., Any], timeout: float = 35):
+    def __init__(self, transport_factory: Callable[..., Any], timeout: float = 10):
         self.native = DesktopAppTools(transport_factory, timeout)
         self.transport_factory = transport_factory
         self.timeout = timeout

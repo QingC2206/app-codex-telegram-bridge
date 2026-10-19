@@ -55,8 +55,8 @@ def workspace_name(cwd):
     return path.name if path.drive else Path(cwd).name
 
 
-def _reaction_db():
-    db = sqlite3.connect(REACTION_DB, timeout=30)
+def _reaction_db(*, timeout=30):
+    db = sqlite3.connect(REACTION_DB, timeout=timeout)
     db.execute("CREATE TABLE IF NOT EXISTS reactions (bot TEXT, chat TEXT, message INTEGER, thread TEXT, turn TEXT, emoji TEXT, updated REAL, PRIMARY KEY(bot, chat, message))")
     db.execute("CREATE TABLE IF NOT EXISTS reaction_delivered (bot TEXT, thread TEXT, turn TEXT, updated REAL, PRIMARY KEY(bot, thread, turn))")
     db.execute("CREATE TABLE IF NOT EXISTS task_reply_sources (bot TEXT, chat TEXT, thread TEXT, turn TEXT, message INTEGER, updated REAL, PRIMARY KEY(bot,chat,thread,turn))")
@@ -282,6 +282,17 @@ def desktop_submission_turn(token, chat, message, thread):
         db.close()
 
 
+def desktop_submission_receipt(token, chat, message, thread):
+    """Only a matched rollout item proves receipt; an RPC turn ID alone does not."""
+    db = _reaction_db(timeout=0)
+    try:
+        row = db.execute("SELECT turn,item FROM desktop_submissions WHERE bot=? AND chat=? AND message=? AND thread=?",
+                         (token.split(':')[0], str(chat), message, thread)).fetchone()
+        return {'turn_id': row[0], 'item_id': row[1]} if row and all(row) else None
+    finally:
+        db.close()
+
+
 def forget_desktop_submission(token, chat, message, thread):
     db = _reaction_db()
     try:
@@ -292,11 +303,11 @@ def forget_desktop_submission(token, chat, message, thread):
         db.close()
 
 
-def bind_desktop_submission(token, chat, message, thread, turn, item=''):
+def bind_desktop_submission(token, chat, message, thread, turn, item='', *, update_reaction=True):
     if not turn:
         return False
     bot = token.split(':')[0]
-    db = _reaction_db()
+    db = _reaction_db(timeout=30 if update_reaction else 0)
     try:
         with db:
             db.execute('BEGIN IMMEDIATE')
@@ -314,14 +325,15 @@ def bind_desktop_submission(token, chat, message, thread, turn, item=''):
                        (thread, turn, bot, str(chat), message))
         # The rollout receipt is proof of acceptance, even if the sender has
         # not received its acknowledgement or the completion hook is very fast.
-        set_task_reaction(token, chat, message, '🤔', thread, turn)
+        if update_reaction:
+            set_task_reaction(token, chat, message, '🤔', thread, turn)
         return True
     finally:
         db.close()
 
 
-def resolve_desktop_submissions(token, thread_id=None):
-    db = _reaction_db()
+def resolve_desktop_submissions(token, thread_id=None, *, update_reactions=True, deadline=None):
+    db = _reaction_db(timeout=30 if update_reactions else 0)
     bot = token.split(':')[0]
     try:
         query = "SELECT chat,message,thread,path,offset,digest,created FROM desktop_submissions WHERE bot=? AND turn='' AND created>?"
@@ -332,6 +344,8 @@ def resolve_desktop_submissions(token, thread_id=None):
     finally:
         db.close()
     for chat, message, thread, stored_path, offset, digest, created in rows:
+        if deadline is not None and time.monotonic() > deadline:
+            break
         try:
             stored_offset = offset
             path = desktop_receipts.session_path(thread, SESSION_ROOT)
@@ -343,10 +357,10 @@ def resolve_desktop_submissions(token, thread_id=None):
             for receipt in receipts:
                 if not isinstance(receipt['created'], (int, float)) or receipt['created'] < created:
                     continue
-                if receipt['digest'] == digest and bind_desktop_submission(token, chat, message, thread, receipt['turn_id'], receipt['item_id']):
+                if receipt['digest'] == digest and bind_desktop_submission(token, chat, message, thread, receipt['turn_id'], receipt['item_id'], update_reaction=update_reactions):
                     break
             else:
-                db = _reaction_db()
+                db = _reaction_db(timeout=30 if update_reactions else 0)
                 try:
                     with db:
                         db.execute("UPDATE desktop_submissions SET path=?,offset=? WHERE bot=? AND chat=? AND message=? AND turn='' AND offset=?",

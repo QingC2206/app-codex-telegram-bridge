@@ -84,6 +84,15 @@ class BridgeTests(unittest.TestCase):
         return [r for r in self.owner.requests if r['method'] in
                 ('thread-follower-steer-turn', 'thread-follower-start-turn')]
 
+    def test_default_desktop_timeout_is_ten_seconds_in_follower_frame(self):
+        self.assertEqual(d.DesktopControl(FakeTransport).native.timeout, 10)
+        def factory(**kwargs):
+            self.owner.timeout = kwargs['timeout']
+            return self.owner
+        self.control.transport_factory = factory
+        self.control.send_follow_up('task', 'hello', '')
+        self.assertEqual(self.mutations()[0]['timeoutMs'], 10000)
+
     def test_human_input_is_a_follower_frame_without_delegation_or_settings_override(self):
         result = self.control.send_follow_up('task', '继续工作 <answer>&', r'D:\repo')
         self.assertEqual((result['route'], result['turn_id']), ('desktop-user-input', 'new-turn'))
