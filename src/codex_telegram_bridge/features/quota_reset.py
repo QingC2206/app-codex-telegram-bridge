@@ -288,6 +288,7 @@ class QuotaResetController:
                 self.cancel_reservation(_t('无法安全确认执行条件，预约已取消：') + str(exc))
 
     def _execute(self, authorization, automatic):
+        self.bot._require_task_actions()
         # Caller holds the one lock shared by immediate and automatic execution.
         identity = self._identity()
         result, cycle = self._fresh()

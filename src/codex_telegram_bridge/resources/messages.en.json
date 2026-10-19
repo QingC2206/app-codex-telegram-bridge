@@ -739,5 +739,13 @@
   "**📁 新任务目录**\n\n{p0}\n\n修改：`/settings cwd 绝对路径`\n仅影响之后创建的任务。": "**📁 New task folder**\n\n{p0}\n\nChange: `/settings cwd ABSOLUTE_PATH`\nApplies only to tasks created afterward.",
   "用法：/settings，或 /settings cwd 绝对路径": "Usage: /settings, or /settings cwd ABSOLUTE_PATH",
   "**💬 直接回复任务 `{p0}`**\n\n请手动回复这条提示并输入文字。普通输入不会自动发送。若任务仍在运行，我会再让你选择追加、中断后发送或取消。取消输入请点击下方的取消回复。": "**💬 Direct reply to task `{p0}`**\n\nReply manually to this prompt and enter text. Ordinary input is not sent automatically. If the task is running, you can choose append, interrupt then send, or cancel. Use the Cancel reply button below to cancel input.",
-  "[插件] {p0}": "[Plugin] {p0}"
+  "[插件] {p0}": "[Plugin] {p0}",
+  "静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。": "Quiet mode allows queries and settings only. Turn it off in /settings → Quiet mode to retry.",
+  "已开启静默模式，原预约不再执行。": "Quiet mode is on; the previous reservation will not run.",
+  "🌙 静默模式": "🌙 Quiet mode",
+  "开启静默": "Enable quiet mode",
+  "关闭静默": "Disable quiet mode",
+  "🌙 静默模式已开启：仅响应查询和设置，自动推送已暂停。": "🌙 Quiet mode is on: only queries and settings are available; automatic messages are paused.",
+  "**🌙 静默模式：{p0}**\n\n仅保留查询和设置；暂停回复、提问、审批和进度推送，禁用发送、新建、侧边提问、中止、插件执行及额度重置。\n\n已有任务继续运行；开启时取消进度跟踪与额度预约，关闭后不补发期间的回复。": "**🌙 Quiet mode: {p0}**\n\nQueries and settings only. Automatic replies, questions, approvals, and progress updates are paused. Sending messages, creating tasks, side questions, stopping tasks, running plugins, and resetting quota are disabled.\n\nExisting tasks keep running. Enabling this mode cancels progress tracking and quota reservations. Replies suppressed during quiet mode are not replayed.",
+  "静默模式、通知、语言和新任务目录。选择项目后再修改。": "Quiet mode, notifications, language, and the folder for new tasks. Select an item to edit."
 }

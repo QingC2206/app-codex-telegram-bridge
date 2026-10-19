@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GROUPS = {
     'Communication': ['desktop_bridge','desktop_receipts','connection_check','protocol_adaptation','async_inputs'],
     'Notifications': ['telegram_tables'], 'Quota': ['telegram_quota'],
-    'Interactions': ['interactions','running_tasks','i18n','settings'], 'Screenshots': ['screen_capture'],
+    'Interactions': ['interactions','running_tasks','i18n','settings','quiet_mode'], 'Screenshots': ['screen_capture'],
     'Plugins': ['plugins'], 'SideChat': ['side_chat'], 'Security': ['hardening'],
     'Images': ['local_images'], 'Feedback': ['operation_feedback'],
     'Platforms': ['platforms','management'],

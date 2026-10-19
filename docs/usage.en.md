@@ -54,7 +54,7 @@ Send attachments by replying to a task or side-chat message. Each attachment is 
 | `/diff [ID]` | View file changes |
 | `/usage [ID]` | View task usage |
 | `/help` | View command help |
-| `/settings` | Adjust notifications, language, and the new task folder |
+| `/settings` | Adjust quiet mode, notifications, language, and the new task folder |
 | `/logs` | View service logs |
 | `/side [ID] <question>` | Ask a side question |
 | `/send [ID] [message]` | Send a task message |
@@ -71,6 +71,17 @@ The menu groups frequent queries first, followed by help and settings, logs, mes
 `/language [zh|en]`, `/mute`, `/unmute`, `/subagents [on|off]`, `/cwd [absolute-path]`, and existing message buttons remain supported, but the preference commands no longer occupy separate menu entries. `/help` only displays help. Use the Cancel button on the original prompt to cancel pending input.
 
 Most task commands support button selection when the ID is omitted. `/help` preserves pending input and quota reservations. See the [README](../README.en.md) for full parameters and quota rules.
+
+## Quiet mode
+
+Open `/settings` → **🌙 Quiet mode** → **Enable quiet mode**. It is off by default, and the choice survives restarts and upgrades.
+
+- Keep quota, task lists, running tasks, task details, diffs, usage, logs, plugin status, and settings available. Explicitly viewing historical replies remains supported.
+- Disable text replies, attachments, `/send`, `/steer`, `/new`, `/side`, `/stop`, `/watch`, question/approval answers, plugin execution, and quota resets. Existing buttons follow the same restrictions.
+- Pause Codex replies, questions, approvals, progress, and other automatic messages. Existing tasks keep running without automatic interruption or approval. Enabling quiet mode cancels progress tracking and unexecuted quota reservations.
+- Disabling quiet mode does not replay suppressed replies or restore cancelled tracking/reservations. Requests submitted before enabling it cannot be recalled.
+
+Quiet mode is independent of completion notification preferences: it limits the bot to queries and settings without overwriting those preferences. It is also separate from Telegram's sound/mute setting.
 
 ## Side chats and plugins
 

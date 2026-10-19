@@ -4,7 +4,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.5.3 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.0 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
@@ -122,7 +122,7 @@ For a custom profile, continue passing `--codex-home` and/or `--data-dir` before
 | `/diff [ID]` | View file changes |
 | `/usage [ID]` | View task usage |
 | `/help` | View command help |
-| `/settings` | Adjust notifications, language, and the new task folder |
+| `/settings` | Adjust quiet mode, notifications, language, and the new task folder |
 | `/logs` | View service logs |
 | `/side [ID] <question>` | Ask a side question |
 | `/send [ID] [message]` | Send a task message |
@@ -139,6 +139,17 @@ The menu groups frequent queries first, followed by help and settings, logs, mes
 `/language [zh|en]`, `/mute`, `/unmute`, `/subagents [on|off]`, `/cwd [absolute-path]`, and existing message buttons remain supported, but the preference commands no longer occupy separate menu entries. `/help` only displays help. Use the Cancel button on the original prompt to cancel pending input.
 
 Most commands that accept a task ID let you omit it and select a task using buttons. You can attach an image or file when replying to a task card. The limit is 20 MB per attachment; send multiple attachments separately.
+
+## Quiet mode
+
+Open `/settings` → **🌙 Quiet mode** → **Enable quiet mode**. It is off by default, and the choice survives restarts and upgrades.
+
+- Keep quota, task lists, running tasks, task details, diffs, usage, logs, plugin status, and settings available. Explicitly viewing historical replies remains supported.
+- Disable text replies, attachments, `/send`, `/steer`, `/new`, `/side`, `/stop`, `/watch`, question/approval answers, plugin execution, and quota resets. Existing buttons follow the same restrictions.
+- Pause Codex replies, questions, approvals, progress, and other automatic messages. Existing tasks keep running without automatic interruption or approval. Enabling quiet mode cancels progress tracking and unexecuted quota reservations.
+- Disabling quiet mode does not replay suppressed replies or restore cancelled tracking/reservations. Requests submitted before enabling it cannot be recalled.
+
+Quiet mode is independent of completion notification preferences: it limits the bot to queries and settings without overwriting those preferences. It is also separate from Telegram's sound/mute setting.
 
 ## Task ownership and message delivery
 

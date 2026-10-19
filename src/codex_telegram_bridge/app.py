@@ -992,6 +992,39 @@ class TelegramCodexBot:
         self.sides = SideChats(self, CodexAppServer)
         self.async_inputs = AsyncInputs(self)
 
+    def quiet_mode_enabled(self) -> bool:
+        return self.state.snapshot().get("quiet_mode") is True
+
+    def _require_task_actions(self) -> None:
+        if self.quiet_mode_enabled():
+            raise ValueError(_t('静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。'))
+
+    def _background_allowed(self, generation=None) -> bool:
+        state = self.state.snapshot()
+        return state.get("quiet_mode") is not True and (
+            generation is None or generation == state.get("quiet_generation", 0))
+
+    def _set_quiet_mode(self, enabled: bool) -> None:
+        # Serialize with quota redemption so an armed reservation cannot run
+        # after the mode change has completed. Existing tasks are not stopped.
+        with self.quota_resets.lock:
+            state = self.state.snapshot()
+            if enabled == (state.get("quiet_mode") is True):
+                return
+            self.state.update(quiet_mode=enabled,
+                              quiet_generation=state.get("quiet_generation", 0) + int(enabled))
+            if enabled:
+                self.quota_resets.cancel_reservation(_t('已开启静默模式，原预约不再执行。'))
+                self.state.update(quota_reset_confirmation={}, quota_reset_selection={})
+        if enabled:
+            with self.live_lock:
+                for timer in [*self.watch_timers.values(), *self.watch_poll_timers.values()]:
+                    timer.cancel()
+                self.watch_timers.clear()
+                self.watch_poll_timers.clear()
+                self.watches.clear()
+            self.async_inputs.suppress_unpublished()
+
     def send(
         self,
         text: str,
@@ -1062,7 +1095,10 @@ class TelegramCodexBot:
         self.send(text, reply_markup)
 
     def enqueue(self, text: str, reply_markup: dict[str, Any] | None = None, *, completion=None, interaction=None) -> None:
-        self.outbox.put({"kind": "send", "text": text, "reply_markup": reply_markup,
+        state = self.state.snapshot()
+        if state.get("quiet_mode") is True:
+            return
+        self.outbox.put({"quiet_generation": state.get("quiet_generation", 0), "kind": "send", "text": text, "reply_markup": reply_markup,
                          "completion": completion, "interaction": interaction})
 
     def enqueue_edit(
@@ -1072,8 +1108,12 @@ class TelegramCodexBot:
         reply_markup: dict[str, Any] | None = None,
         chat_id: str | None = None,
     ) -> None:
+        state = self.state.snapshot()
+        if state.get("quiet_mode") is True:
+            return
         view = telegram_notify_module.navigation_view(self.token, chat_id or self.chat_id, message_id)
         self.outbox.put({
+            "quiet_generation": state.get("quiet_generation", 0),
             "navigation_revision": view['revision'] if view else None,
             "kind": "edit",
             "message_id": message_id,
@@ -1090,6 +1130,8 @@ class TelegramCodexBot:
                 continue
             if item is None:
                 return
+            if not self._background_allowed(item.get("quiet_generation", 0)):
+                continue
             try:
                 if item.get("kind") == "edit":
                     with self._navigation_lock:
@@ -1472,6 +1514,9 @@ class TelegramCodexBot:
                 and not lookup_task_message(self.token, self.chat_id, reply_to_message_id)):
             remember_task_message(self.token, {"chat_id": self.chat_id,
                                   "reply_markup": reply_to.get("reply_markup")}, reply_to)
+        if attachment and self.quiet_mode_enabled():
+            self._input_error(_t('静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。'))
+            return
         if attachment:
             target = lookup_task_message(self.token, self.chat_id, reply_to_message_id) if isinstance(reply_to_message_id, int) else None
             if not target and not self.sides.lookup(reply_to_message_id):
@@ -1492,6 +1537,13 @@ class TelegramCodexBot:
         )
 
     def handle_text(self, text: str, reply_to_message_id: int | None = None, requester_id: str = "") -> None:
+        if self.quiet_mode_enabled():
+            command, _ = parse_command(text)
+            if command not in {"/start", "/help", "/settings", "/language", "/mute", "/unmute",
+                               "/subagents", "/cwd", "/quota", "/tasks", "/running", "/task",
+                               "/diff", "/usage", "/logs", "/plugins"}:
+                self._input_error(_t('静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。'))
+                return
         is_command = text.lstrip().startswith("/")
         if not is_command and reply_to_message_id is not None:
             if self.async_inputs.reply_to(reply_to_message_id, text):
@@ -1592,7 +1644,10 @@ class TelegramCodexBot:
         if value.startswith("cwd "):
             self.command_cwd(value[4:])
             return
-        if value in {"completion:on", "completion:off"}:
+        if value in {"quiet:on", "quiet:off"}:
+            self._set_quiet_mode(value.endswith(":on"))
+            page = "quiet"
+        elif value in {"completion:on", "completion:off"}:
             self.state.update(muted=value.endswith(":off"))
             page = "notifications"
         elif value in {"subagents:on", "subagents:off"}:
@@ -1603,7 +1658,7 @@ class TelegramCodexBot:
             if not self._set_commands():
                 notice = _t('语言已保存，菜单刷新失败。请重新选择语言以重试。') + "\n\n"
             page = "language"
-        elif page not in {"home", "notifications", "language", "cwd"}:
+        elif page not in {"home", "notifications", "language", "cwd", "quiet"}:
             self._input_error(_t('用法：/settings，或 /settings cwd 绝对路径'))
             return
 
@@ -1611,9 +1666,13 @@ class TelegramCodexBot:
             return {"text": label, "callback_data": "settings|" + destination}
 
         if page == "home":
-            text = _t('**⚙️ 设置**') + "\n\n" + _t('通知、语言和新任务目录。选择项目后再修改。')
-            rows = [[button(_t('🔔 通知'), "notifications"), button(_t('🌐 语言'), "language")],
+            text = _t('**⚙️ 设置**') + "\n\n" + _t('静默模式、通知、语言和新任务目录。选择项目后再修改。')
+            rows = [[button(_t('🌙 静默模式'), "quiet")], [button(_t('🔔 通知'), "notifications"), button(_t('🌐 语言'), "language")],
                     [button(_t('📁 新任务目录'), "cwd")]]
+        elif page == "quiet":
+            text = _t('**🌙 静默模式：{p0}**\n\n仅保留查询和设置；暂停回复、提问、审批和进度推送，禁用发送、新建、侧边提问、中止、插件执行及额度重置。\n\n已有任务继续运行；开启时取消进度跟踪与额度预约，关闭后不补发期间的回复。',
+                      p0=_t('已开启') if self.quiet_mode_enabled() else _t('已关闭'))
+            rows = [[button(_t('开启静默'), "quiet:on"), button(_t('关闭静默'), "quiet:off")]]
         elif page == "notifications":
             state = self.state.snapshot()
             text = _t('**🔔 通知设置**') + "\n\n" + _t('完成通知：{p0}\n子代理通知：{p1}\n\n关闭完成通知后，命令回复和提问、审批提醒仍会发送。子代理通知仅在完成通知开启时发送。',
@@ -1629,6 +1688,8 @@ class TelegramCodexBot:
             text = _t('**📁 新任务目录**\n\n{p0}\n\n修改：`/settings cwd 绝对路径`\n仅影响之后创建的任务。',
                       p0=str(self.state.snapshot().get("default_cwd", "")))
             rows = []
+        if page in {"home", "notifications"} and self.quiet_mode_enabled():
+            text += "\n\n" + _t('🌙 静默模式已开启：仅响应查询和设置，自动推送已暂停。')
         if page != "home":
             rows.append([button(_t('⬅️ 返回设置'), "home")])
         rows.append([{"text": _t('关闭'), "callback_data": "closepanel|"}])
@@ -1983,6 +2044,8 @@ class TelegramCodexBot:
         return telegram_notify_module.message_sections(lines)
 
     def _refresh_watch(self, thread_id: str, force: bool = False) -> None:
+        if self.quiet_mode_enabled():
+            return
         with self.live_lock:
             watch = self.watches.get(thread_id)
             if not watch:
@@ -2675,6 +2738,7 @@ class TelegramCodexBot:
                 self.quota_monitor_timer = None
 
     def command_new(self, argument: str) -> None:
+        self._require_task_actions()
         if not argument:
             self.send(_t('用法：/new <需求>'))
             return
@@ -2797,6 +2861,7 @@ class TelegramCodexBot:
         self.send(_t('已取消回复任务 `{p0}`。', p0=format(thread_id[:8], '')), {"remove_keyboard": True})
 
     def submit_direct_reply(self, thread_id: str, text: str) -> None:
+        self._require_task_actions()
         title = self.task_names.get(thread_id, thread_id[:8])
         receipt = None
         if not self._reaction("👀", thread_id):
@@ -2960,6 +3025,7 @@ class TelegramCodexBot:
         return bool(self.desktop.can_interrupt(thread_id, probe=probe))
 
     def _desktop_follow_up(self, thread_id, text, cwd, *, start_if_inactive=True, expected_turn_id=''):
+        self._require_task_actions()
         source = getattr(self._ui_local, 'source_message_id', None)
         self._reaction('👀', thread_id)
         tracked = telegram_notify_module.remember_desktop_submission(self.token, self.chat_id, source, thread_id, text)
@@ -2989,6 +3055,7 @@ class TelegramCodexBot:
         return result
 
     def start_turn(self, thread_id: str, text: str) -> None:
+        self._require_task_actions()
         managed = self._owns_thread(thread_id)
         if managed and thread_id in self.active_turns:
             self.steer_turn(thread_id, text)
@@ -3118,6 +3185,7 @@ class TelegramCodexBot:
         self.steer_turn(thread_id, text.strip())
 
     def steer_turn(self, thread_id: str, text: str) -> None:
+        self._require_task_actions()
         turn_id = self.active_turns.get(thread_id)
         if turn_id and self._owns_thread(thread_id):
             self.app.request(
@@ -3180,6 +3248,7 @@ class TelegramCodexBot:
         expected_turn_id: str = "",
         assume_active: bool = False,
     ) -> None:
+        self._require_task_actions()
         local_turn_id = self.active_turns.get(thread_id, "")
         if local_turn_id and self._owns_thread(thread_id):
             self.app.request(
@@ -3377,6 +3446,14 @@ class TelegramCodexBot:
         if not self._authorized_sender(message.get('chat'), callback.get('from')):
             return
         action = str(callback.get('data') or '').partition('|')[0]
+        if self.quiet_mode_enabled() and action not in {
+                "settings", "language", "subagents", "task", "tasklist", "diff", "usage", "quotaview",
+                "reply", "replypage", "replyfile", "localpath", "closepanel", "navclose",
+                "cancelinput", "backinput", "directcancel", "canceltext", "unwatch",
+                "cancelhours", "cancelquota", "cancelreserve", "refreshreserve"}:
+            if callback.get('id'):
+                self._answer_callback(callback['id'], _t('静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。'), True)
+            return
         navigation = {'task','tasklist','diff','usage','watch','unwatch','reply','replypage'}
         with self._navigation_lock:
             try:
@@ -3682,7 +3759,7 @@ class TelegramCodexBot:
             if thread_id not in self.state.snapshot().get("managed_threads", {}):
                 return
             preview = self.final_messages.pop(thread_id, "")
-            if self.state.snapshot().get("muted"):
+            if self.quiet_mode_enabled() or self.state.snapshot().get("muted"):
                 return
             status = turn.get("status") if isinstance(turn, dict) else "completed"
             text = (
@@ -3819,6 +3896,7 @@ class TelegramCodexBot:
         self.app.answer_error(request_id, f"Telegram client does not support {method}")
 
     def _handle_approval_callback(self, value: str) -> None:
+        self._require_task_actions()
         sequence, separator, decision = value.partition(":")
         if not separator or sequence not in self.pending_approvals:
             raise ValueError(_t('审批请求已失效。'))
@@ -3846,6 +3924,8 @@ class TelegramCodexBot:
         self.send(_t('审批结果：{p0}', p0=format(decision, '')))
 
     def _enqueue_question(self, sequence: str) -> None:
+        if self.quiet_mode_enabled():
+            return
         pending = self.pending_questions.get(sequence)
         if not pending:
             return
@@ -3907,6 +3987,7 @@ class TelegramCodexBot:
         )
 
     def _handle_question_callback(self, value: str) -> None:
+        self._require_task_actions()
         sequence, separator, choice = value.partition(":")
         pending = self.pending_questions.get(sequence)
         if not separator or not pending:
@@ -3929,6 +4010,7 @@ class TelegramCodexBot:
         self._answer_question(sequence, answer)
 
     def _answer_question(self, sequence: str, answer: str) -> None:
+        self._require_task_actions()
         pending = self.pending_questions.get(sequence)
         if not pending:
             raise ValueError(_t('问题已失效。'))

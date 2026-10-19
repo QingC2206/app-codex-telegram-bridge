@@ -57,6 +57,14 @@ class SideTests(unittest.TestCase):
         self.assertEqual(self.ctl.lookup(99),{'kind':'session','target':'side-thread','parent':'parent-thread'})
         self.assertEqual(self.bot._reaction.call_args.args,('👌',))
 
+    def test_quiet_interval_suppresses_late_answer_without_interrupting_task(self):
+        self.bot._background_allowed.return_value=False
+        self.ctl._run(self.route,'question',42)
+        self.bot.send.assert_not_called()
+        self.assertEqual([m for m,p in self.ctl.app.calls].count('turn/start'),1)
+        self.assertNotIn('turn/interrupt',[m for m,p in self.ctl.app.calls])
+        self.assertFalse(self.ctl.sessions['side-thread']['busy'])
+
     def test_reply_continues_same_side_without_forking_or_touching_parent(self):
         self.ctl._run(self.route,'first',42)
         self.ctl._run(self.ctl.lookup(99),'follow-up',43)

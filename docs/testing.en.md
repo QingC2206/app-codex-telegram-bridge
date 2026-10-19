@@ -64,3 +64,7 @@ The release gate verifies real submission, a user-message receipt, Telegram deli
 ## Settings and menu acceptance
 
 Check that `/quota` is always first, followed by `/tasks` and `/running` and plugin status and plugin commands are last, with `[Plugin]` in English or `[插件]` in Chinese. Opening `/settings` pages must preserve preferences and pending input. Enable and disable completion/subagent notifications separately; repeat clicks must keep the selected state. Switch languages through settings and verify menu text and back navigation, then restore the original preferences. Check `/settings cwd PATH` and legacy aliases; `/help` must preserve pending input.
+
+## Quiet mode acceptance
+
+Enable quiet mode and confirm `/quota`, `/tasks`, `/running`, and settings remain usable. Task messages, attachments, and old action buttons must not submit work. Completion replies and questions must not be pushed or replayed after disabling the mode. Restarting preserves the mode and original notification preferences; tracking and quota reservations must not resume automatically.

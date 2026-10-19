@@ -9,6 +9,8 @@ def default_state() -> dict[str, Any]:
         "version": 1,
         "update_offset": 0,
         "muted": False,
+        "quiet_mode": False,
+        "quiet_generation": 0,
         "default_cwd": str(Path.home()),
         "managed_threads": {},
         "task_aliases": [],

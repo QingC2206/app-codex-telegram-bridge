@@ -1532,7 +1532,7 @@ def notifications_muted() -> bool:
         if not BOT_STATE_PATH.exists():
             return False
         state = json.loads(BOT_STATE_PATH.read_text(encoding="utf-8"))
-        return bool(state.get("muted")) if isinstance(state, dict) else False
+        return (bool(state.get("muted")) or state.get("quiet_mode") is True) if isinstance(state, dict) else False
     except Exception as exc:
         log_error(f"could not read Telegram bot state: {exc}")
         return False
@@ -1796,6 +1796,8 @@ def send_user_input_request_notification(payload: dict[str, Any]) -> int:
         }
         if session_id:
             request["reply_markup"] = build_notification_keyboard(session_id)
+        if notifications_muted():
+            return 0
         send_markdown_message(token, request)
     except Exception as exc:
         log_error(f"user-input notification failed: {exc}", token)
@@ -1930,6 +1932,8 @@ def send_hook_notification(payload: dict[str, Any]) -> int:
         reply_markup = build_notification_keyboard(thread_id, cache_id)
         if reply_markup:
             request["reply_markup"] = reply_markup
+        if notifications_muted():
+            return 0
         sent = send_markdown_message(
             token,
             request,
@@ -2037,6 +2041,8 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str) -> int:
         reply_markup = build_notification_keyboard(thread_id, cache_id)
         if reply_markup:
             request["reply_markup"] = reply_markup
+        if notifications_muted():
+            return 0
         sent = send_markdown_message(
             token,
             request,

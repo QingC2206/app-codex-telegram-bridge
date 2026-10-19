@@ -140,9 +140,11 @@ class SideChats:
     def _run(self, route, question, source):
         tid=route['target'] if route['kind']=='session' else None
         session=None;parent=route['parent']
+        generation=self.bot.state.snapshot().get("quiet_generation", 0)
         self.bot._ui_local.source_message_id=source
         self.bot._ui_local.message_id=None
         try:
+            self.bot._require_task_actions()
             if not self.bot._reaction('🤔'):self.bot.send(_t('💬 侧边聊天正在回答，主任务继续运行。'),reply_to=source)
             if not tid:
                 response=self.app.request('thread/fork',{'threadId':parent,'ephemeral':True,'excludeTurns':True,
@@ -158,6 +160,7 @@ class SideChats:
             with self.lock:
                 session.update(previous_turn=session.get('turn'),turn='',text='',status='',waiting=True)
                 session['event'].clear()
+            self.bot._require_task_actions()
             started=self.app.request('turn/start',{'threadId':tid,'input':[{'type':'text','text':question}],
                 'approvalPolicy':'never','sandboxPolicy':{'type':'readOnly'}},timeout=45)
             turn_id=(started.get('turn') or {}).get('id')
@@ -178,6 +181,8 @@ class SideChats:
             title=re.sub(r'([\\`*_{}\[\]()<>#+.!|~-])',r'\\\1',title)
             pages=n.split_markdown_pages(text,limit=2800)
             for index,page in enumerate(pages,1):
+                if self.bot._background_allowed(generation) is False:
+                    return
                 sent=self.bot.send(_t('**💬 侧边聊天 · {p0}**\n\n主任务：`{p1}` · 侧边：`{p2}` · {p3}/{p4}\n\n', p0=format(title, ''), p1=format(parent[:8], ''), p2=format(tid[:8], ''), p3=format(index, ''), p4=format(len(pages), ''))+page,
                     {'inline_keyboard':[[{'text':_t('关闭侧边聊天'),'callback_data':'sideclose|'+tid}]]},reply_to=source)
                 self.remember(sent.get('message_id'),'session',tid,parent)
@@ -185,7 +190,7 @@ class SideChats:
             session['expires']=time.time()+self.TTL
         except Exception as exc:
             self.bot._reaction('👎')
-            if not self.closing:
+            if not self.closing and self.bot._background_allowed(generation) is not False:
                 try:self.bot.send(_t('❌ 侧边聊天：')+str(exc).replace(self.bot.token,'[redacted]')[:600]+
                     _t('\n\n未自动重试，也未把问题发送给主任务。'),reply_to=source)
                 except Exception:pass

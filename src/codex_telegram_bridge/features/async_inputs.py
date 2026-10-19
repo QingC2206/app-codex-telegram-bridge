@@ -81,7 +81,7 @@ class AsyncInputs:
                 db.execute('INSERT OR IGNORE INTO questions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
                     (*self.identity, uuid.uuid4().hex, thread, turn, item['id'], index,
                      question['title'], json.dumps(options or [], ensure_ascii=False),
-                     'new', None, time.time()))
+                     'suppressed' if self.bot.quiet_mode_enabled() is True else 'new', None, time.time()))
 
     def reconcile(self, thread_id, history):
         thread = history.get('thread') or {}
@@ -159,13 +159,24 @@ class AsyncInputs:
                              (*self.identity, key)).fetchone()
             return dict(row) if row else None
 
+    def suppress_unpublished(self):
+        with self.db() as db:
+            db.execute("UPDATE questions SET status='suppressed' WHERE bot=? AND chat=? AND status='new'", self.identity)
+
     def publish(self):
+        generation = self.bot.state.snapshot().get("quiet_generation", 0)
+        if self.bot.quiet_mode_enabled() is True:
+            self.suppress_unpublished()
+            return
         with self.db() as db:
             db.execute("UPDATE questions SET status='expired' WHERE bot=? AND chat=? AND created<? AND status IN ('new','waiting','publishing','submitted','uncertain','submitting')",
                        (*self.identity, time.time() - 6 * 3600))
             rows = db.execute("SELECT * FROM questions WHERE bot=? AND chat=? AND status='new' ORDER BY created LIMIT 8",
                               self.identity).fetchall()
         for saved in rows:
+            if self.bot.quiet_mode_enabled() is True:
+                self.suppress_unpublished()
+                return
             if self.bot.stop_event.is_set():
                 return
             row = dict(saved)
@@ -173,6 +184,10 @@ class AsyncInputs:
                 claimed = db.execute("UPDATE questions SET status='publishing' WHERE bot=? AND chat=? AND key=? AND status='new'",
                                      (*self.identity, row['key'])).rowcount
             if not claimed:
+                continue
+            if self.bot._background_allowed(generation) is False:
+                with self.db() as db:
+                    db.execute("UPDATE questions SET status='suppressed' WHERE bot=? AND chat=? AND key=?", (*self.identity, row['key']))
                 continue
             options = json.loads(row['options'])
             keyboard = [[{'text': label[:50], 'callback_data': f"asyncq|{row['key']}:{index}"}]
@@ -220,6 +235,7 @@ class AsyncInputs:
         self.submit(key, options[int(choice)])
 
     def submit(self, key, answer):
+        self.bot._require_task_actions()
         row = self.get(key)
         if not row or row['status'] not in {'waiting', 'publishing'}:
             raise ValueError(_t('这条异步问题已回答、失效或提交结果未确认。'))

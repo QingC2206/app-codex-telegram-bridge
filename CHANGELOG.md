@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.6.0
+
+- 新增持久化静默模式，默认关闭，通过设置启用，仅保留查询和设置，禁用任务提交、问题作答、插件执行和额度重置。
+- 暂停完成通知、异步问题、审批、进度与其他自动推送；旧按钮和附件同样受限，已排队回复不会在关闭静默后补发。
+- 开启时取消进度跟踪与未执行的额度预约，保留原通知偏好和已有任务；补充双语说明及回归测试。
+- Add persistent quiet mode: queries/settings only, no task submissions or automatic messages; cancel tracking and quota reservations without interrupting existing tasks or overwriting notification preferences.
+
 ## 0.5.3
 
 - 插件入口及插件命令固定在菜单底部，说明统一添加 `[插件]` / `[Plugin]` 标记；额度查询继续保持第一项。
