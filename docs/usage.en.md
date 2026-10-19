@@ -6,7 +6,7 @@
 
 After installation and restarting Codex Desktop, send `/help` in Telegram. The interface defaults to Chinese; your phone or Telegram client language does not override it.
 
-- `/language`: show Chinese / English selection buttons.
+- `/settings` → **Language**: show Chinese / English selection buttons.
 - `/language en`: switch to English.
 - `/language zh`: switch back to Chinese.
 
@@ -46,19 +46,31 @@ Send attachments by replying to a task or side-chat message. Each attachment is 
 
 | Command | Purpose |
 | --- | --- |
-| `/help`, `/language` | Help and interface language |
-| `/tasks`, `/running`, `/task [ID]` | Browse tasks, running list, and details |
-| `/send [ID] [message]`, `/steer [ID] [message]` | Continue or append instructions |
-| `/stop [ID]`, `/watch [ID]` | Stop or follow progress |
-| `/diff [ID]`, `/usage [ID]` | File changes and usage |
-| `/new <request>`, `/cwd [absolute-path]` | Create a bot-managed task or set its default working directory |
-| `/side [ID] <question>` | Independent, read-only side questions |
-| `/quota` | Quota, credits, reset cards, and reservations |
-| `/screenshot`, `/plugins` | Screenshots and plugin information |
-| `/mute`, `/unmute`, `/subagents [on\|off]` | Notification preferences |
-| `/logs` | Service logs |
+| `/tasks` | Browse recent tasks |
+| `/running` | View running tasks |
+| `/quota` | View remaining quota, alerts, and reset cards |
+| `/task [ID]` | View task details |
+| `/watch [ID]` | Track task progress |
+| `/diff [ID]` | View file changes |
+| `/usage [ID]` | View task usage |
+| `/help` | View command help |
+| `/settings` | Adjust notifications, language, and the new task folder |
+| `/plugins` | View plugin status |
+| `/screenshot` | Capture windows and screens (bundled plugin) |
+| `/logs` | View service logs |
+| `/side [ID] <question>` | Ask a side question |
+| `/send [ID] [message]` | Send a task message |
+| `/steer [ID] [message]` | Append to a running task |
+| `/new <request>` | Create a new task |
+| `/stop [ID]` | Stop a running task |
 
-Most task commands support button selection when the ID is omitted. `/help` clears pending reply input without cancelling quota reservations. See the [README](../README.en.md) for full parameters and quota rules.
+The menu groups frequent queries first, followed by help and settings, plugins and logs, then messaging and execution commands. Stop is last. Third-party plugin commands appear after plugin status. Telegram displays up to 100 commands; omitted plugin commands can still be typed directly.
+
+`/settings` brings together completion notifications (previously mute), subagent notifications, interface language, and the new task folder. Opening settings changes nothing. Enable/disable buttons set explicit states, so repeated clicks do not toggle them back. Use `/settings cwd ABSOLUTE_PATH` to change the folder, including paths with spaces; it applies only to newly created tasks.
+
+`/language [zh|en]`, `/mute`, `/unmute`, `/subagents [on|off]`, `/cwd [absolute-path]`, and existing message buttons remain supported, but the preference commands no longer occupy separate menu entries. `/help` only displays help. Use the Cancel button on the original prompt to cancel pending input.
+
+Most task commands support button selection when the ID is omitted. `/help` preserves pending input and quota reservations. See the [README](../README.en.md) for full parameters and quota rules.
 
 ## Side chats and plugins
 

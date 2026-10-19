@@ -19,7 +19,7 @@ telegram-plugins/
 
 Prepare the complete directory outside the plugin root, then move it in. For updates, stage in a dot-prefixed directory before replacing the plugin directory. No bot restart is required. Each plugin command rescans available plugins; a background check synchronizes the Telegram menu every ten seconds. Client menus may refresh later, but typed commands work immediately.
 
-`/plugins` shows loaded versions, commands, and errors. `/help` includes plugin commands. Set `enabled` to `false` or move the directory away to disable a plugin. Running invocations keep their original code snapshot; subsequent commands use the new version. Code or configuration changes invalidate old buttons. Incompatible APIs, syntax errors, or command conflicts disable only the affected plugins. Both parties to a plugin command conflict are disabled; core commands, including `/language`, cannot be overridden.
+`/plugins` shows loaded versions, commands, and errors. `/help` includes plugin commands. Set `enabled` to `false` or move the directory away to disable a plugin. Running invocations keep their original code snapshot; subsequent commands use the new version. Code or configuration changes invalidate old buttons. Incompatible APIs, syntax errors, or command conflicts disable only the affected plugins. Both parties to a plugin command conflict are disabled; core commands, including `/settings` and `/language`, cannot be overridden.
 
 Bundled plugins are listed in `src/codex_telegram_bridge/resources/bundled_plugins.json`, for example:
 

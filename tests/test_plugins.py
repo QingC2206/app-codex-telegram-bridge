@@ -83,7 +83,7 @@ class PluginTests(unittest.TestCase):
     def test_reserved_commands_and_unknown_api_rejected(self):
         self.add()
         path=self.host.root/'demo/plugin.json';data=json.loads(path.read_text())
-        for command in ('quota', 'running', 'language'):
+        for command in ('quota', 'running', 'language', 'settings'):
             data['commands']={command:'覆盖'};path.write_text(json.dumps(data));self.host.discover()
             self.assertNotIn('demo',self.host.plugins)
         data['commands']={'demo':'测试'};data['api_version']=99;path.write_text(json.dumps(data));self.host.discover()

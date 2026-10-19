@@ -4,9 +4,9 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.5.0 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.5.1 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
-Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Send `/language` to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
+Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
 [Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Documentation index](docs/README.en.md)
 
@@ -114,26 +114,29 @@ For a custom profile, continue passing `--codex-home` and/or `--data-dir` before
 
 | Command | Purpose |
 | --- | --- |
-| `/language [zh\|en]` | Choose Chinese or English; defaults to Chinese and persists across restarts |
-| `/running` | Show currently running tasks, workspaces, and waiting states |
-| `/tasks` | Browse recent tasks; filter running, pending, and recently completed tasks |
-| `/task [ID]` | Show task details and recent output |
-| `/send [ID] [message]` | Select and continue a task |
-| `/steer [ID] [message]` | Append instructions to a running task |
-| `/stop [ID]` | Stop a task that the current Desktop or bot can control |
-| `/watch [ID]` | Open a task progress card |
-| `/diff [ID]` | Show file changes from the latest turn |
-| `/usage [ID]` | Show token usage and elapsed time |
-| `/new <request>` | Create a bot-managed task in the default working directory |
-| `/cwd [absolute-path]` | View or set the working directory for new tasks |
-| `/side [ID] <question>` | Ask an independent, read-only side question about a task |
-| `/screenshot` | Capture Codex windows and displays through the bundled plugin |
-| `/quota` | Show quota, alerts, and reset-card operations supported by the account |
-| `/plugins` | Show local plugins, commands, and loading status |
-| `/mute`, `/unmute` | Disable or restore completion notifications |
-| `/subagents [on\|off]` | Configure subagent completion notifications; disabled by default |
-| `/logs` | Show service logs |
-| `/help` | Show help and clear pending reply input states |
+| `/tasks` | Browse recent tasks |
+| `/running` | View running tasks |
+| `/quota` | View remaining quota, alerts, and reset cards |
+| `/task [ID]` | View task details |
+| `/watch [ID]` | Track task progress |
+| `/diff [ID]` | View file changes |
+| `/usage [ID]` | View task usage |
+| `/help` | View command help |
+| `/settings` | Adjust notifications, language, and the new task folder |
+| `/plugins` | View plugin status |
+| `/screenshot` | Capture windows and screens (bundled plugin) |
+| `/logs` | View service logs |
+| `/side [ID] <question>` | Ask a side question |
+| `/send [ID] [message]` | Send a task message |
+| `/steer [ID] [message]` | Append to a running task |
+| `/new <request>` | Create a new task |
+| `/stop [ID]` | Stop a running task |
+
+The menu groups frequent queries first, followed by help and settings, plugins and logs, then messaging and execution commands. Stop is last. Third-party plugin commands appear after plugin status. Telegram displays up to 100 commands; omitted plugin commands can still be typed directly.
+
+`/settings` brings together completion notifications (previously mute), subagent notifications, interface language, and the new task folder. Opening settings changes nothing. Enable/disable buttons set explicit states, so repeated clicks do not toggle them back. Use `/settings cwd ABSOLUTE_PATH` to change the folder, including paths with spaces; it applies only to newly created tasks.
+
+`/language [zh|en]`, `/mute`, `/unmute`, `/subagents [on|off]`, `/cwd [absolute-path]`, and existing message buttons remain supported, but the preference commands no longer occupy separate menu entries. `/help` only displays help. Use the Cancel button on the original prompt to cancel pending input.
 
 Most commands that accept a task ID let you omit it and select a task using buttons. You can attach an image or file when replying to a task card. The limit is 20 MB per attachment; send multiple attachments separately.
 

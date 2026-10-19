@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.5.1
+
+- Telegram 菜单按查询、设置、插件和执行操作分组排序；常用查询靠前，中止任务最后，中英文说明统一精简。
+- 新增 `/settings`，集中管理完成通知、子代理通知、语言和新任务目录；旧命令与按钮继续兼容。
+- 设置页面只读打开，开关使用明确状态；`/help` 不再清除待回复输入。
+- 补充设置授权、重复点击、配置保留、菜单容量和双语回归测试。
+- Reorder and shorten the bilingual Telegram menu; add a unified settings panel with explicit notification states, language, and the new task folder. Keep legacy commands and buttons. Help now preserves pending input.
+
 ## 0.5.0
 
 - 文档默认中文，补齐安装、使用、插件、架构和验收英文版，各页面支持语言切换。

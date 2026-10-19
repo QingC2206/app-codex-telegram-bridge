@@ -60,3 +60,7 @@ python tools/build_release.py --thread-id <full-active-task-id-authorized-for-te
 ```
 
 The release gate verifies real submission, a user-message receipt, Telegram delivery, the complete offline suite, and unchanged source hashes. Publish only the source ZIP and its checksum; keep `.validation/` and `*.validation.json` local. Wheel and source distributions can be built separately for installation tests, but a successful build does not prove communication.
+
+## Settings and menu acceptance
+
+Check that `/tasks`, `/running`, and `/quota` lead the menu and `/stop` is last. Opening `/settings` pages must preserve preferences and pending input. Enable and disable completion/subagent notifications separately; repeat clicks must keep the selected state. Switch languages through settings and verify menu text and back navigation, then restore the original preferences. Check `/settings cwd PATH` and legacy aliases; `/help` must preserve pending input.

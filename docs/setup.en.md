@@ -59,7 +59,7 @@ The wizard asks you to:
 4. Check for the test message in Telegram.
 5. Fully quit and reopen Codex Desktop, reviewing new hooks if prompted.
 
-Send `/help`, then `/running`. Use `/language` to select a language later; `/language en` and `/language zh` switch directly.
+Send `/help`, then `/running`. Open `/settings` → **Language** to select a language later; `/language en` and `/language zh` switch directly.
 
 ## Profiles, data, and services
 

@@ -62,3 +62,7 @@ python tools/build_release.py --thread-id <允许验收的活动任务完整ID>
 ```
 
 发布门禁核验真实投递、用户消息回执、Telegram 发送、全部离线测试，以及验收前后源码哈希。只发布 `dist/*.zip` 和对应校验和；`.validation/` 和 `*.validation.json` 留在本机。wheel/sdist 可独立构建用于 CI 和安装验证，不以构建成功冒充通信验收。
+
+## 设置与菜单验收
+
+检查 `/tasks`、`/running`、`/quota` 位于菜单前部，`/stop` 最后。打开 `/settings` 各页面应不改配置或待输入任务；完成通知和子代理通知分别开关，重复点击保持所选状态。通过语言页切换中英文后检查菜单和返回按钮，最后恢复原偏好。验证 `/settings cwd 路径` 及旧命令可用；`/help` 不清除待输入。

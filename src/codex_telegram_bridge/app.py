@@ -1238,30 +1238,30 @@ class TelegramCodexBot:
             return False
 
     def _command_list(self):
+        # Browsing comes first; settings only opens a panel. Task-changing
+        # commands stay last, with stop at the bottom. Legacy aliases still work.
         commands = [
-            {"command": "language", "description": _t('切换语言：/language zh 或 /language en')},
-            {"command": "quota", "description": _t('查看额度、重置卡与变化提醒')},
-            {"command": "tasks", "description": _t('列出最近的 Codex 任务')},
-            {"command": "running", "description": _t('列出当前正在运行的 Codex 任务')},
-            {"command": "task", "description": _t('查看任务详情：/task ID')},
-            {"command": "watch", "description": _t('实时进度卡片：/watch ID')},
-            {"command": "diff", "description": _t('查看本轮文件修改：/diff ID')},
-            {"command": "usage", "description": _t('查看 Token 和耗时：/usage ID')},
-            {"command": "new", "description": _t('新建任务：/new 需求')},
-            {"command": "send", "description": _t('继续任务：/send ID 消息')},
-            {"command": "steer", "description": _t('追加到运行中任务：/steer ID 消息')},
-            {"command": "stop", "description": _t('中止任务：/stop ID')},
-            {"command": "cwd", "description": _t('查看或设置新任务工作目录')},
-            {"command": "logs", "description": _t('查看服务日志')},
-            {"command": "mute", "description": _t('关闭完成通知')},
-            {"command": "unmute", "description": _t('恢复完成通知')},
-            {"command": "subagents", "description": _t('设置子代理完成通知')},
-            {"command": "plugins", "description": _t('查看本地插件、动态命令和加载状态')},
-            {"command": "side", "description": _t('侧边提问：回复任务消息发送 /side 问题')},
-            {"command": "help", "description": _t('显示命令帮助')},
+            {"command": 'tasks', "description": _t('浏览最近任务')},
+            {"command": 'running', "description": _t('查看运行任务')},
+            {"command": 'quota', "description": _t('查看剩余额度')},
+            {"command": 'task', "description": _t('查看任务详情')},
+            {"command": 'watch', "description": _t('跟踪任务进度')},
+            {"command": 'diff', "description": _t('查看文件修改')},
+            {"command": 'usage', "description": _t('查看任务用量')},
+            {"command": 'help', "description": _t('查看使用帮助')},
+            {"command": 'settings', "description": _t('调整机器人设置')},
+            {"command": 'plugins', "description": _t('查看插件状态')},
         ]
-        commands.extend(self.plugins.menu())
-        return commands
+        actions = [
+            {"command": 'logs', "description": _t('查看服务日志')},
+            {"command": 'side', "description": _t('发起侧边提问')},
+            {"command": 'send', "description": _t('发送任务消息')},
+            {"command": 'steer', "description": _t('追加运行指令')},
+            {"command": 'new', "description": _t('创建新任务')},
+            {"command": 'stop', "description": _t('中止运行任务')},
+        ]
+        commands.extend(self.plugins.menu()[:max(0, 100 - len(commands) - len(actions))])
+        return commands + actions
 
     def _remember_reply_source(self, thread_id, turn_id):
         source = getattr(self._ui_local, "source_message_id", None)
@@ -1529,7 +1529,7 @@ class TelegramCodexBot:
             self.steer_turn(thread_id, text)
             return
         if self.awaiting_direct_reply and not is_command:
-            self._input_error(_t('请手动回复对应的“直接回复任务”提示再输入文字；普通文字不会自动发送到任务。可点击提示下的取消回复，或发送 /help 清除全部待回复状态。'))
+            self._input_error(_t('请回复对应的任务输入提示；普通文字不会自动发送到任务。取消输入请点击原提示中的取消按钮。'))
             return
 
         command, argument = parse_command(text)
@@ -1539,6 +1539,7 @@ class TelegramCodexBot:
             "/start": self.command_help,
             "/help": self.command_help,
             "/language": self.command_language,
+            "/settings": self.command_settings,
             "/plugins": lambda _: self.plugins.status(),
             "/side": lambda value: self.sides.command(value, reply_to_message_id),
             "/tasks": self.command_tasks,
@@ -1576,6 +1577,60 @@ class TelegramCodexBot:
         if not self.plugins.command("screenshot", argument):
             self._input_error(_t('截图插件未启用，请用 /plugins 查看加载状态。'))
 
+    def command_settings(self, argument: str = "") -> None:
+        """Open preferences without changing input routing or task ownership.
+
+        Callback values set explicit states, so duplicate deliveries are safe.
+        Legacy /mute, /language, /cwd, and /subagents remain supported.
+        """
+        value = argument.strip()
+        page = value or "home"
+        notice = ""
+        if value.startswith("cwd "):
+            self.command_cwd(value[4:])
+            return
+        if value in {"completion:on", "completion:off"}:
+            self.state.update(muted=value.endswith(":off"))
+            page = "notifications"
+        elif value in {"subagents:on", "subagents:off"}:
+            set_subagent_notifications(value.endswith(":on"))
+            page = "notifications"
+        elif value in {"language:zh-CN", "language:en"}:
+            set_language(value.partition(":")[2])
+            if not self._set_commands():
+                notice = _t('语言已保存，菜单刷新失败。请重新选择语言以重试。') + "\n\n"
+            page = "language"
+        elif page not in {"home", "notifications", "language", "cwd"}:
+            self._input_error(_t('用法：/settings，或 /settings cwd 绝对路径'))
+            return
+
+        def button(label, destination):
+            return {"text": label, "callback_data": "settings|" + destination}
+
+        if page == "home":
+            text = _t('**⚙️ 设置**') + "\n\n" + _t('通知、语言和新任务目录。选择项目后再修改。')
+            rows = [[button(_t('🔔 通知'), "notifications"), button(_t('🌐 语言'), "language")],
+                    [button(_t('📁 新任务目录'), "cwd")]]
+        elif page == "notifications":
+            state = self.state.snapshot()
+            text = _t('**🔔 通知设置**') + "\n\n" + _t('完成通知：{p0}\n子代理通知：{p1}\n\n关闭完成通知后，命令回复和提问、审批提醒仍会发送。子代理通知仅在完成通知开启时发送。',
+                p0=_t('已关闭') if state.get("muted") else _t('已开启'),
+                p1=_t('已开启') if subagent_notifications_enabled() else _t('已关闭'))
+            rows = [[button(_t('开启完成通知'), "completion:on"), button(_t('关闭完成通知'), "completion:off")],
+                    [button(_t('开启子代理通知'), "subagents:on"), button(_t('关闭子代理通知'), "subagents:off")]]
+        elif page == "language":
+            text = notice + _t('**🌐 界面语言：{p0}**\n\n任务正文保持原文。',
+                               p0="简体中文" if get_language() == "zh-CN" else "English")
+            rows = [[button("简体中文", "language:zh-CN"), button("English", "language:en")]]
+        else:
+            text = _t('**📁 新任务目录**\n\n{p0}\n\n修改：`/settings cwd 绝对路径`\n仅影响之后创建的任务。',
+                      p0=str(self.state.snapshot().get("default_cwd", "")))
+            rows = []
+        if page != "home":
+            rows.append([button(_t('⬅️ 返回设置'), "home")])
+        rows.append([{"text": _t('关闭'), "callback_data": "closepanel|"}])
+        self.send(text, {"inline_keyboard": rows})
+
     def command_language(self, argument: str = "") -> None:
         if argument.strip():
             selected = normalize_language(argument)
@@ -1598,52 +1653,11 @@ class TelegramCodexBot:
         ]]})
 
     def command_help(self, _argument: str = "") -> None:
-        self.awaiting_continue.pop(self.chat_id, None)
-        self.awaiting_steer.pop(self.chat_id, None)
-        self.awaiting_direct_reply.clear()
-        previous_source = getattr(self._ui_local, "source_message_id", None)
-        try:
-            for pending in self.pending_direct_replies.values():
-                self._ui_local.source_message_id = pending.get("source_message_id")
-                self._reaction("")
-        finally:
-            self._ui_local.source_message_id = previous_source
-        self.pending_direct_replies.clear()
-        paragraphs = [
-            _t('**🤖 Codex Telegram 控制台**'),
-            _t('**当前版本：** `{p0}`', p0=format(APP_VERSION, '')),
-            _t('**任务与回复**'),
-            _t('`/language` — 切换中文或英文界面，默认中文。'),
-            _t('`/tasks` — 浏览任务，筛选运行中、待处理、最近完成。'),
-            _t('`/running` — 实时核验并列出当前运行中的任务，含工作区和等待状态。'),
-            _t('`/task [ID]` — 查看详情和最近输出。'),
-            _t('`/watch [ID]` — 跟踪任务进度。'),
-            _t('`/diff [ID]` — 查看最近一轮修改。'),
-            _t('`/usage [ID]` — 查看 Token 用量和耗时。'),
-            _t('`/new <需求>` — 在默认目录新建任务。'),
-            _t('`/send [ID] [消息]` — 继续任务。'),
-            _t('`/steer [ID] [消息]` — 追加到运行中的任务。'),
-            _t('`/stop [ID]` — 中止任务。'),
-            _t('也可以直接使用 Telegram 的“回复”，回复任务通知、详情或进度卡片；支持文字、截图和文件（单附件最多 20 MB）。省略 ID 时会显示任务选择按钮。'),
-            _t('**侧边聊天**'),
-            _t('回复主任务通知发送 `/side 问题`，或 `/side ID 问题`；省略参数可选择任务。运行中回复也可选侧边聊天，不打断主任务。'),
-            _t('直接回复侧边答复可继续同一会话。侧边聊天只读，空闲 3 小时或服务重启后失效；关闭不删除 Telegram 中已有答复。'),
-            _t('**额度与预约**'),
-            _t('`/quota` — 查看额度、积分余额、重置卡和预约状态。'),
-            _t('预约可选 6／12／24 小时；周剩余低于 3% 时使用 1 张卡。到期、自然重置或额度恢复后失效。立即重置要求周剩余 ≤5%，并需要二次确认。'),
-            _t('**本地插件（纯脚本，不消耗模型额度）**'),
-            _t('`/plugins` — 查看插件与加载状态；文件变更会自动识别。'),
-            self.plugins.help() or _t('暂无已启用的插件。'),
-            _t('**设置与通知**'),
-            _t('`/cwd [绝对路径]` — 查看或设置默认目录。'),
-            _t('`/logs` — 查看最近服务日志。'),
-            _t('`/mute` / `/unmute` — 关闭或恢复完成通知。'),
-            _t('`/subagents [on|off]` — 开关子代理完成通知（默认关闭）。'),
-            _t('`/help` — 显示帮助并清除待回复输入；不会取消额度预约。'),
-        ]
-        # Rich Markdown treats a single newline as a soft paragraph break.
-        self.send("\n\n".join(paragraphs), {"remove_keyboard": True})
-
+        lines = [_t('**🤖 使用帮助**')]
+        for item in self._command_list():
+            lines.append("/" + item["command"] + " — " + item["description"])
+        lines.append(_t('直接回复任务消息即可继续对话；多数任务命令省略 ID 时可选择任务。\n\n设置集中在 /settings。取消待输入请使用原提示中的取消按钮。'))
+        self.send("\n\n".join(lines), {"remove_keyboard": True})
 
     def _list_threads(self, limit: int = TASK_LIMIT) -> list[dict[str, Any]]:
         result = self.app.request(
@@ -2759,7 +2773,7 @@ class TelegramCodexBot:
         self.awaiting_continue.pop(self.chat_id, None)
         self.awaiting_steer.pop(self.chat_id, None)
         result = self.send(
-            _t('**💬 直接回复任务 `{p0}`**\n\n请手动回复这条提示并输入文字。普通输入不会自动发送。若任务仍在运行，我会再让你选择追加、中断后发送或取消。发送 `/help` 可取消待回复状态。', p0=format(thread_id[:8], '')),
+            _t('**💬 直接回复任务 `{p0}`**\n\n请手动回复这条提示并输入文字。普通输入不会自动发送。若任务仍在运行，我会再让你选择追加、中断后发送或取消。取消输入请点击下方的取消回复。', p0=format(thread_id[:8], '')),
             {
                 "inline_keyboard": [[{"text": _t('取消回复'), "callback_data": f"directcancel|{thread_id}"}]],
             },
@@ -3409,7 +3423,7 @@ class TelegramCodexBot:
         action = str(callback.get("data") or "").split("|")[0]
         editable = {"watch", "unwatch", "reply", "replypage", "screenshot", "task", "tasklist", "diff", "usage", "quotaview", "closepanel", "cancelinput", "backinput", "directchoice",
                     "reservequota", "reservehours", "cancelhours", "backhours", "resetnow", "confirmquota", "cancelquota", "cancelreserve", "refreshreserve",
-                    "continue", "steerpick", "approval", "question", "canceltext", "language"}
+                    "continue", "steerpick", "approval", "question", "canceltext", "language", "settings"}
         previous = getattr(self._ui_local, "message_id", None)
         previous_return = getattr(self._ui_local, "return_keyboard", None)
         self._ui_local.return_keyboard = None
@@ -3440,7 +3454,9 @@ class TelegramCodexBot:
         data = str(callback.get("data") or "")
         action, _, value = data.partition("|")
         try:
-            if action == 'language':
+            if action == 'settings':
+                self.command_settings(value)
+            elif action == 'language':
                 self.command_language(value)
             elif action in {"reservequota", "reservehours", "cancelhours", "backhours", "resetnow", "confirmquota", "cancelquota", "cancelreserve", "refreshreserve"}:
                 if callback_id:

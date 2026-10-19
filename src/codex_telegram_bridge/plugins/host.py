@@ -22,7 +22,7 @@ from ..platforms.processes import ChildProcessJob, spawn_options
 from codex_telegram_bridge.plugins.bundled import install_bundled
 from ..i18n import get_language
 
-CORE_COMMANDS = set('start help language plugins side tasks running task watch diff usage quota new send steer stop cwd logs mute unmute subagents'.split())
+CORE_COMMANDS = set('start help settings language plugins side tasks running task watch diff usage quota new send steer stop cwd logs mute unmute subagents'.split())
 ROOT = Path(os.environ.get('CODEX_HOME') or Path.home()/'.codex')
 PLUGIN_ROOT = ROOT/'telegram-plugins'
 STATE_ROOT = ROOT/'telegram-plugin-state'

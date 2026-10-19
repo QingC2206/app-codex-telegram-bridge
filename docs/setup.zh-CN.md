@@ -105,7 +105,7 @@ Windows 执行 `py -3 install.py`；macOS/Linux 执行 `python3 install.py`。�
 
 查看机器人支持的全部 Codex 指令。
 
-发送 `/language` 可通过按钮选择中文或英文；`/language en` 切换英文，`/language zh` 切回中文。选择会保留到下次启动和升级。
+发送 `/settings` → **语言** 可通过按钮选择中文或英文；`/language en` 切换英文，`/language zh` 切回中文。选择会保留到下次启动和升级。
 
 ## 自定义环境与服务管理
 

@@ -109,7 +109,7 @@ class LanguageTests(unittest.TestCase):
         self.assertEqual(i18n.get_language(), 'en')
         self.assertIn('English', bot.send.call_args.args[0])
         bot.command_help()
-        self.assertIn('Tasks and replies', bot.send.call_args.args[0])
+        self.assertIn('Command help', bot.send.call_args.args[0])
         bot.awaiting_continue[bot.chat_id] = 'task-original'
         body = '刷新 {p0} /language zh；保留原文'
         bot.handle_text(body)
@@ -154,7 +154,7 @@ class LanguageTests(unittest.TestCase):
         self.assertTrue(any('查看' in item['description'] for item in default['commands']))
         self.assertFalse(any('\u4e00' <= c <= '\u9fff' for item in selected['commands'] for c in item['description']))
         self.assertTrue(all(len(item['description']) <= 100 for item in selected['commands']))
-        self.assertIn('language', [item['command'] for item in selected['commands']])
+        self.assertIn('settings', [item['command'] for item in selected['commands']])
 
     def test_callback_payloads_stay_identical_after_switch(self):
         keyboards = []
