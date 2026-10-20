@@ -1003,12 +1003,12 @@ def cleanup_reply_cache(now: float | None = None) -> None:
             log_error(f"could not clean reply cache {path.name}: {exc}")
 
 
-def cache_full_reply(payload: dict[str, Any], thread_id: str = "") -> str | None:
+def cache_full_reply(payload: dict[str, Any], thread_id: str = "", *, force: bool = False) -> str | None:
     value = payload.get("last_assistant_message")
     if not isinstance(value, str):
         return None
     text = value.strip()
-    if max(len(text), len(format_markdown_tables(text))) <= REPLY_PREVIEW_LIMIT:
+    if not force and max(len(text), len(format_markdown_tables(text))) <= REPLY_PREVIEW_LIMIT:
         return None
     encoded = text.encode("utf-8")
     if len(encoded) > MAX_CACHED_REPLY_BYTES:
@@ -1327,6 +1327,19 @@ def send_markdown_message(token: str, payload: dict[str, Any]) -> Any:
     """Prefer native rich Markdown, including tables and the original keyboard."""
     prepared = prepare_local_image_reply(token, payload, upload=True)
     result = _markdown_request(token, prepared, edit=False)
+    remember_task_message(token, payload, result)
+    return result
+
+
+def send_html_message(token: str, payload: dict[str, Any], *, edit: bool = False) -> Any:
+    """Send already escaped UI HTML without Markdown conversion or truncation."""
+    request = dict(payload, parse_mode="HTML", link_preview_options={"is_disabled": True})
+    try:
+        result = telegram_call(token, "editMessageText" if edit else "sendMessage", request)
+    except TelegramApiError as exc:
+        if edit and exc.code == 400 and "message is not modified" in exc.description.lower():
+            return None
+        raise
     remember_task_message(token, payload, result)
     return result
 

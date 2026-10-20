@@ -766,5 +766,11 @@
   "✒️[问题({p0})] {p1}": "✒️[Question ({p0})] {p1}",
   "\n工作区：{p0}（任务：{p1}）": "\nWorkspace: {p0} (Task: {p1})",
   "\n\n**原问题：**\n{p0}": "\n\n**Question:**\n{p0}",
-  "\n\n**用户回答：**\n{p0}": "\n\n**User answer:**\n{p0}"
+  "\n\n**用户回答：**\n{p0}": "\n\n**User answer:**\n{p0}",
+  "✒️ <b>问题 · {p0}</b> ({p1})": "✒️ <b>Question · {p0}</b> ({p1})",
+  "❓ 原问题": "❓ Question",
+  "💬 用户回答": "💬 User answer",
+  "任务可以继续运行。请选择选项，或回复此消息填写答案。": "The task can keep running. Choose an option or reply to this message with your answer.",
+  "已确认作答，暂未读取到回答内容。": "An answer was confirmed, but its text is not yet available.",
+  "未记录到回答。": "No answer was recorded."
 }

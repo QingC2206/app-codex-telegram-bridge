@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.6.7
+
+- 异步问题卡片使用 Telegram 原生 HTML 富文本：加粗问题标题，末尾状态保持普通字重，工作区和任务 ID 使用等宽样式，原问题与回答分为引用块。
+- 沿用 Telegram 主题配色，兼容亮暗主题；保留明确段落间距，同步中文和英文文案。
+- 转义标题、问题和回答中的特殊字符，按 UTF-16 长度裁剪预览，保留长问题及回答的全文入口；静默模式继续阻止自动推送。
+- Render asynchronous question cards with native Telegram HTML: a bold title, a regular-weight status, code-styled metadata, and separate question/answer blockquotes. Use theme colors and explicit spacing in both languages.
+- Escape user content, bound previews by UTF-16 length, and retain full-text access for long questions and answers. Quiet mode still suppresses automatic delivery.
+
 ## 0.6.6
 
 - 修复 Desktop 已接收消息但本地 rollout 文件滞后时的“提交结果未知”误报：增加同环境 Desktop 实时历史的只读回执核对。

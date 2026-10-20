@@ -56,12 +56,15 @@ class AsyncInputTests(unittest.TestCase):
                        (self.thread, '排查 Codex 沙盒损坏', '旧标题', 'D:/workspace/codex'))
         with patch.object(n, 'CODEX_STATE_ROOT', root):
             row = self.observed()
-            self.assertTrue(self.bot.send.call_args.args[0].startswith('✒️[问题(待回答)] 排查 Codex 沙盒损坏'))
+            self.assertTrue(self.bot.send.call_args.args[0].startswith('✒️ <b>问题 · 排查 Codex 沙盒损坏</b> (待回答)'))
             row.update(status='answered', answer='保留原问题、我的回答和状态')
             self.manager.refresh_card(row)
         text = self.bot.enqueue_edit.call_args.args[1]
-        self.assertEqual(text, '✒️[问题(已回答)] 排查 Codex 沙盒损坏\n工作区：codex（任务：task-123）'
-                         '\n\n**原问题：**\nWhich version?\n\n**用户回答：**\n保留原问题、我的回答和状态')
+        self.assertTrue(text.startswith('✒️ <b>问题 · 排查 Codex 沙盒损坏</b> (已回答)'))
+        self.assertIn('<code>codex</code>   ·   <code>task-123</code>', text)
+        self.assertIn('<blockquote>Which version?</blockquote>', text)
+        self.assertIn('<blockquote><b>保留原问题、我的回答和状态</b></blockquote>', text)
+        self.assertEqual(self.bot.enqueue_edit.call_args.kwargs, {'parse_mode': 'HTML'})
 
     def test_question_card_metadata_fallback_does_not_use_robot_working_directory(self):
         from codex_telegram_bridge.telegram import notifications as n
@@ -70,6 +73,49 @@ class AsyncInputTests(unittest.TestCase):
             heading = self.manager.card_heading(row, '已回答')
         self.assertIn('未知工作区', heading)
         self.assertIn('task-123', heading)
+
+    def test_rich_card_escapes_user_content_and_bounds_visible_utf16_length(self):
+        from xml.etree import ElementTree
+        from codex_telegram_bridge.telegram import notifications as n
+        row = self.observed()
+        row.update(status='answered', title='<script>& "问题" 🥳' * 700,
+                   answer='</blockquote><b>🥲&' * 900)
+        with patch.object(n, 'conversation_title', return_value='<标题> & stuff'):
+            text, full = self.manager.render_card(row)
+        tree = ElementTree.fromstring('<root>' + text + '</root>')
+        visible = ''.join(tree.itertext())
+        self.assertLess(len(visible.encode('utf-16-le')) // 2, 4096)
+        self.assertNotIn('<script>', text)
+        self.assertIn('&lt;标题&gt; &amp; stuff', text)
+        self.assertEqual(len(list(tree.iter('blockquote'))), 2)
+        self.assertIn(row['title'], full)
+        self.assertIn(row['answer'], full)
+
+    def test_html_send_and_queued_edit_preserve_native_entities_and_buttons(self):
+        from codex_telegram_bridge.telegram import notifications as n
+        row = self.observed()
+        row.update(status='answered', answer='Second & <literal>')
+        text, _ = self.manager.render_card(row)
+        keyboard = {'inline_keyboard': []}
+        with patch.object(n, 'telegram_call', return_value={'message_id': 70}) as call:
+            b.TelegramCodexBot.send(self.bot, text, keyboard, parse_mode='HTML')
+            self.assertEqual(call.call_args.args[1], 'sendMessage')
+            self.assertEqual(call.call_args.args[2]['parse_mode'], 'HTML')
+            self.assertEqual(call.call_args.args[2]['text'], text)
+            b.TelegramCodexBot.enqueue_edit(self.bot, 70, text, keyboard, parse_mode='HTML')
+            self.bot.outbox.put(None)
+            self.bot._outbox_worker()
+            self.assertEqual(call.call_args.args[1], 'editMessageText')
+            self.assertEqual(call.call_args.args[2]['parse_mode'], 'HTML')
+            self.assertEqual(call.call_args.args[2]['text'], text)
+            self.assertEqual(call.call_args.args[2]['reply_markup'], keyboard)
+
+    def test_quiet_mode_suppresses_html_card_edits(self):
+        row = self.observed()
+        text, _ = self.manager.render_card(row)
+        self.bot.state.update(quiet_mode=True)
+        b.TelegramCodexBot.enqueue_edit(self.bot, 70, text, {'inline_keyboard': []}, parse_mode='HTML')
+        self.assertTrue(self.bot.outbox.empty())
 
     def test_duplicate_events_and_restart_do_not_resend_question(self):
         self.observed()
@@ -151,9 +197,9 @@ class AsyncInputTests(unittest.TestCase):
             'output': '<codex_delegation>\n  <input>' + escaped + '</input>\n</codex_delegation>'})
         self.manager.reconcile(self.thread, self.manager.current_history(self.thread))
         self.assertEqual(self.manager.get(row['key'])['status'], 'answered')
-        self.assertIn('First & Second', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('First &amp; Second', self.bot.enqueue_edit.call_args.args[1])
         self.assertIn('Which version?', self.bot.enqueue_edit.call_args.args[1])
-        self.assertIn('[问题(已回答)]', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('</b> (已回答)', self.bot.enqueue_edit.call_args.args[1])
         self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
         self.bot._desktop_follow_up.assert_not_called()
 
@@ -165,7 +211,7 @@ class AsyncInputTests(unittest.TestCase):
         restarted = inputs.AsyncInputs(self.bot, self.manager.database)
         self.assertEqual(restarted.get(row['key'])['status'], 'uncertain')
         self.assertEqual(restarted.get(row['key'])['answer'], 'First')
-        self.assertIn('[问题(待确认)]', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('</b> (待确认)', self.bot.enqueue_edit.call_args.args[1])
         self.assertIn('First', self.bot.enqueue_edit.call_args.args[1])
         with self.assertRaises(ValueError):
             restarted.submit(row['key'], 'First')
@@ -176,13 +222,13 @@ class AsyncInputTests(unittest.TestCase):
         self.manager.callback(row['key'] + ':1')
         self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
         self.assertIn('Which version?', self.bot.enqueue_edit.call_args.args[1])
-        self.assertIn('[问题(已提交)]', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('</b> (已提交)', self.bot.enqueue_edit.call_args.args[1])
         restarted = inputs.AsyncInputs(self.bot, self.manager.database)
         self.assertEqual(restarted.get(row['key'])['answer'], 'Second')
         self.bot.desktop.native.read_thread.return_value['turns'][0]['status'] = 'completed'
         restarted.reconcile(self.thread, restarted.current_history(self.thread))
         self.assertIn('Second', self.bot.enqueue_edit.call_args.args[1])
-        self.assertIn('[问题(已结束)]', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('</b> (已结束)', self.bot.enqueue_edit.call_args.args[1])
         self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
 
     def test_ended_unanswered_question_keeps_title_without_inventing_answer(self):
@@ -205,7 +251,7 @@ class AsyncInputTests(unittest.TestCase):
             'content': [{'type': 'text', 'text': answer}]})
         self.manager.reconcile(self.thread, self.manager.current_history(self.thread))
         self.assertEqual(self.manager.get(row['key'])['answer'], 'Desktop choice')
-        self.assertIn('[问题(已回答)]', self.bot.enqueue_edit.call_args.args[1])
+        self.assertIn('</b> (已回答)', self.bot.enqueue_edit.call_args.args[1])
         self.bot._desktop_follow_up.assert_called_once()
 
     def test_long_answer_kept_in_database_and_full_reply_cache(self):
@@ -220,6 +266,19 @@ class AsyncInputTests(unittest.TestCase):
             callback = markup['inline_keyboard'][0][0]['callback_data']
             cached = n.load_cached_reply(callback.split('|')[1])
             self.assertIn(answer.rstrip(), cached['text'])
+
+    def test_clipped_emoji_answer_has_full_text_below_normal_cache_threshold(self):
+        from codex_telegram_bridge.telegram import notifications as n
+        row = self.observed()
+        row.update(status='answered', answer='🥳' * 750)
+        with patch.object(n, 'REPLY_CACHE_DIR', self.manager.database.parent / 'cache'):
+            self.manager.refresh_card(row)
+            text, markup = self.bot.enqueue_edit.call_args.args[1:]
+            self.assertIn('…', text)
+            callback = markup['inline_keyboard'][0][0]['callback_data']
+            cached = n.load_cached_reply(callback.split('|')[1])
+            self.assertLess(len(cached['text']), n.REPLY_PREVIEW_LIMIT)
+            self.assertIn(row['answer'], cached['text'])
 
     def test_reaction_feedback_does_not_replace_answer_card_with_generic_text(self):
         row = self.observed()
@@ -237,7 +296,8 @@ class AsyncInputTests(unittest.TestCase):
         with using_language('en'):
             self.manager.submit(row['key'], '保留中文回答')
         text = self.bot.enqueue_edit.call_args.args[1]
-        self.assertIn('Question (Submitted)', text)
+        self.assertIn('Question ·', text)
+        self.assertIn('</b> (Submitted)', text)
         self.assertIn('User answer', text)
         self.assertIn('保留中文回答', text)
 

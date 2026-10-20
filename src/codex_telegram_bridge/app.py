@@ -1032,16 +1032,17 @@ class TelegramCodexBot:
         reply_markup: dict[str, Any] | None = None,
         chat_id: str | None = None,
         silent: bool | None = None,
-        *, reply_to: int | None = None,
+        *, reply_to: int | None = None, parse_mode: str | None = None,
     ) -> Any:
         self._observe_feedback_text(text)
         current_card = getattr(self._ui_local, "message_id", None)
         if current_card and (chat_id is None or chat_id == self.chat_id):
-            self.edit_message(current_card, text, reply_markup or getattr(self._ui_local, "return_keyboard", None) or {"inline_keyboard": []})
+            options = {"parse_mode": parse_mode} if parse_mode else {}
+            self.edit_message(current_card, text, reply_markup or getattr(self._ui_local, "return_keyboard", None) or {"inline_keyboard": []}, **options)
             return {"message_id": current_card}
         payload: dict[str, Any] = {
             "chat_id": chat_id or self.chat_id,
-            "text": markdown_preview(redact(text, self.token), MAX_TEXT),
+            "text": redact(text, self.token) if parse_mode == "HTML" else markdown_preview(redact(text, self.token), MAX_TEXT),
             "disable_notification": True if silent is None else (self.silent or silent),
         }
         source = reply_to or (getattr(self._ui_local, "source_message_id", None)
@@ -1050,6 +1051,8 @@ class TelegramCodexBot:
             payload["reply_parameters"] = {"message_id": source, "allow_sending_without_reply": True}
         if reply_markup:
             payload["reply_markup"] = reply_markup
+        if parse_mode == "HTML":
+            return telegram_notify_module.send_html_message(self.token, payload)
         return send_markdown_message(self.token, payload)
 
     def edit_message(
@@ -1058,12 +1061,13 @@ class TelegramCodexBot:
         text: str,
         reply_markup: dict[str, Any] | None = None,
         chat_id: str | None = None,
+        *, parse_mode: str | None = None,
     ) -> Any:
         self._observe_feedback_text(text)
         payload: dict[str, Any] = {
             "chat_id": chat_id or self.chat_id,
             "message_id": message_id,
-            "text": markdown_preview(redact(text, self.token), MAX_TEXT),
+            "text": redact(text, self.token) if parse_mode == "HTML" else markdown_preview(redact(text, self.token), MAX_TEXT),
         }
         view = telegram_notify_module.navigation_view(self.token, payload["chat_id"], message_id)
         if view and view['status'] != 'open':
@@ -1079,6 +1083,8 @@ class TelegramCodexBot:
             markup = {'inline_keyboard':rows}
         payload["reply_markup"] = markup
         try:
+            if parse_mode == "HTML":
+                return telegram_notify_module.send_html_message(self.token, payload, edit=True)
             return edit_markdown_message(self.token, payload)
         except telegram_notify_module.TelegramApiError as exc:
             if view and exc.code == 400 and 'message to edit not found' in exc.description.lower():
@@ -1108,6 +1114,7 @@ class TelegramCodexBot:
         text: str,
         reply_markup: dict[str, Any] | None = None,
         chat_id: str | None = None,
+        *, parse_mode: str | None = None,
     ) -> None:
         state = self.state.snapshot()
         if state.get("quiet_mode") is True:
@@ -1121,6 +1128,7 @@ class TelegramCodexBot:
             "text": text,
             "reply_markup": reply_markup,
             "chat_id": chat_id,
+            "parse_mode": parse_mode,
         })
 
     def _outbox_worker(self) -> None:
@@ -1139,9 +1147,10 @@ class TelegramCodexBot:
                         view = telegram_notify_module.navigation_view(self.token, item.get('chat_id') or self.chat_id, item['message_id'])
                         if view and (view['status'] != 'open' or view['revision'] != item.get('navigation_revision')):
                             continue
+                        options = {"parse_mode": item["parse_mode"]} if item.get("parse_mode") else {}
                         self.edit_message(
                             int(item["message_id"]), str(item["text"]),
-                            item.get("reply_markup"), item.get("chat_id"))
+                            item.get("reply_markup"), item.get("chat_id"), **options)
                 else:
                     interaction = item.get('interaction')
                     if interaction:

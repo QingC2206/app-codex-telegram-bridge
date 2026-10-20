@@ -136,34 +136,55 @@ class AsyncInputs:
             from codex_telegram_bridge.app import log
             log('async answer card update postponed: ' + type(exc).__name__)
 
+    @staticmethod
+    def _preview(value, units):
+        # Telegram counts UTF-16 units. Cut raw text before HTML escaping so
+        # entities and tags stay valid even for emoji-heavy or long answers.
+        encoded = value.encode('utf-16-le')
+        return value if len(encoded) <= units * 2 else encoded[:(units-1)*2].decode('utf-16-le', errors='ignore') + '…'
+
     def _refresh_card(self, row):
         if not row or not isinstance(row.get('message'), int):
             return
-        from codex_telegram_bridge.telegram.notifications import cache_full_reply, build_notification_keyboard, markdown_preview
-        status = row['status']
-        label = (_t('已回答') if status == 'answered' else
-                 _t('已提交') if status == 'submitted' else
-                 _t('待确认') if status in {'submitting', 'uncertain'} else _t('已结束'))
-        text = self.card_heading(row, label)
-        text += _t('\n\n**原问题：**\n{p0}', p0=row['title'])
-        if row.get('answer') is not None:
-            text += _t('\n\n**用户回答：**\n{p0}', p0=row['answer'])
-        elif status == 'answered':
-            text += _t('\n\n已确认作答，暂未读取到回答内容。')
-        else:
-            text += _t('\n\n未记录到回答。')
-        cache_id = cache_full_reply({'last_assistant_message': text}, row['thread'])
+        from codex_telegram_bridge.telegram.notifications import cache_full_reply, build_notification_keyboard
+        text, full_text = self.render_card(row)
+        truncated = any(self._preview(value, 1400) != value for value in (row['title'], row.get('answer') or ''))
+        cache_id = cache_full_reply({'last_assistant_message': full_text}, row['thread'], force=truncated)
         keyboard = build_notification_keyboard(cache_id=cache_id) or {'inline_keyboard': []}
-        self.bot.enqueue_edit(row['message'], markdown_preview(text, 2800), keyboard)
+        self.bot.enqueue_edit(row['message'], text, keyboard, parse_mode='HTML')
 
     def card_heading(self, row, status):
+        from html import escape
         from codex_telegram_bridge.telegram.notifications import conversation_title, conversation_workspace
+        return (_t('✒️ <b>问题 · {p0}</b> ({p1})', p0=escape(self._preview(conversation_title(row['thread']), 180)), p1=escape(status))
+                + '\n\n📁 <code>' + escape(self._preview(conversation_workspace(row['thread']), 100))
+                + '</code>   ·   <code>' + escape(row['thread'][:8]) + '</code>')
+
+    def render_card(self, row, *, pending=False):
+        from html import escape, unescape
         import re
-        def literal(value):
-            return re.sub(r'([\\`*_{}\[\]()<>#+.!|~-])', r'\\\1', value)
-        return (_t('✒️[问题({p0})] {p1}', p0=status, p1=literal(conversation_title(row['thread'])))
-                + _t('\n工作区：{p0}（任务：{p1}）', p0=literal(conversation_workspace(row['thread'])),
-                     p1=row['thread'][:8]))
+        status = row['status']
+        label = (_t('待回答') if pending else _t('已回答') if status == 'answered' else
+                 _t('已提交') if status == 'submitted' else
+                 _t('待确认') if status in {'submitting', 'uncertain'} else _t('已结束'))
+        heading = self.card_heading(row, label)
+        question_label = _t('❓ 原问题')
+        text = heading + '\n\n<b>' + question_label + '</b>\n<blockquote>'
+        text += escape(self._preview(row['title'], 2000 if pending else 1400)) + '</blockquote>'
+        full = unescape(re.sub(r'<[^>]*>', '', heading)) + '\n\n' + question_label + '\n' + row['title']
+        if pending:
+            hint = _t('任务可以继续运行。请选择选项，或回复此消息填写答案。')
+            text += '\n\n<i>' + hint + '</i>'
+        elif row.get('answer') is not None:
+            answer_label = _t('💬 用户回答')
+            text += '\n\n<b>' + answer_label + '</b>\n<blockquote><b>'
+            text += escape(self._preview(row['answer'], 1400)) + '</b></blockquote>'
+            full += '\n\n' + answer_label + '\n' + row['answer']
+        else:
+            hint = (_t('已确认作答，暂未读取到回答内容。') if status == 'answered' else _t('未记录到回答。'))
+            text += '\n\n<i>' + hint + '</i>'
+            full += '\n\n' + hint
+        return text, full
 
     def current_history(self, thread_id, *, item_limit=240):
         history = read_thread_history(self.bot.app, thread_id, turn_limit=1, item_limit=item_limit,
@@ -235,10 +256,13 @@ class AsyncInputs:
                         for index, label in enumerate(options)]
             keyboard.append([{'text': _t('文字回答'), 'callback_data': f"asyncq|{row['key']}:other"}])
             try:
-                sent = self.bot.send(self.card_heading(row, _t('待回答'))
-                    + _t('\n\n**原问题：**\n{p0}', p0=row['title'][:2800])
-                    + _t('\n\n任务可以继续运行。请选择选项，或回复此消息填写答案。'),
-                    {'inline_keyboard': keyboard})
+                from codex_telegram_bridge.telegram.notifications import cache_full_reply, build_notification_keyboard
+                text, full_text = self.render_card(row, pending=True)
+                cache_id = cache_full_reply({'last_assistant_message': full_text}, row['thread'],
+                                           force=self._preview(row['title'], 2000) != row['title'])
+                if cache_id:
+                    keyboard.extend(build_notification_keyboard(cache_id=cache_id)['inline_keyboard'])
+                sent = self.bot.send(text, {'inline_keyboard': keyboard}, parse_mode='HTML')
                 message = sent.get('message_id') if isinstance(sent, dict) else None
                 if not isinstance(message, int) or message <= 0:
                     raise ValueError(_t('Telegram 未确认提问消息 ID；不会重复发送。'))
