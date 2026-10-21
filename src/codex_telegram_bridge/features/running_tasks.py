@@ -94,9 +94,9 @@ def collect_running_tasks(app: Any, native: Any, *, source_kinds: list[str],
         if own_active:
             running.append(dict(entry))
             continue
-        if live is not None and not _active(live.get('status')):
-            continue
-        if live is None:
+        if live is None or not _active(live.get('status')):
+            # Sidebar status may still be idle/notLoaded when iOS starts a
+            # background turn. An open lifecycle record warrants a live read.
             try:
                 if not persisted_active(tid):
                     continue

@@ -21,7 +21,8 @@ class AcceptanceGateTests(unittest.TestCase):
         self.client = Mock()
         self.client.native._connect.return_value = (Mock(), 55)
         self.client._legacy_for_current_desktop.return_value.find_thread_owner.return_value = True
-        self.client.native.read_thread.return_value = {'thread': {'id': self.thread, 'status': {'type': 'active'}}}
+        self.client.native.read_thread.return_value = {'thread': {'id': self.thread, 'status': {'type': 'active'}},
+                                                     'turns': [{'id': 'received-turn', 'status': 'inProgress'}]}
         self.client.send_follow_up.side_effect = self.accept
         contexts = (
             patch.object(check, 'load_token', return_value='fixture-token'),
@@ -120,11 +121,17 @@ class AcceptanceGateTests(unittest.TestCase):
         self.assertFalse(self.run_check()['success'])
         self.client.send_follow_up.assert_called_once()
 
-    def test_absent_owner_fails_before_any_delivery_attempt(self):
+    def test_absent_owner_uses_guarded_recovery_for_explicit_probe(self):
         self.client._legacy_for_current_desktop.return_value.find_thread_owner.return_value = False
         report = self.run_check()
-        self.assertFalse(report['success'])
-        self.assertEqual(report['desktop_attempts'], 0)
+        self.assertTrue(report['success'])
+        self.assertEqual(report['desktop_attempts'], 1)
+        self.assertTrue(self.client.send_follow_up.call_args.kwargs['recover_owner'])
+        self.assertEqual(self.client.send_follow_up.call_args.kwargs['expected_turn_id'], 'received-turn')
+
+    def test_missing_turn_id_stops_before_explicit_probe(self):
+        self.client.native.read_thread.return_value.pop('turns')
+        self.assertFalse(self.run_check()['success'])
         self.client.send_follow_up.assert_not_called()
 
     def test_exact_receipt_and_confirmed_telegram_message_are_both_required(self):

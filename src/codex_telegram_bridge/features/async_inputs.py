@@ -331,8 +331,10 @@ class AsyncInputs:
                     'expectedTurnId': row['turn'], 'input': [{'type': 'text', 'text': prompt}]}, timeout=30)
                 self.bot._remember_reply_source(row['thread'], row['turn'])
             else:
-                self.bot._desktop_follow_up(row['thread'], prompt, '', start_if_inactive=False,
-                                            expected_turn_id=row['turn'])
+                result = self.bot._desktop_follow_up(row['thread'], prompt, '', start_if_inactive=False,
+                                                     expected_turn_id=row['turn'])
+                if result is None:
+                    raise DesktopIpcUnavailable(_t('暂时找不到持有该任务的 Codex Desktop 窗口。'))
         except (DesktopBridgeSafetyError, DesktopIpcInactive, DesktopIpcUnavailable):
             with self.db() as db:
                 db.execute("UPDATE questions SET status='waiting',answer=NULL WHERE bot=? AND chat=? AND key=? AND status='submitting'", (*self.identity, key))

@@ -4,13 +4,15 @@
 
 通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.8 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.9 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
 文档和 Telegram 界面均支持中英文，默认中文。发送 `/settings` → **语言** 通过按钮选择，或用 `/language en` / `/language zh` 切换；重启和升级后保留。任务正文、模型答复与用户输入不自动翻译。
 
 [安装指南](docs/setup.zh-CN.md) · [使用指南](docs/usage.zh-CN.md) · [插件 API](docs/plugins.zh-CN.md) · [文档目录](docs/README.md)
 
 本项目只连接 **Codex Desktop** 及其配套后端，禁止回退到 VS Code 扩展或 PATH 中的独立 Codex CLI。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
+
+支持 **iOS 远程启动、桌面窗口尚未加载**的本机任务：查询保持只读，发送、回答和中止时按需加载原窗口并核验任务/Turn。说明与双开限制见[使用指南](docs/usage.zh-CN.md#ios-已启动桌面窗口尚未加载的任务)。
 
 ## 平台与验收范围
 

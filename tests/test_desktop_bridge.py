@@ -35,7 +35,7 @@ class FakeTransport(b.CodexDesktopIpc):
 
     def _write(self, handle, request):
         self.requests.append(request)
-        if self.fail_write and request['method'] in ('thread-follower-steer-turn', 'thread-follower-start-turn'):
+        if self.fail_write and request['method'] in ('thread-follower-steer-turn', 'thread-follower-start-turn', 'thread-follower-interrupt-turn'):
             raise OSError('partial write')
 
     def _next_message(self, handle, deadline):
@@ -55,6 +55,9 @@ class FakeTransport(b.CodexDesktopIpc):
                 else: result = {'result': {'turnId': self.result_turn_id}}
             elif method == 'thread-follower-start-turn':
                 result = {'result': {'turn': {'id': self.result_turn_id}}}
+            elif method == 'thread-follower-interrupt-turn':
+                if self.fail_read_call: raise TimeoutError('lost acknowledgement')
+                result = {'interruptedTurnId': self.result_turn_id}
             else:
                 raise AssertionError('Unexpected follower method: ' + method)
             return {'type': 'response', 'requestId': request['requestId'], 'method': method,
@@ -311,7 +314,7 @@ class BridgeTests(unittest.TestCase):
 
     def test_capability_probe_never_opens_task(self):
         self.enable_recovery()
-        self.assertFalse(self.control.can_interrupt('task'))
+        self.assertTrue(self.control.can_interrupt('task'))
         self.assertFalse(self.navigations())
         self.assertFalse(self.mutations())
 

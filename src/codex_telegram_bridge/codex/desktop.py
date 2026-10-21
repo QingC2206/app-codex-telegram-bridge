@@ -305,6 +305,21 @@ class DesktopAppTools:
         finally:
             transport._close(handle)
 
+def thread_activity(state: dict[str, Any], thread_id: str) -> tuple[bool, str]:
+    """Parse live Desktop state, independent of a renderer's loaded owner."""
+    thread = state.get('thread')
+    if not isinstance(thread, dict) or thread.get('id') != thread_id:
+        raise DesktopBridgeSafetyError(_t('Desktop 返回的任务与目标不一致，未提交消息。'))
+    status = thread.get('status')
+    kind = status.get('type') if isinstance(status, dict) else None
+    if kind not in {'active', 'idle'}:
+        raise DesktopIpcUnavailable(_t('Desktop 当前任务状态未能核实，请稍后重试。'))
+    turns = state.get('turns')
+    latest = turns[0] if isinstance(turns, list) and turns and isinstance(turns[0], dict) else {}
+    turn_id = latest.get('id')
+    return kind == 'active', turn_id if kind == 'active' and isinstance(turn_id, str) else ''
+
+
 class DesktopControl:
     """Read through App Tools; submit human input only through its owner.
 
@@ -325,7 +340,24 @@ class DesktopControl:
             return False
         available = False
         try:
-            available = self._legacy_for_current_desktop(thread_id).find_thread_owner(thread_id)
+            endpoint = self.native.discover()
+            available = self._legacy_for_current_desktop(thread_id, endpoint=endpoint).find_thread_owner(thread_id)
+            if not available:
+                # A remote iOS turn can be active before any renderer owns it.
+                # Check the recovery capability without navigating or resuming.
+                native = DesktopAppTools(self.native.transport_factory, self.timeout, lambda: endpoint)
+                native._deadline = time.monotonic() + min(self.timeout, 10.0)
+                transport, handle = native._connect()
+                try:
+                    native._catalog(transport, handle, {'read_thread', 'navigate_to_codex_page'})
+                    state = _content_json(native._call(transport, handle, 'read_thread', thread_id,
+                        {'threadId': thread_id, 'hostId': 'local', 'turnLimit': 1,
+                         'includeOutputs': False, 'maxOutputCharsPerItem': 0}))
+                    active, turn_id = thread_activity(state, thread_id)
+                    self._check_instance(endpoint, thread_id)
+                    available = active and bool(turn_id)
+                finally:
+                    transport._close(handle)
         except (DesktopIpcError, OSError, TimeoutError, ValueError):
             pass
         self._interrupt_capabilities[thread_id] = (time.monotonic(), bool(available))
@@ -421,5 +453,27 @@ class DesktopControl:
             raise DesktopSubmissionUnknown(_t('Desktop 接收消息的 Turn 与原问题不一致，请先核对；不会重发回答。'))
         return result
 
-    def interrupt_turn(self, thread_id: str, turn_id: str = "") -> bool:
-        return self._legacy_for_current_desktop(thread_id).interrupt_turn(thread_id, turn_id)
+    def interrupt_turn(self, thread_id: str, turn_id: str = "", *, recover_owner: bool = False) -> bool:
+        endpoint = self.native.discover()
+        reader = DesktopAppTools(self.native.transport_factory, self.timeout, lambda: endpoint)
+        self._check_instance(endpoint, thread_id)
+        active, current_turn = thread_activity(reader.read_thread(thread_id), thread_id)
+        if not active or not current_turn or turn_id and turn_id != current_turn:
+            raise DesktopIpcInactive(_t('原 Turn 已结束或发生变化，未中止其他 Turn，也未发送后续消息。'))
+        target_turn = turn_id or current_turn
+
+        def guard() -> None:
+            self._check_instance(endpoint, thread_id)
+            active, current = thread_activity(reader.read_thread(thread_id), thread_id)
+            if not active or current != target_turn:
+                raise DesktopIpcInactive(_t('原 Turn 已结束或发生变化，未中止其他 Turn，也未发送后续消息。'))
+
+        owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
+        result = owner.interrupt_turn(thread_id, target_turn, before_submit=guard)
+        if result is False and recover_owner:
+            # False means no owner was found BEFORE any interrupt frame.
+            # Unknown acknowledgements never enter this recovery path.
+            self._recover_thread_owner(endpoint, thread_id)
+            owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
+            result = owner.interrupt_turn(thread_id, target_turn, before_submit=guard)
+        return result

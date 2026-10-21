@@ -18,7 +18,7 @@ Each bot configuration has one receiving chat. The language preference belongs t
 
 ## Finding tasks and continuing a conversation
 
-1. Open the task in the correct Codex Desktop profile.
+1. Keep Codex Desktop running with the correct account and profile. Tasks may be started locally or remotely from iOS.
 2. Send `/tasks` to browse tasks or `/running` to see currently running tasks. Buttons open details, progress, diffs, and usage.
 3. Use Telegram's Reply action on a task notification, details, or progress card to send text to its associated task. You can also attach an image or file.
 4. Alternatively, send `/send`, select a task, and enter the next instruction after the prompt. `/send ID message` also works.
@@ -26,6 +26,16 @@ Each bot configuration has one receiving chat. The language preference belongs t
 Ordinary text does not automatically select the most recent task. Without a task association, the bot asks you to select one. If an old message has no association, open the corresponding task details first.
 
 If no reply owner is found before submission, the bot tries to open the target task once in the same Desktop profile, with up to 10 seconds for channel recovery. This changes the task visible on your computer; input is sent only after the channel is verified. Recovery failure does not take over the task or replay earlier failed messages. Queries and quiet mode do not switch tasks.
+
+### Tasks started from iOS before their desktop window loads
+
+You do not need to open the task manually first. Direct replies, `/send`, `/steer`, and asynchronous answers share the recovery mechanism above. `/stop` and “Interrupt and send” also recover the original window, then verify and interrupt the specified turn. If that turn ends or changes during recovery, the operation stops. An uncertain interrupt acknowledgement prevents the follow-up message.
+
+`/running`, task details, progress tracking, and stop/append selectors verify live state through Desktop. Queries and button rendering do not load windows. Unloaded metadata and stale lifecycle records are not authoritative live status. Question cards retain the original question, answer, and status.
+
+Here, “remote” means iOS started a task on this computer's Desktop. Desktop must remain online with a matching account and profile. Cockpit instances on Windows may share a global IPC broker: if another instance owns that broker, unverified operations remain blocked. This update preserves that protection and does not establish support for every dual-instance startup order.
+
+### Replying to running tasks
 
 When directly replying to a running task, choose:
 

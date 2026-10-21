@@ -4,13 +4,15 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.8 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.9 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
 [Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Documentation index](docs/README.en.md)
 
 The bridge connects only to **Codex Desktop** and its bundled backend. It never falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
+
+Local tasks **started from iOS before their desktop window loads** are supported: queries remain read-only; sending, answering, and stopping load the original window on demand and verify the task/turn. See the [usage guide](docs/usage.en.md#tasks-started-from-ios-before-their-desktop-window-loads) for details and dual-instance limitations.
 
 ## Platform support and verification
 

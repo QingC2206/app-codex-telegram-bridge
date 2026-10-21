@@ -45,6 +45,14 @@ class AsyncInputTests(unittest.TestCase):
     def test_question_id_matches_desktop_canonical_serialization(self):
         self.assertEqual(inputs.question_id('item', 0), '["request_user_input_async","item",0]')
 
+    def test_owner_lost_after_recovery_does_not_mark_answer_submitted(self):
+        row = self.observed()
+        self.bot._desktop_follow_up.return_value = None
+        with self.assertRaises(d.DesktopIpcUnavailable):
+            self.manager.submit(row['key'], 'First')
+        self.assertEqual(self.manager.get(row['key'])['status'], 'waiting')
+        self.assertIsNone(self.manager.get(row['key'])['answer'])
+
     def test_question_card_uses_task_metadata_and_preserves_answer_layout(self):
         import sqlite3
         from contextlib import closing

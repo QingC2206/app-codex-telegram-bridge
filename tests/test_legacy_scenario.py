@@ -459,7 +459,10 @@ def self_test() -> int:
         for row in selection_messages[-1][1]["inline_keyboard"]
     ]
     assert watch_callbacks[:2] == ["watch|thread-test", "watch|desktop-test"]
-    test_bot.command_steer("")
+    from unittest.mock import patch
+    from codex_telegram_bridge.features.running_tasks import RunningTasks
+    with patch('codex_telegram_bridge.app.collect_running_tasks', return_value=RunningTasks(test_bot._list_threads(), [])):
+        test_bot.command_steer("")
     steer_callbacks = [
         row[0]["callback_data"]
         for row in selection_messages[-1][1]["inline_keyboard"]
@@ -556,6 +559,9 @@ def self_test() -> int:
                 lambda thread_id, delay=WATCH_POLL_SECONDS:
                 scheduled_external.append(thread_id)
             )
+            external_bot.desktop.native.read_thread = lambda tid, **kw: {
+                'thread': {'id': tid, 'status': {'type': 'active'}},
+                'turns': [{'id': 'turn-external', 'status': 'inProgress'}]}
             external_bot.command_watch(external_id)
             assert external_bot.watches[external_id]["managed"] is False
             assert external_bot.runtime_status[external_id]["type"] == "active"
@@ -822,7 +828,7 @@ def self_test() -> int:
     writer_interrupts: list[tuple[str, str]] = []
     writer_restarts: list[tuple[str, str]] = []
     writer_bot.desktop.interrupt_turn = (  # type: ignore[method-assign]
-        lambda thread_id, turn_id="": writer_interrupts.append((thread_id, turn_id)) or True
+        lambda thread_id, turn_id="", **kwargs: writer_interrupts.append((thread_id, turn_id)) or True
     )
     writer_bot.start_turn = (  # type: ignore[method-assign]
         lambda thread_id, prompt: writer_restarts.append((thread_id, prompt))
@@ -835,7 +841,7 @@ def self_test() -> int:
     stop_bot._thread_activity = lambda _thread_id, timeout=30: (True, "desktop-turn")  # type: ignore[method-assign]
     desktop_interrupts: list[tuple[str, str]] = []
     stop_bot.desktop.interrupt_turn = (  # type: ignore[method-assign]
-        lambda thread_id, turn_id="": desktop_interrupts.append((thread_id, turn_id)) or True
+        lambda thread_id, turn_id="", **kwargs: desktop_interrupts.append((thread_id, turn_id)) or True
     )
     stop_bot.stop_turn("desktop-test", announce=False)
     assert desktop_interrupts == [("desktop-test", "desktop-turn")]

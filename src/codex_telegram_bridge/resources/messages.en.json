@@ -1,4 +1,5 @@
 {
+  "Desktop 当前任务状态未能核实，请稍后重试。": "Could not verify the current Desktop task state. Please try again shortly.",
   "App Server 请求超时：{p0}": "App Server request timed out: {p0}",
   "App Server 未运行": "App Server is not running",
   "App Server 连接已关闭": "App Server connection closed",

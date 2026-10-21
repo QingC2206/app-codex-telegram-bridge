@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.6.9
+
+- 适配 iOS 远程启动但窗口尚未加载的本机 Desktop 任务：直接回复、`/send`、追加和异步回答支持按需恢复原窗口；中止及“中断后发送”增加同实例、同 Turn 核验和一次恢复。
+- 运行状态、详情、进度及中止/追加选择器使用 Desktop 实时状态；查询和能力探测不导航。异步回答未找到接收者时保留待回答状态。
+- 保留 10 秒恢复预算、Desktop 专用、静默及不重复提交约束。更新中英文使用与验收文档，明确 Windows 双开全局 IPC 代理的现有限制。
+- Support local Desktop tasks started remotely from iOS before their window loads. Replies, `/send`, append, and asynchronous answers recover the original window on demand; stop and interrupt-then-send verify the same instance and turn before dispatch.
+- Use live Desktop state for running tasks, details, progress, and stop/append selectors. Queries and capability probes never navigate. Missing answer recipients leave questions awaiting an answer.
+- Preserve the 10-second recovery budget, Desktop-only routing, quiet mode, and no automatic duplicate submission. Update bilingual usage and acceptance documentation, including the Windows dual-instance broker limitation.
+
 ## 0.6.8
 
 - 修复后台任务存在、Desktop 回复窗口未登记时直接回复和 `/send` 失败的问题：发送前明确找不到持有者时，在同环境 Desktop 打开原任务一次，再验证回复通道；导航会切换 Desktop 当前显示的任务。

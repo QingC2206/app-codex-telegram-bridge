@@ -59,6 +59,13 @@ class RunningQueryTests(unittest.TestCase):
         self.assertEqual(result.threads, [])
         self.assertEqual(result.notes, [])
 
+    def test_ios_background_turn_is_checked_even_when_sidebar_is_not_loaded(self):
+        self.sidebar['threads'][0]['status'] = 'notLoaded'
+        self.persisted.return_value = True
+        result = self.query()
+        self.assertEqual([t['id'] for t in result.threads], ['current'])
+        self.native.read_thread.assert_called_once()
+
     def test_remote_other_source_and_idle_tasks_are_not_running_local_codex(self):
         self.sidebar['threads'] += [
             {'id': 'remote', 'kind': 'codex', 'hostId': 'other', 'status': 'active'},
@@ -197,6 +204,13 @@ class RunningPanelTests(unittest.TestCase):
         text, markup = self.bot.send.call_args.args
         self.assertIn('状态：** 运行中', text)
         self.assertIn('tasklist|active:1', str(markup))
+
+    def test_stop_and_steer_selectors_share_live_running_scan(self):
+        self.collect.return_value = RunningTasks([task('ios-background')], [])
+        for action in ('stop', 'steerpick'):
+            self.bot._prompt_task_selection(action, 'select', active_only=True)
+            self.assertIn(action + '|ios-background', str(self.bot.send.call_args))
+        self.assertEqual(self.collect.call_count, 2)
 
 
 if __name__ == '__main__':

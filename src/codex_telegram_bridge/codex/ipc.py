@@ -218,7 +218,7 @@ class CodexDesktopIpc(Transport):
         finally:
             self._close(handle)
 
-    def interrupt_turn(self, thread_id: str, turn_id: str = "") -> bool:
+    def interrupt_turn(self, thread_id: str, turn_id: str = "", *, before_submit=None) -> bool:
         """Interrupt a Desktop-owned turn; return False when no window owns it."""
         handle = self._open()
         try:
@@ -249,6 +249,8 @@ class CodexDesktopIpc(Transport):
             params: dict[str, Any] = {"conversationId": thread_id, "mode": "user-stop"}
             if turn_id:
                 params["expectedTurnId"] = turn_id
+            if before_submit is not None:
+                before_submit()
             response = self._request(
                 handle,
                 client_id,

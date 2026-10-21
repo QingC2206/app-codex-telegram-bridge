@@ -26,6 +26,14 @@ Notification filtering uses message types and verifiable internal origins. A nor
 
 Desktop user-input requests default to a **10-second** timeout. On a timeout or unknown submission outcome, the bot spends up to **10 more seconds** checking local receipts. Confirmation requires a matching user message recorded after this submission in the same task, with explicit message and turn IDs; an expected target turn must also match. A verified receipt counts as accepted. Otherwise the outcome stays unknown, the journal is retained, and nothing is automatically resent. Desktop may have its own shorter internal timeout; this setting does not modify Desktop itself.
 
+### Background execution and window ownership
+
+`remote_ios` can start a local background turn before a window registers its owner. Runtime queries use the matching profile's App Tools `read_thread`; local `notLoaded`, `interrupted`, and unclosed rollout records are history or candidate hints. Running lists and stop/steer selectors share live verification, including unloaded sidebar entries with active lifecycle records.
+
+Interrupt capability probes only query the owner, native tool catalog, and current task. An explicit stop pins the instance and turn. A missing owner permits one window recovery only before any interrupt frame; the original turn is checked again immediately before dispatch. Interrupt v4 carries `expectedTurnId`, and the actual interrupted turn must match. “Interrupt and send” also requires a confirmed idle Desktop state; unknown outcomes block the follow-up. An asynchronous answer with no owner after recovery returns to awaiting an answer, rather than being marked submitted.
+
+The global Windows `codex-ipc` broker may belong to another Cockpit instance. The bridge still requires its PID to match the target Desktop; iOS support does not bypass that check. Supporting every multi-account startup order is a separate compatibility boundary.
+
 ## Operating-system boundaries
 
 | Capability | Windows | macOS | Linux |

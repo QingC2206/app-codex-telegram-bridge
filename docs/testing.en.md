@@ -53,6 +53,12 @@ The probe submits one marked user input, requires its actual user-message receip
 
 If endpoint discovery or peer authorization fails, retain the current service state and report a redacted error, OS, and Desktop version. Do not alter the sandbox, disable identity checks, resume another client's task in a separate backend, or repeatedly submit a command with an uncertain outcome.
 
+## iOS background-task acceptance
+
+Offline tests cover unloaded-task replies, `/send`, append, interrupt, asynchronous answers, live status, and progress. They include changed turns, restarted instances, quiet mode, lost acknowledgements, and prohibition of independent backend takeover. These tests do not replace real mobile inbound acceptance.
+
+Start a disposable task on this computer from iOS, leaving its desktop window unopened. Query `/running` and task details first; neither should switch the window. Then test Reply, `/send`, append, asynchronous answers, stop, and “Interrupt and send” separately. Verify exactly one intended input per action in the original task. Expired questions and changed turns must reject the operation; uncertain stop outcomes must block follow-up input. Repeat in quiet mode to verify blocking. With two instances, verify the account and profile without weakening PID checks.
+
 ## Releases
 
 ```text

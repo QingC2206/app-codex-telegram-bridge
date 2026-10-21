@@ -78,7 +78,12 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
         # Pin this discovered instance. _connect still verifies the real pipe
         # server PID on every connection; no legacy fallback can hide a failure.
         client = desktop.DesktopControl(CodexDesktopIpc, timeout=timeout)
-        client.native.discover = lambda: endpoint
+        def verified_endpoint():
+            current = desktop.discover_desktop(profile)
+            if current != endpoint or current.profile != endpoint.profile:
+                raise desktop.DesktopBridgeSafetyError('Desktop 在验收期间已重启，停止本次检查。')
+            return current
+        client.native.discover = verified_endpoint
         transport, handle = client.native._connect()
         try:
             client.native._catalog(transport, handle, {"read_thread"})
@@ -96,8 +101,10 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
             status = thread.get("status")
             if send_probe and (not isinstance(status, dict) or status.get("type") != "active"):
                 raise RuntimeError("验收消息只能追加到正在运行的指定任务；不会自动启动任务。")
-            if send_probe and not client._legacy_for_current_desktop(thread_id).find_thread_owner(thread_id):
-                raise RuntimeError('Desktop 未持有验收任务，不能验证用户输入通道；未发送消息。')
+            if send_probe:
+                _active, target_turn = desktop.thread_activity(result, thread_id)
+                if not target_turn:
+                    raise RuntimeError('Desktop 未返回可验证的当前 Turn，未发送验收消息。')
             report["thread_id"] = thread_id
             report["checks"][stage] = "passed"
 
@@ -113,7 +120,8 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
             digest = receipts.prompt_digest(thread_id, prompt)
             report["probe_id"] = probe_id
             report["desktop_attempts"] = 1
-            result = client.send_follow_up(thread_id, prompt, "", start_if_inactive=False)
+            result = client.send_follow_up(thread_id, prompt, "", start_if_inactive=False,
+                                           expected_turn_id=target_turn, recover_owner=True)
             if not isinstance(result, dict) or result.get("route") != "desktop-user-input" or not result.get('turn_id'):
                 raise RuntimeError("消息提交未确认使用 Desktop 用户输入通道；不会重发。")
             report['desktop_route'] = result['route']

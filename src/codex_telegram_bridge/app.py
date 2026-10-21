@@ -41,7 +41,7 @@ from . import __version__
 from .i18n import get_language, set_language, normalize_language, using_language
 from codex_telegram_bridge.codex.desktop import (
     DesktopControl, DesktopIpcError, DesktopIpcUnavailable, DesktopIpcInactive,
-    DesktopSubmissionUnknown, validate_pipe_server,
+    DesktopSubmissionUnknown, validate_pipe_server, thread_activity as desktop_thread_activity,
 )
 import codex_telegram_bridge.telegram.notifications as telegram_notify_module
 from codex_telegram_bridge.telegram.notifications import (
@@ -1866,16 +1866,20 @@ class TelegramCodexBot:
         *,
         active_only: bool = False,
     ) -> None:
-        threads = self._list_threads()
+        snapshot = None
+        if active_only:
+            snapshot = collect_running_tasks(self.app, self.desktop.native, source_kinds=SOURCE_KINDS,
+                owns_thread=self._owns_thread, persisted_active=lambda tid: persisted_thread_is_active(tid, strict=True))
+            threads = snapshot.threads
+        else:
+            threads = self._list_threads()
         choices: list[tuple[dict[str, Any], str, str]] = []
         for thread in threads:
             thread_id = str(thread.get("id") or "")
-            status = self.runtime_status.get(thread_id, thread.get("status"))
+            status = thread.get('status') if active_only else self.runtime_status.get(thread_id, thread.get("status"))
             active = thread_id in self.active_turns or (
                 isinstance(status, dict) and status.get("type") == "active"
             )
-            if active_only and not active:
-                active = persisted_thread_is_active(thread_id)
             if active_only and not active:
                 continue
             emoji, state_name = status_label(status, thread_id in self.active_turns)
@@ -1883,12 +1887,14 @@ class TelegramCodexBot:
 
         if not choices:
             if active_only:
-                self.send(_t('当前没有符合条件的运行中任务。'))
+                self.send('\n\n'.join([_t('当前没有符合条件的运行中任务。'), *(snapshot.notes if snapshot else [])]))
             else:
                 self.send(_t('还没有可选择的 Codex 任务。'))
             return
 
         lines = [f"**{title}**", _t('点击下面的任务：')]
+        if snapshot:
+            lines.extend(snapshot.notes)
         buttons: list[list[dict[str, str]]] = []
         for thread, emoji, state_name in choices:
             thread_id = str(thread.get("id"))
@@ -1944,7 +1950,7 @@ class TelegramCodexBot:
         panel = getattr(self._ui_local,'message_id',None)
         list_return = telegram_notify_module.navigation_list_return(self.token,self.chat_id,panel)
         status = self.runtime_status.get(thread_id, thread.get('status')) or {}
-        if list_return and list_return.startswith('active:') and not self._owns_thread(thread_id):
+        if not self._owns_thread(thread_id):
             # A metadata-only reader cannot report another Desktop's runtime.
             try:
                 live = self.desktop.native.read_thread(thread_id).get('thread')
@@ -2138,7 +2144,7 @@ class TelegramCodexBot:
             if isinstance(turns, list)
             else None
         )
-        active = persisted_thread_is_active(thread_id)
+        active, _turn_id = desktop_thread_activity(self.desktop.native.read_thread(thread_id), thread_id)
         items = last_turn.get("items") if isinstance(last_turn, dict) else []
         completed_items = [item for item in items or [] if isinstance(item, dict)]
         current_item = next(
@@ -2222,7 +2228,7 @@ class TelegramCodexBot:
         thread = result.get("thread")
         if not isinstance(thread, dict):
             raise ValueError(_t('没有找到这个任务。'))
-        managed = thread_id in self.state.snapshot().get("managed_threads", {})
+        managed = self._owns_thread(thread_id)
         with self.live_lock:
             self.watches[thread_id] = {
                 "message_id": 0,
@@ -2234,6 +2240,8 @@ class TelegramCodexBot:
                 "last_text": "",
             }
         external_active = self._hydrate_external_watch(thread_id, thread) if not managed else False
+        if external_active:
+            self._can_interrupt(thread_id)
         with self.live_lock:
             text = self._progress_card_locked(thread_id)
         sent = self.send(text, self._watch_keyboard(thread_id))
@@ -2828,8 +2836,16 @@ class TelegramCodexBot:
 
     def _thread_activity(self, thread_id: str, timeout: float = 30) -> tuple[bool, str]:
         local_turn_id = self.active_turns.get(thread_id, "")
-        if local_turn_id:
+        if local_turn_id and self._owns_thread(thread_id):
             return True, local_turn_id
+
+        if not self._owns_thread(thread_id):
+            try:
+                # iOS starts the backend before the window loads. The bot's
+                # metadata reader may report notLoaded/interrupted meanwhile.
+                return desktop_thread_activity(self.desktop.native.read_thread(thread_id, timeout=min(10, timeout)), thread_id)
+            except (DesktopIpcError, OSError, TimeoutError, ValueError, TypeError, AttributeError) as exc:
+                log(f'Desktop activity unavailable for {thread_id[:8]}: {type(exc).__name__}', self.token)
 
         read_succeeded = False
         read_active = False
@@ -2950,7 +2966,11 @@ class TelegramCodexBot:
     def _wait_until_thread_idle(self, thread_id: str, timeout: float = 20) -> bool:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            active, _turn_id = self._thread_activity(thread_id, timeout=8)
+            if self._owns_thread(thread_id):
+                active, _turn_id = self._thread_activity(thread_id, timeout=8)
+            else:
+                # A stale rollout must never authorize a follow-up after stop.
+                active, _turn_id = desktop_thread_activity(self.desktop.native.read_thread(thread_id, timeout=8), thread_id)
             if not active:
                 return True
             time.sleep(0.35)
@@ -3022,13 +3042,7 @@ class TelegramCodexBot:
         self.awaiting_steer.pop(self.chat_id, None)
         self.awaiting_direct_reply.clear()
         if mode == "steer":
-            managed = thread_id in self.state.snapshot().get("managed_threads", {})
-            status = self.runtime_status.get(thread_id)
-            active = thread_id in self.active_turns or (
-                isinstance(status, dict) and status.get("type") == "active"
-            )
-            if not active and not managed:
-                active = persisted_thread_is_active(thread_id)
+            active, _turn_id = self._thread_activity(thread_id)
             if not active:
                 raise ValueError(_t('该任务当前没有运行中的 Turn，请使用 /send。'))
             self.awaiting_steer[self.chat_id] = thread_id
@@ -3323,6 +3337,8 @@ class TelegramCodexBot:
         self._require_task_actions()
         local_turn_id = self.active_turns.get(thread_id, "")
         if local_turn_id and self._owns_thread(thread_id):
+            if expected_turn_id and expected_turn_id != local_turn_id:
+                raise DesktopIpcInactive(_t('原 Turn 已结束或发生变化，未中止其他 Turn，也未发送后续消息。'))
             self.app.request(
                 "turn/interrupt",
                 {"threadId": thread_id, "turnId": local_turn_id},
@@ -3334,7 +3350,7 @@ class TelegramCodexBot:
                 raise ValueError(_t('该任务当前没有运行中的 Turn。'))
             target_turn_id = expected_turn_id or turn_id
             try:
-                interrupted = self.desktop.interrupt_turn(thread_id, target_turn_id)
+                interrupted = self.desktop.interrupt_turn(thread_id, target_turn_id, recover_owner=True)
             except DesktopIpcUnavailable as exc:
                 raise DesktopIpcUnavailable(_t('Codex Desktop 当前未运行或 IPC 不可用。')) from exc
             except DesktopSubmissionUnknown:
