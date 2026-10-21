@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch, Mock
 import codex_telegram_bridge.app as b
 import codex_telegram_bridge.telegram.notifications as n
+from notification_fixtures import verified_completion
 class InteractionTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
@@ -138,7 +139,7 @@ class InteractionTests(unittest.TestCase):
         with patch.object(n,'forward_computer_use_notification'), \
              patch.object(n,'notifications_muted',return_value=False), \
              patch.object(n,'load_config',return_value=({'chat_id':'123'},'test-token')), \
-             patch.object(n,'subagent_completion_context',return_value=None), \
+             patch.object(n, 'route_completion', side_effect=verified_completion), patch.object(n, 'reserve_completion', return_value=True), patch.object(n,'subagent_completion_context',return_value=None), \
              patch.object(n,'conversation_title',return_value='当前主标题') as title, \
              patch.object(n,'send_markdown_message') as send, \
              patch.object(n,'complete_payload_reactions'):
@@ -193,7 +194,7 @@ class InteractionTests(unittest.TestCase):
             with patch.object(n,'forward_computer_use_notification'), \
                  patch.object(n,'notifications_muted',return_value=False), \
                  patch.object(n,'load_config',return_value=({'chat_id':'123'},'111:secret')), \
-                 patch.object(n,'subagent_completion_context',return_value=None), \
+                 patch.object(n, 'route_completion', side_effect=verified_completion), patch.object(n, 'reserve_completion', return_value=True), patch.object(n,'subagent_completion_context',return_value=None), \
                  patch.object(n,'send_markdown_message') as send, \
                  patch.object(n,'complete_payload_reactions'):
                 if desktop:n.send_desktop_notification(payload,'{}')
@@ -366,7 +367,7 @@ class InteractionTests(unittest.TestCase):
                         if fails: raise TimeoutError('not confirmed')
                         return {'message_id': 42}
                     payload = {'type': 'agent-turn-complete', 'hook_event_name': 'Stop', 'thread-id': 'task', 'turn-id': 'turn', 'last-assistant-message': 'Final answer', 'last_assistant_message': 'Final answer'}
-                    with patch.object(n, 'load_config', return_value=({'chat_id': '123'}, '111:secret')), patch.object(n, 'notifications_muted', return_value=False), patch.object(n, 'subagent_completion_context', return_value=None), patch.object(n, 'forward_computer_use_notification'), patch.object(n, 'send_markdown_message', side_effect=send), patch.object(n, 'complete_payload_reactions', side_effect=lambda p: order.append('clear')):
+                    with patch.object(n, 'load_config', return_value=({'chat_id': '123'}, '111:secret')), patch.object(n, 'notifications_muted', return_value=False), patch.object(n, 'route_completion', side_effect=verified_completion), patch.object(n, 'reserve_completion', return_value=True), patch.object(n, 'subagent_completion_context', return_value=None), patch.object(n, 'forward_computer_use_notification'), patch.object(n, 'send_markdown_message', side_effect=send), patch.object(n, 'complete_payload_reactions', side_effect=lambda p: order.append('clear')):
                         if desktop: n.send_desktop_notification(payload, '{}')
                         else: n.send_hook_notification(payload)
                     self.assertEqual(order, ['send'] if fails else ['send','clear'])

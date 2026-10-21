@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.6.11 — 2026-10-21
+
+- 重做完成通知的来源核验：按完整任务 ID、同环境 Desktop 记录、任务用途与独立回合触发方式分类；修复标题/描述等临时任务被误转发。正常 JSON 不按字段或输入模板过滤，未知来源不再直接放行。
+- 增加只保存标识和校验摘要的待核验队列；从同一任务、同一回合恢复原答复，处理短暂入库延迟。补充跨入口去重、分页历史、子代理 ID、静默代次保护及中英文通知机制文档。
+- Route completions by the full task ID, profile-local Desktop records, task purpose, and independent turn attribution. Stop leaking ephemeral title/description work. Preserve normal JSON without body/template filtering; hold unknown provenance.
+- Add metadata-only deferred verification that restores the exact original reply after transient record lag. Cover cross-entry-point deduplication, paginated history, subagent IDs, quiet-mode generations, and bilingual notification documentation.
+
 ## 0.6.10
 
 - 修复 Desktop 临时任务遗漏来源字段时，非空 `suggestions` 建议和 `exclude` 安全筛选结果被误转发的问题。匹配已核对的应用生成输入模板，要求同环境数据库可读且完整任务 ID 不存在；保留明确来源和冲突检查。

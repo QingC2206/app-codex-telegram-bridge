@@ -1446,6 +1446,7 @@ class TelegramCodexBot:
             log(f"reaction startup cleanup failed: {exc}", self.token)
         while not self.stop_event.wait(2):
             try:
+                telegram_notify_module.retry_pending_completions()
                 telegram_notify_module.resolve_desktop_submissions(self.token)
                 telegram_notify_module.retry_task_reactions(self.token)
                 rows = telegram_notify_module.task_reactions(self.token)

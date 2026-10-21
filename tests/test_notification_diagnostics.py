@@ -82,7 +82,7 @@ class NotificationDiagnosticTests(unittest.TestCase):
             n.is_internal_suggestions_completion(payload)
         self.assertFalse(self.path.exists())
 
-    def test_notification_is_still_delivered_with_original_json(self):
+    def test_unknown_notification_is_held_with_original_json_not_sent(self):
         with patch.object(n, 'forward_computer_use_notification'), \
              patch.object(n, 'notifications_muted', return_value=False), \
              patch.object(n, 'load_config', return_value=({'chat_id':'123', 'include_message_preview':True}, '111:fixture')), \
@@ -93,8 +93,7 @@ class NotificationDiagnosticTests(unittest.TestCase):
              patch.object(n, 'complete_payload_reactions'), \
              patch.object(n, 'send_markdown_message', return_value={'message_id':42}) as send:
             n.send_desktop_notification(self.payload, '{}')
-            send.assert_called_once()
-            self.assertIn('{"suggestion":"next"}', send.call_args.args[1]['text'])
+            send.assert_not_called()
 
     def test_write_failure_does_not_change_classification_or_leak_exception(self):
         with patch.object(d, 'record', side_effect=OSError('secret-token-in-error')):

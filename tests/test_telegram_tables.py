@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import codex_telegram_bridge.telegram.notifications as n
+from notification_fixtures import verified_completion
 SAMPLE = '''按目前实现 + 必要验收的综合情况，我估计：
 
 | Subtask | 当前进度 | 距离完成的主要缺口 |
@@ -152,7 +153,7 @@ class TableTests(unittest.TestCase):
         for event in ('Stop', 'SubagentStop'):
             with self.subTest(event=event), \
                     patch.object(n, 'load_config', side_effect=AssertionError('internal output must not load credentials')), \
-                    patch.object(n, 'notifications_muted', side_effect=AssertionError('filter must run first')), \
+                    patch.object(n, 'notifications_muted', return_value=False), \
                     patch.object(n, 'cache_full_reply') as cache, \
                     patch.object(n, 'resolve_desktop_submissions') as resolve, \
                     patch.object(n, 'complete_payload_reactions') as complete, \
@@ -189,6 +190,8 @@ class TableTests(unittest.TestCase):
                 with self.subTest(body=body, desktop=desktop), \
                         patch.object(n, 'load_config', return_value=({'chat_id': '123', 'include_message_preview': True}, '111:fake')), \
                         patch.object(n, 'notifications_muted', return_value=False), \
+                        patch.object(n, 'route_completion', side_effect=verified_completion), \
+                        patch.object(n, 'reserve_completion', return_value=True), \
                         patch.object(n, 'subagent_completion_context', return_value=None), \
                         patch.object(n, 'cache_full_reply', return_value=None), \
                         patch.object(n, 'resolve_desktop_submissions'), \
@@ -501,6 +504,8 @@ class TableTests(unittest.TestCase):
                         patch.object(n, 'NATIVE_REPLY_DIR', Path(folder)), patch.object(n, 'log_error'), \
                         patch.object(n, 'load_config', return_value=({'chat_id': '123', 'include_message_preview': True}, '111:fake')), \
                         patch.object(n, 'notifications_muted', return_value=False), \
+                        patch.object(n, 'route_completion', side_effect=verified_completion), \
+                        patch.object(n, 'reserve_completion', return_value=True), \
                         patch.object(n, 'subagent_completion_context', return_value=None), \
                         patch.object(n, 'forward_computer_use_notification'), \
                         patch.object(n, 'conversation_title', return_value='任务'), \
@@ -607,7 +612,7 @@ class PredictionRequestTests(unittest.TestCase):
             cache.assert_not_called()
             complete.assert_not_called()
             forward.assert_called_once_with(raw)
-            self.assertIn('evidence=app-generated-prediction-request', self.log.call_args.args[0])
+            self.assertIn('reason=unverified-local-task', self.log.call_args.args[0])
 
     def test_history_generation_marker_never_labels_later_user_input(self):
         payload = dict(self.payload, **{'input-messages': [self.request, '请返回 suggestion 字段的 JSON。']})

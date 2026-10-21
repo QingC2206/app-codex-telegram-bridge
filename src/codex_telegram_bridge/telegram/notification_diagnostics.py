@@ -23,11 +23,14 @@ timestamp created_at createdAt event data params payload session_id sessionId
 agent_id agent_type parent_thread_id status suggestions suggestion title description
 prompt appId appIds pluginId outputSchema responseSchema properties required items
 additionalProperties $schema exclude reason'''.split())
+FIELDS = FIELDS | {'turnAttribution', 'turn_attribution', 'root_turn_id', 'parent_turn_id'}
 PURPOSE_FIELDS = frozenset('''threadSource thread_source thread-source turnTrigger
 turn_trigger turn-trigger source sourceKind source_kind purpose origin originator'''.split())
 SAFE_PURPOSES = frozenset('''composer_predictions ambient_suggestions ambient_suggestion_safety
 user agent_created_thread agent_forked_thread ambient_suggestion_task cli vscode exec
 appServer subAgent unknown codex_desktop'''.split())
+from .completion_routing import CONVERSATION_SOURCES, CONVERSATION_TRIGGERS, INTERNAL_SOURCES
+SAFE_PURPOSES = SAFE_PURPOSES | CONVERSATION_SOURCES | CONVERSATION_TRIGGERS | INTERNAL_SOURCES | {'subagent'}
 
 
 def _shape(value, field='', *, depth=0, budget=None):
@@ -75,7 +78,7 @@ def _shape(value, field='', *, depth=0, budget=None):
     return {'type': 'unsupported'}
 
 
-def summarize(payload, *, stored_status, stored_source, composer_match):
+def summarize(payload, *, stored_status, stored_source, composer_match, routing_decision=None):
     from .internal_requests import generation_request_source, SAFETY_PREFIX, SAFETY_CANDIDATES
     inputs = payload.get('input-messages', payload.get('input_messages'))
     latest = inputs[-1] if isinstance(inputs, list) and inputs else None
@@ -87,7 +90,11 @@ def summarize(payload, *, stored_status, stored_source, composer_match):
         parsed = None
     return {
         'schema_version': 1,
-        'decision': 'preserved_unknown_source',
+        'decision': 'held_unknown_source' if routing_decision else 'preserved_unknown_source',
+        'routing': ({'kind': routing_decision.kind, 'reason': routing_decision.reason,
+                     'thread_source': routing_decision.thread_source if routing_decision.thread_source in SAFE_PURPOSES else None,
+                     'turn_trigger': routing_decision.turn_trigger if routing_decision.turn_trigger in SAFE_PURPOSES else None}
+                    if routing_decision else None),
         'payload_shape': _shape(payload),
         'latest_input_shape': _shape(latest),
         'reply_json_shape': _shape(parsed),
@@ -113,13 +120,14 @@ def summarize(payload, *, stored_status, stored_source, composer_match):
     }
 
 
-def record(payload, path: Path, *, stored_status, stored_source, composer_match):
+def record(payload, path: Path, *, stored_status, stored_source, composer_match, routing_decision=None):
     """Deduplicate hook/notify repeats and serialize concurrent writers locally.
 
     Exceptions are handled by the caller. No credentials or network needed.
     Deletion/retention is applied whenever a sample is written.
     """
-    snapshot = summarize(payload, stored_status=stored_status, stored_source=stored_source, composer_match=composer_match)
+    snapshot = summarize(payload, stored_status=stored_status, stored_source=stored_source, composer_match=composer_match,
+                         routing_decision=routing_decision)
     encoded = json.dumps(snapshot, ensure_ascii=False, separators=(',', ':'))
     if len(encoded.encode('utf-8')) > MAX_RECORD_BYTES:
         raise ValueError('Diagnostic record exceeds size limit')

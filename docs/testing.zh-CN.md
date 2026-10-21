@@ -15,6 +15,8 @@ python tools/check_distribution.py
 
 GitHub Actions 在 Windows、Ubuntu、macOS 运行 Python 3.10/3.11/3.13；原生平台测试仅在对应系统执行。没有 Desktop 或 Telegram 账号的 CI 不执行真实任务投递。
 
+v0.6.11 的通知来源测试覆盖任务来源与回合触发独立核验、同前缀完整 ID、未知来源待核验、正常 JSON、分页历史、并发去重、静默代次，以及子代理提问不占用完成通知记录。详见[通知来源与投递](notifications.zh-CN.md)。本机只读回放不是手机端重新验收。
+
 ## 当前电脑只读检查
 
 0.4.1 的历史实机验收已完成 Windows 任务投递、同一 Turn 的用户来源回执、Telegram 通知、手机直接回复、`/send`、提问卡片回答，以及独立 wheel 安装/随包插件检查。这些实机结果不是 CI 手机测试。macOS/Linux 的真实 Desktop 连接、密钥环、服务启动和截图仍需对应电脑验收。

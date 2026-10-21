@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from codex_telegram_bridge.telegram import internal_requests as r
 from codex_telegram_bridge.telegram import notifications as n
+from notification_fixtures import verified_completion
 
 
 def ambient(projectless=False):
@@ -73,7 +74,7 @@ class InternalRequestTests(unittest.TestCase):
                 payload = self.payload(request)
                 self.assertEqual(n.send_desktop_notification(payload, json.dumps(payload)), 0)
                 for call in (cache, receipts, complete, send): call.assert_not_called()
-                self.assertIn('app-generated-ambient_', n.log_error.call_args.args[0])
+                self.assertIn('reason=unverified-local-task', n.log_error.call_args.args[0])
 
     def test_real_user_or_stored_unknown_thread_keeps_even_identical_request(self):
         for state in [('stored', 'user'), ('stored', None), ('unavailable', None)]:
@@ -115,6 +116,8 @@ class InternalRequestTests(unittest.TestCase):
                 with self.subTest(body=body, desktop=desktop), \
                         patch.object(n, 'load_config', return_value=({'chat_id': '123', 'include_message_preview': True}, '111:fixture')), \
                         patch.object(n, 'notifications_muted', return_value=False), \
+                        patch.object(n, 'route_completion', side_effect=verified_completion), \
+                        patch.object(n, 'reserve_completion', return_value=True), \
                         patch.object(n, 'subagent_completion_context', return_value=None), \
                         patch.object(n, 'cache_full_reply', return_value=None), \
                         patch.object(n, 'resolve_desktop_submissions'), patch.object(n, 'attach_task_reply'), \

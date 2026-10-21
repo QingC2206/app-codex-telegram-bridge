@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Send a Telegram message when a Codex Stop hook fires.
+"""Deliver verified Desktop conversation completions from notify/lifecycle hooks.
 
 Tokens use the selected operating system's secure credential storage.
 The hook never writes notification output to stdout.
@@ -398,10 +398,11 @@ def resolve_desktop_history_submissions(token, thread_id, history, *, expected_t
 
 
 def payload_turn_id(payload):
-    explicit = str(payload.get('turn_id') or payload.get('turn-id') or '')
+    explicit = str(payload.get('turn_id') or payload.get('turn-id') or payload.get('turnId') or '')
     if explicit:
         return explicit
-    thread = str(payload.get('thread_id') or payload.get('thread-id') or '')
+    from .completion_routing import identity
+    thread = identity(payload)[0]
     final = payload.get('last_assistant_message') or payload.get('last-assistant-message')
     return desktop_receipts.completion_turn(thread, final, SESSION_ROOT)
 
@@ -437,10 +438,10 @@ def complete_payload_reactions(payload):
     if loaded:
         _, token = loaded
         try:
-            thread = str(payload.get("thread_id") or payload.get("thread-id") or "")
+            from .completion_routing import identity
+            thread = identity(payload)[0]
             resolve_desktop_submissions(token, thread)
-            complete_task_reactions(token, str(payload.get("thread_id") or payload.get("thread-id") or ""),
-                                    payload_turn_id(payload))
+            complete_task_reactions(token, thread, payload_turn_id(payload))
         except Exception as exc:
             log_error(f"reaction completion failed: {exc}", token)
 
@@ -1600,11 +1601,7 @@ def _assistant_message(payload: dict[str, Any]) -> str | None:
 
 
 def is_internal_task_metadata_completion(payload: dict[str, Any]) -> bool:
-    """Only explicitly attributed metadata work may be suppressed.
-
-    A normal user can request exactly the same title/description JSON.
-    Unknown purpose must preserve the reply.
-    """
+    """Legacy diagnostic API; use route_completion for delivery decisions."""
     return completion_thread_source(payload) in INTERNAL_SUGGESTION_SOURCES
 
 
@@ -1695,11 +1692,10 @@ def _composer_prediction_request(payload: dict[str, Any]) -> bool:
 
 
 def completion_thread_source(payload: dict[str, Any]) -> str | None:
-    """Use purpose metadata only; missing, invalid or conflicting evidence is unknown.
+    """Legacy diagnostic hint; MUST NOT authorize or suppress a notification.
 
-    Generic session source/SourceKind, Desktop originator, ephemeral status and
-    reply JSON do not prove an internal suggestion's purpose. A captured app
-    generation request can recover purpose for an otherwise unrecorded thread.
+    Kept for compatibility with structural sample tooling. Production delivery
+    uses completion_routing.classify, including independent task/turn evidence.
     """
     evidence: set[str] = set()
     containers = [payload]
@@ -1771,6 +1767,7 @@ def _has_suggestion_envelope(payload: dict[str, Any]) -> bool:
 
 
 def is_internal_suggestions_completion(payload: dict[str, Any]) -> bool:
+    """Legacy sample-analysis API, not the production notification gate."""
     source = completion_thread_source(payload)
     if source in INTERNAL_SUGGESTION_SOURCES:
         return True
@@ -1795,6 +1792,61 @@ def is_internal_suggestions_completion(payload: dict[str, Any]) -> bool:
 def is_empty_internal_exclusion_completion(payload: dict[str, Any]) -> bool:
     """Suppress attributed safety-filter work, never a JSON-shaped user reply."""
     return completion_thread_source(payload) == 'ambient_suggestion_safety'
+
+
+def route_completion(payload):
+    """One provenance gate for both completion transports, before any delivery."""
+    from . import completion_routing as routing, pending_completions as pending
+    decision = routing.classify(payload, SOURCE_STATE_ROOT)
+    if decision.deliver:
+        return decision
+    safe_id = decision.thread_id[:8] or 'unknown'
+    diagnostic = ''
+    if decision.kind == 'unknown':
+        try:
+            from .notification_diagnostics import record
+            sample = record(payload, HOOK_DIR / 'telegram_notification_diagnostics.sqlite3',
+                            stored_status=decision.stored_status, stored_source=decision.thread_source,
+                            composer_match=False, routing_decision=decision)
+            diagnostic = f'; diagnostic_sample={sample}'
+        except Exception as exc:
+            diagnostic = f'; diagnostic_unavailable={type(exc).__name__}'
+        try:
+            pending.defer(payload, decision, SOURCE_STATE_ROOT, HOOK_DIR / 'telegram_completions.sqlite3',
+                          generation=completion_generation())
+        except Exception as exc:
+            diagnostic += f'; verification_unavailable={type(exc).__name__}'
+    log_error(f'completion held for {safe_id}; kind={decision.kind}; reason={decision.reason}{diagnostic}')
+    return None
+
+
+def reserve_completion(payload):
+    from .pending_completions import reserve
+    return reserve(payload, SOURCE_STATE_ROOT, HOOK_DIR / 'telegram_completions.sqlite3')
+
+
+def completion_generation():
+    try:
+        state = json.loads(BOT_STATE_PATH.read_text(encoding='utf-8'))
+        return int(state.get('quiet_generation', 0))
+    except (OSError, ValueError, TypeError, AttributeError):
+        return 0
+
+
+def retry_pending_completions():
+    from .pending_completions import ready
+    try:
+        payloads = ready(SOURCE_STATE_ROOT, HOOK_DIR / 'telegram_completions.sqlite3',
+                         muted=notifications_muted(), generation=completion_generation())
+    except Exception as exc:
+        # Optional verification must not disable submission receipt/reaction work.
+        log_error(f'completion verification unavailable: {type(exc).__name__}')
+        return
+    for payload in payloads:
+        try:
+            send_desktop_notification(payload, '', _replay=True)
+        except Exception as exc:
+            log_error(f'completion replay unavailable: {type(exc).__name__}')
 
 
 def message_sections(parts: list[str]) -> str:
@@ -1981,10 +2033,10 @@ def send_hook_notification(payload: dict[str, Any]) -> int:
     if is_empty_suggestions_reply(payload):
         log_error("skipped empty suggestions reply; evidence=exact-empty-suggestions-literal")
         return 0
-    if (is_internal_task_metadata_completion(payload) or is_empty_internal_exclusion_completion(payload)
-            or is_internal_suggestions_completion(payload)):
-        return 0
     if notifications_muted():
+        return 0
+    decision = route_completion(payload)
+    if decision is None:
         return 0
 
     loaded = load_config()
@@ -1992,21 +2044,20 @@ def send_hook_notification(payload: dict[str, Any]) -> int:
         return 0
     config, token = loaded
     try:
-        subagent = subagent_completion_context(payload)
+        subagent = {'agent_id': decision.thread_id} if decision.kind == 'subagent' else subagent_completion_context(payload)
         if subagent is not None and not subagent_notifications_enabled(config):
+            reserve_completion(payload)
             agent_id = str(subagent.get("agent_id") or "")
             suffix = f" for {agent_id[:8]}" if agent_id else ""
             log_error(f"skipped subagent completion{suffix}")
             return 0
+        if not reserve_completion(payload):
+            return 0
         notification_payload = dict(payload)
+        notification_payload['thread_id'] = decision.thread_id
         notification_payload["_is_subagent"] = subagent is not None
         include_preview = bool(config.get("include_message_preview"))
-        thread_id = str(
-            payload.get("thread_id")
-            or payload.get("thread-id")
-            or payload.get("agent_id")
-            or ""
-        )
+        thread_id = decision.thread_id
         cache_id = cache_full_reply(notification_payload, thread_id) if include_preview else None
         request: dict[str, Any] = {
             "chat_id": str(config["chat_id"]),
@@ -2070,37 +2121,22 @@ def forward_computer_use_notification(raw_payload: str) -> None:
         log_error(f"computer-use notifier failed: {exc}")
 
 
-def send_desktop_notification(payload: dict[str, Any], raw_payload: str) -> int:
-    forward_computer_use_notification(raw_payload)
+def send_desktop_notification(payload: dict[str, Any], raw_payload: str, *, _replay=False) -> int:
+    if not _replay:
+        forward_computer_use_notification(raw_payload)
     if payload.get("type") != "agent-turn-complete":
         return 0
     if is_empty_suggestions_reply(payload):
         log_error("skipped empty suggestions reply; evidence=exact-empty-suggestions-literal")
         return 0
-    if is_internal_suggestions_completion(payload):
-        thread_id = str(payload.get("thread-id") or "")
-        safe_id = thread_id[:8] if re.fullmatch(r"[A-Za-z0-9-]{6,64}", thread_id) else "unknown"
-        from .internal_requests import generation_request_source
-        request_source = generation_request_source(payload)
-        evidence = ("app-generated-prediction-request" if _composer_prediction_request(payload)
-                    else f'app-generated-{request_source}-request' if request_source else 'source-metadata')
-        log_error(f"skipped internal suggestions completion for {safe_id}; evidence={evidence}")
-        return 0
-    if is_internal_task_metadata_completion(payload):
-        thread_id = str(payload.get("thread-id") or "")
-        suffix = f" for {thread_id[:8]}" if thread_id else ""
-        log_error(f"skipped internal task metadata completion{suffix}")
-        return 0
-    if is_empty_internal_exclusion_completion(payload):
-        thread_id = str(payload.get("thread-id") or "")
-        suffix = f" for {thread_id[:8]}" if thread_id else ""
-        log_error(f"skipped empty internal exclusion completion{suffix}")
-        return 0
     if notifications_muted():
+        return 0
+    decision = route_completion(payload)
+    if decision is None:
         return 0
 
     normalized = {
-        "thread_id": payload.get("thread-id"),
+        "thread_id": decision.thread_id,
         "cwd": payload.get("cwd"),
         "model": payload.get("model"),
         "last_assistant_message": payload.get("last-assistant-message"),
@@ -2110,14 +2146,17 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str) -> int:
         return 0
     config, token = loaded
     try:
-        subagent = subagent_completion_context(payload)
+        subagent = {'agent_id': decision.thread_id} if decision.kind == 'subagent' else subagent_completion_context(payload)
         if subagent is not None and not subagent_notifications_enabled(config):
+            reserve_completion(payload)  # Do not replay after a notification preference change.
             thread_id = str(payload.get("thread-id") or "")
             suffix = f" for {thread_id[:8]}" if thread_id else ""
             log_error(f"skipped subagent completion{suffix}")
             return 0
+        if not reserve_completion(payload):
+            return 0
         include_preview = bool(config.get("include_message_preview"))
-        thread_id = str(payload.get("thread-id") or "")
+        thread_id = decision.thread_id
         normalized["_is_subagent"] = subagent is not None
         cache_id = cache_full_reply(normalized, thread_id) if include_preview else None
         request: dict[str, Any] = {

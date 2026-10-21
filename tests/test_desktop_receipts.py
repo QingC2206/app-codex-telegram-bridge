@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 import codex_telegram_bridge.codex.receipts as receipts
 import codex_telegram_bridge.telegram.notifications as n
+from notification_fixtures import verified_completion
 import codex_telegram_bridge.app as b
 class ReceiptTests(unittest.TestCase):
     def test_digest_matches_desktop_xml_text_escaping(self):
@@ -95,7 +96,7 @@ class ReceiptTests(unittest.TestCase):
         response = Mock(side_effect=TimeoutError('Telegram disconnected')) if fails else Mock(return_value={'message_id': 70})
         with patch.object(n, 'load_config', return_value=({'chat_id': self.chat}, self.token)), \
              patch.object(n, 'notifications_muted', return_value=False), \
-             patch.object(n, 'subagent_completion_context', return_value=None), \
+             patch.object(n, 'route_completion', side_effect=verified_completion), patch.object(n, 'reserve_completion', return_value=True), patch.object(n, 'subagent_completion_context', return_value=None), \
              patch.object(n, 'forward_computer_use_notification'), \
              patch.object(n, 'send_markdown_message', response):
             n.send_desktop_notification({'type': 'agent-turn-complete', 'thread-id': self.thread, 'last-assistant-message': final}, '{}')

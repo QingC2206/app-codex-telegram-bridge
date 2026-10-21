@@ -936,6 +936,10 @@ def self_test() -> int:
         "include_subagent_notifications": False,
         "silent": False,
     }
+    from codex_telegram_bridge.telegram import completion_routing
+    from unittest.mock import patch
+    provenance_fixture = patch.object(completion_routing, "read_record", return_value=("stored", {"originator":"Codex Desktop"}))
+    provenance_fixture.start()
     original_forward = telegram_notify_module.forward_computer_use_notification
     original_load_config = telegram_notify_module.load_config
     original_muted = telegram_notify_module.notifications_muted
@@ -1011,6 +1015,7 @@ def self_test() -> int:
             "direct|01a00000-0000-7000-8000-000000000003",
         ]
     finally:
+        provenance_fixture.stop()
         telegram_notify_module.forward_computer_use_notification = original_forward
         if original_managed_env is not None:
             os.environ["CODEX_TELEGRAM_MANAGED_APP_SERVER"] = original_managed_env

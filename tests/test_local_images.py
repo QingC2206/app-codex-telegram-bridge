@@ -12,6 +12,7 @@ from urllib.error import HTTPError
 
 import codex_telegram_bridge.telegram.local_images as images
 import codex_telegram_bridge.telegram.notifications as n
+from notification_fixtures import verified_completion
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jk1sAAAAASUVORK5CYII=')
 
 
@@ -253,7 +254,7 @@ class LocalImageTests(unittest.TestCase):
                     raise TimeoutError('timeout')
                 return {'message_id': 21}
             with self.subTest(success=success), patch.object(n, 'load_config', return_value=({'chat_id': '123', 'include_message_preview': True}, '111:secret')), \
-                    patch.object(n, 'notifications_muted', return_value=False), patch.object(n, 'subagent_completion_context', return_value=None), \
+                    patch.object(n, 'notifications_muted', return_value=False), patch.object(n, 'route_completion', side_effect=verified_completion), patch.object(n, 'reserve_completion', return_value=True), patch.object(n, 'subagent_completion_context', return_value=None), \
                     patch.object(n, 'cache_full_reply', return_value=None), patch.object(n, 'conversation_title', return_value='任务'), \
                     patch.object(n, 'resolve_desktop_submissions'), patch.object(n, 'attach_task_reply'), \
                     patch.object(n, 'telegram_multipart_call', side_effect=photo), patch.object(n, 'telegram_call', side_effect=text), \

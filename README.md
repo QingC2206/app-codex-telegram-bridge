@@ -4,7 +4,7 @@
 
 通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.10 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.11 · Python 3.10+ · Windows / macOS / Linux · MIT**。
 
 文档和 Telegram 界面均支持中英文，默认中文。发送 `/settings` → **语言** 通过按钮选择，或用 `/language en` / `/language zh` 切换；重启和升级后保留。任务正文、模型答复与用户输入不自动翻译。
 
@@ -161,7 +161,7 @@ Windows 示例：
 - 外部任务只经 Desktop 当前持有者继续；消息发送前找不到持有者时，Robot 会通过已验证的同环境 Desktop 打开目标任务一次，并在最多 10 秒内重新检查回复通道。这会切换 Desktop 当前显示的任务；恢复失败时不发送，实例重启、环境歧义或接口缺失时停止。查询和静默模式不会触发打开操作，已发送后结果未知也不会触发恢复或重发。
 - `/new` 创建的机器人任务使用 Desktop 配套的独立 App Server；不会自动恢复并接管原 Desktop 任务。
 - Telegram 人类消息使用用户输入通道，保留用户来源；不使用代理间委派工具伪装用户输入。
-- 正常回复中的 `suggestion`、`suggestions` 或 `exclude` 字段不会单独触发过滤。优先使用明确内部来源；来源缺失的临时 Desktop 任务还需匹配已核对的应用生成请求模板。已约定的精确 `{"suggestions":[]}` 空回复过滤保留。
+- 完成通知统一核验同环境任务来源和本轮触发方式；明确内部任务不转发，来源不足先待核验。正常 JSON 不按字段或输入模板过滤；已约定的精确 `{"suggestions":[]}` 过滤保留。见[通知来源与投递](docs/notifications.zh-CN.md)。
 - 发送结果不明时不自动换路或重发。先核对任务最新消息，避免手动重复执行。
 - `/running` 使用当前状态核验；超时、分页上限或部分记录无法核验时明确提示。
 
