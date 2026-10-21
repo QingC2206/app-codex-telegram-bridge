@@ -1,10 +1,11 @@
 """No payload text or credentials may enter structural notification samples."""
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -125,6 +126,26 @@ class NotificationDiagnosticTests(unittest.TestCase):
         self.assertLess(len(self.rows()[0][2].encode()), d.MAX_RECORD_BYTES)
         self.assertFalse(sample['request_features']['latest_input_inspected'])
         self.assertNotIn('secret', self.rows()[0][2])
+
+    def test_sample_waits_for_brief_competing_writer_without_losing_occurrence(self):
+        self.record()
+        started = threading.Event()
+
+        def write_sample():
+            started.set()
+            return self.record()
+
+        with closing(sqlite3.connect(self.path)) as blocker, ThreadPoolExecutor(max_workers=1) as pool:
+            blocker.execute('BEGIN IMMEDIATE')
+            future = pool.submit(write_sample)
+            try:
+                self.assertTrue(started.wait(timeout=2))
+                with self.assertRaises(TimeoutError):
+                    future.result(timeout=0.35)
+            finally:
+                blocker.rollback()
+            self.assertEqual(len(future.result(timeout=3)), 12)
+        self.assertEqual(self.rows()[0][1], 2)
 
 
 if __name__ == '__main__':

@@ -139,9 +139,13 @@ def record(payload, path: Path, *, stored_status, stored_source, composer_match,
         raise OSError('Diagnostic database must not be a symlink')
     descriptor = os.open(path, os.O_CREAT | os.O_WRONLY, 0o600)
     os.close(descriptor)
-    db = sqlite3.connect(path, timeout=0.2)
+    # Completion callbacks run in separate processes. Give short concurrent
+    # writes a bounded window to finish, and acquire the write reservation
+    # before schema inspection instead of upgrading a deferred transaction.
+    db = sqlite3.connect(path, timeout=2.0)
     try:
         with db:
+            db.execute('BEGIN IMMEDIATE')
             db.execute('CREATE TABLE IF NOT EXISTS samples (id TEXT PRIMARY KEY, first_seen REAL, last_seen REAL, occurrences INTEGER, snapshot TEXT)')
             now = time.time()
             db.execute('DELETE FROM samples WHERE last_seen<?', (now-RETENTION_SECONDS,))
