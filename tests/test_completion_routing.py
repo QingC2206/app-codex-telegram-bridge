@@ -173,7 +173,7 @@ class CompletionRoutingTests(unittest.TestCase):
         decision=self.classify(dict(self.payload,client='Fixture mobile'))
         self.assertTrue(decision.deliver)
         self.assertEqual(decision.turn_trigger,'remote_ios')
-        self.assertEqual(Path(decision.record['rollout_path']),rewritten)
+        self.assertTrue(Path(decision.record['rollout_path']).samefile(rewritten))
         with closing(sqlite3.connect(self.profile/'state_5.sqlite')) as db, db:
             db.execute('DELETE FROM threads')
         self.assertEqual(self.classify().reason,'conflicting-local-records')
@@ -196,7 +196,7 @@ class CompletionRoutingTests(unittest.TestCase):
             db.execute('UPDATE threads SET rollout_path=? WHERE id=?',(extended,THREAD))
         decision=self.classify(dict(self.payload,client='Fixture mobile'))
         self.assertTrue(decision.deliver)
-        self.assertEqual(Path(decision.record['rollout_path']),rewritten)
+        self.assertTrue(Path(decision.record['rollout_path']).samefile(rewritten))
         outside=self.root/'outside';outside.mkdir()
         other=outside/rewritten.name
         other.write_bytes(rewritten.read_bytes())
