@@ -2181,7 +2181,8 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str, *, _rep
             request,
         )
         message_id = sent.get("message_id", "unknown") if isinstance(sent, dict) else "unknown"
-        log_error(f"desktop notification delivered for {thread_id[:8]}; message_id={message_id}", token)
+        proof = f"; verified_local_turn={decision.turn_trigger}" if decision.requires_turn_evidence else ""
+        log_error(f"desktop notification delivered for {thread_id[:8]}; message_id={message_id}{proof}", token)
         complete_payload_reactions(payload)
     except Exception as exc:
         log_error(f"desktop notification failed: {exc}", token)

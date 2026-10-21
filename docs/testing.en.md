@@ -19,6 +19,8 @@ GitHub Actions runs Python 3.10/3.11/3.13 on Windows, Ubuntu, and macOS. Native 
 
 v0.6.11 provenance tests cover independent task/turn attribution, colliding ID prefixes, deferred verification, normal JSON, paginated history, concurrent deduplication, quiet-mode generations, and subagent questions that must not reserve completions. See [notification provenance and delivery](notifications.en.md). Local read-only replay is not a new mobile acceptance test.
 
+v0.6.12 adds iOS / Android, queue, edit, and retry turns under different client labels; read-only replay from real metadata; rewritten rollouts; Windows extended paths; long turns without history projection; preserved mobile replay requirements; and cross-entry deduplication. For device acceptance, start, continue, and queue tasks on the connected host from each phone platform. Each normal completion should appear once in Telegram, remain suppressed in quiet mode, and support replies to the matching Desktop task. Internal titles and suggestions must remain suppressed.
+
 ## Read-only checks on your computer
 
 The v0.4.1 Windows acceptance verified real task submission, user-origin receipts in the same turn, Telegram notifications, mobile direct replies, `/send`, question-card answers, and installation from a standalone wheel. These are historical real-device checks, not claims that CI performs mobile tests. macOS/Linux still require real Desktop, credential-store, service, and capture verification.

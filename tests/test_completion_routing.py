@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, closing
 import json
+import os
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -64,6 +65,60 @@ class CompletionRoutingTests(unittest.TestCase):
                 self.task(source=source)
                 self.assertEqual(self.classify().kind,'conversation')
 
+    def test_mobile_client_label_does_not_override_verified_host_and_turn(self):
+        # Display labels are fixtures, not an assumed list of mobile products.
+        for client in ('Fixture iOS controller', 'Fixture Android controller', 'Renamed mobile app'):
+            for trigger in ('remote_ios','remote_android','queue','edit_user_message','capacity_retry_manual','goal'):
+                with self.subTest(client=client,trigger=trigger):
+                    self.task(trigger=trigger)
+                    decision=self.classify(dict(self.payload,client=client))
+                    self.assertEqual(decision.kind,'conversation')
+                    self.assertTrue(decision.requires_turn_evidence)
+
+    def test_mobile_callback_requires_local_evidence_for_exact_turn(self):
+        self.task(trigger='remote_ios')
+        for fields in ({'turn-id':'different-turn'}, {'turn-id':None}):
+            payload=dict(self.payload,client='Fixture mobile',turnTrigger='remote_ios',**fields)
+            self.assertEqual(self.classify(payload).reason,'unverified-local-turn')
+        self.task(trigger=None)
+        payload=dict(self.payload,client='Fixture mobile',turnTrigger='remote_android')
+        self.assertEqual(self.classify(payload).reason,'unverified-local-turn')
+        self.task(trigger='remote_ios')
+        self.assertEqual(self.classify(payload).reason,'conflicting-attribution')
+
+    def test_mobile_client_never_authorizes_cli_wrong_profile_or_internal_work(self):
+        payload=dict(self.payload,client='Fixture mobile')
+        for origin in ('codex_vscode','codex_cli_rs',None):
+            self.task(origin=origin,trigger='remote_ios')
+            self.assertFalse(self.classify(payload).deliver)
+        self.task(trigger='remote_android')
+        other=self.root/'other-profile';other.mkdir()
+        self.assertFalse(r.classify(payload,other).deliver)
+        self.assertFalse(self.classify(dict(payload,**{'thread-id':INTERNAL})).deliver)
+        for source in r.INTERNAL_SOURCES:
+            self.task(source=source,trigger='remote_ios')
+            self.assertEqual(self.classify(payload).kind,'internal')
+        self.task(trigger='thread_title')
+        self.assertEqual(self.classify(payload).kind,'internal')
+
+    def test_mobile_subagent_still_follows_notification_preference(self):
+        payload=dict(self.payload,client='Fixture mobile')
+        self.task(source='subagent',trigger='remote_android')
+        self.assertEqual(self.classify(payload).kind,'subagent')
+        with ExitStack() as stack:
+            send=self.delivery_patches(stack)
+            n.send_desktop_notification(payload,'original')
+            send.assert_not_called()
+            self.assertFalse(q.reserve(payload,self.profile,self.queue))
+
+    def test_malformed_client_label_is_not_deferred_as_mobile(self):
+        self.task(trigger='remote_ios')
+        for value in ({}, [], 1, 'x'*257):
+            payload=dict(self.payload,client=value)
+            decision=self.classify(payload)
+            self.assertEqual(decision.reason,'invalid-client-label')
+            self.assertFalse(q.defer(payload,decision,self.profile,self.queue))
+
     def test_normal_json_is_not_a_classifier_input(self):
         self.task()
         for text in ('{"title":"x","description":"y"}','{"suggestions":[1]}','{"exclude":[]}',
@@ -107,6 +162,59 @@ class CompletionRoutingTests(unittest.TestCase):
         self.assertTrue(self.classify().deliver)
         (self.profile/'state_5.sqlite').write_bytes(b'broken database')
         self.assertTrue(self.classify().deliver)
+
+    def test_rewritten_rollout_from_database_wins_over_original_file(self):
+        original=self.task(trigger='composer')
+        rewritten=original.with_name(original.stem+'_rewrite-generation.jsonl')
+        contents=original.read_text(encoding='utf-8').replace('"composer"','"remote_ios"')
+        rewritten.write_text(contents,encoding='utf-8')
+        with closing(sqlite3.connect(self.profile/'state_5.sqlite')) as db, db:
+            db.execute('UPDATE threads SET rollout_path=? WHERE id=?',(str(rewritten),THREAD))
+        decision=self.classify(dict(self.payload,client='Fixture mobile'))
+        self.assertTrue(decision.deliver)
+        self.assertEqual(decision.turn_trigger,'remote_ios')
+        self.assertEqual(Path(decision.record['rollout_path']),rewritten)
+        with closing(sqlite3.connect(self.profile/'state_5.sqlite')) as db, db:
+            db.execute('DELETE FROM threads')
+        self.assertEqual(self.classify().reason,'conflicting-local-records')
+
+    def test_rewritten_rollout_requires_matching_header_identity(self):
+        original=self.task(trigger='remote_android')
+        rewritten=original.with_name(original.stem+'_rewrite-generation.jsonl')
+        rewritten.write_text(original.read_text(encoding='utf-8').replace(THREAD,INTERNAL),encoding='utf-8')
+        with closing(sqlite3.connect(self.profile/'state_5.sqlite')) as db, db:
+            db.execute('UPDATE threads SET rollout_path=? WHERE id=?',(str(rewritten),THREAD))
+        self.assertEqual(self.classify().reason,'conflicting-local-records')
+
+    @unittest.skipUnless(os.name=='nt','Windows extended-length path syntax')
+    def test_extended_windows_rollout_path_stays_in_same_profile(self):
+        path=self.task(trigger='remote_ios')
+        rewritten=path.with_name(path.stem+'_rewrite-generation.jsonl')
+        path.rename(rewritten)
+        extended='\\\\?\\'+str(rewritten.resolve())
+        with closing(sqlite3.connect(self.profile/'state_5.sqlite')) as db, db:
+            db.execute('UPDATE threads SET rollout_path=? WHERE id=?',(extended,THREAD))
+        decision=self.classify(dict(self.payload,client='Fixture mobile'))
+        self.assertTrue(decision.deliver)
+        self.assertEqual(Path(decision.record['rollout_path']),rewritten)
+        outside=self.root/'outside';outside.mkdir()
+        other=outside/rewritten.name
+        other.write_bytes(rewritten.read_bytes())
+        self.assertIsNone(r._safe_rollout(self.profile,'\\\\?\\'+str(other.resolve()),THREAD))
+
+    def test_long_mobile_turn_without_history_projection_recovers_attribution(self):
+        path=self.task(trigger='remote_android')
+        with path.open('a',encoding='utf-8') as stream:
+            stream.write(json.dumps({'type':'response_item','payload':{'output':'x'*5000}})+'\n')
+            stream.write(json.dumps({'type':'event_msg','payload':{'type':'task_complete','turn_id':TURN,
+                                                                 'last_agent_message':'Normal reply'}})+'\n')
+        payload=dict(self.payload,client='Fixture mobile')
+        with patch.object(r,'READ_LIMIT',1024), patch.object(r,'ATTRIBUTION_READ_LIMIT',8192):
+            decision=self.classify(payload)
+            self.assertTrue(decision.deliver)
+            self.assertEqual(decision.turn_trigger,'remote_android')
+        with patch.object(r,'READ_LIMIT',1024), patch.object(r,'ATTRIBUTION_READ_LIMIT',2048):
+            self.assertEqual(self.classify(payload).reason,'unverified-local-turn')
 
     def test_stale_schema_and_wrong_profile_cannot_authorize(self):
         self.task()
@@ -175,6 +283,51 @@ class CompletionRoutingTests(unittest.TestCase):
         self.assertFalse(q.reserve(payload,self.profile,self.queue))
         with patch.object(q.time,'time',return_value=q.time.time()+900):
             self.assertEqual(q.ready(self.profile,self.queue),[])
+
+    def test_mobile_replay_retains_turn_requirement_across_missing_metadata(self):
+        client='private-controller-label'
+        body='private mobile reply'
+        payload=dict(self.payload,client=client,**{'last-assistant-message':body})
+        self.assertTrue(q.defer(payload,self.classify(payload),self.profile,self.queue))
+        self.assertNotIn(client.encode(),self.queue.read_bytes())
+        self.assertNotIn(body.encode(),self.queue.read_bytes())
+        self.task(text=body,trigger=None)
+        with patch.object(q.time,'time',return_value=q.time.time()+3):
+            self.assertEqual(q.ready(self.profile,self.queue),[])
+        self.task(text=body,trigger='remote_android',turn='different-turn')
+        with patch.object(q.time,'time',return_value=q.time.time()+100):
+            self.assertEqual(q.ready(self.profile,self.queue),[])
+        self.task(text=body,trigger='queue')
+        with patch.object(q.time,'time',return_value=q.time.time()+200):
+            ready=q.ready(self.profile,self.queue)
+        self.assertEqual(len(ready),1)
+        self.assertTrue(ready[0]['_requires_turn_evidence'])
+        self.assertEqual(ready[0]['last-assistant-message'],body)
+        self.assertTrue(q.reserve(ready[0],self.profile,self.queue))
+        self.assertFalse(q.reserve(payload,self.profile,self.queue))
+
+    def test_mobile_missing_turn_evidence_enters_queue_and_respects_quiet_generation(self):
+        self.task(text=self.payload['last-assistant-message'])
+        payload=dict(self.payload,client='Fixture mobile')
+        decision=self.classify(payload)
+        self.assertEqual(decision.reason,'unverified-local-turn')
+        self.assertTrue(q.defer(payload,decision,self.profile,self.queue,generation=2))
+        self.task(trigger='remote_ios',text=self.payload['last-assistant-message'])
+        with patch.object(q.time,'time',return_value=q.time.time()+3):
+            self.assertEqual(q.ready(self.profile,self.queue,generation=3),[])
+
+    def test_mobile_notify_preserves_normal_json_and_dedupes_with_stop(self):
+        body='{"title":"requested title","suggestions":["normal answer"]}'
+        payload=dict(self.payload,client='Fixture mobile',**{'last-assistant-message':body})
+        self.task(trigger='remote_ios',text=body)
+        with ExitStack() as stack:
+            send=self.delivery_patches(stack)
+            n.send_desktop_notification(payload,'original')
+            send.assert_called_once()
+            self.assertIn(body,send.call_args.args[1]['text'])
+            n.send_desktop_notification(payload,'duplicate')
+            n.send_hook_notification({'hook_event_name':'Stop','session_id':THREAD,'turn_id':TURN,'last_assistant_message':body})
+            send.assert_called_once()
 
     def test_recovery_requires_exact_turn_and_body_and_respects_mute(self):
         q.defer(self.payload,self.classify(),self.profile,self.queue)

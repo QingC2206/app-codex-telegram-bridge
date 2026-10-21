@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
@@ -33,6 +34,7 @@ TRIGGER_FIELDS = ('turnTrigger', 'turn_trigger', 'turn-trigger')
 ID_FIELDS = ('thread-id', 'thread_id', 'threadId')
 TURN_FIELDS = ('turn-id', 'turn_id', 'turnId')
 READ_LIMIT = 4 * 1024 * 1024
+ATTRIBUTION_READ_LIMIT = 64 * 1024 * 1024
 
 
 @dataclass
@@ -44,6 +46,7 @@ class Decision:
     thread_source: str | None = None
     turn_trigger: str | None = None
     stored_status: str = 'unavailable'
+    requires_turn_evidence: bool = False
     record: dict = field(default_factory=dict, repr=False)
 
     @property
@@ -84,13 +87,26 @@ def identity(payload):
     return tid or '', turn_id or '', valid and turn_valid and bool(tid)
 
 
+def _resolved(path):
+    resolved = Path(path).resolve()
+    # Desktop may persist Windows extended-length paths after editing a task.
+    # Resolve links first, then compare the same canonical drive/UNC namespace.
+    text = str(resolved)
+    if os.name == 'nt':
+        if text.startswith('\\\\?\\UNC\\'):
+            return Path('\\\\' + text[8:])
+        if re.match(r'^\\\\\?\\[A-Za-z]:\\', text):
+            return Path(text[4:])
+    return resolved
+
+
 def _read_db(profile, prefix):
     paths = [p for p in profile.glob(prefix + '_*.sqlite')
              if re.fullmatch(re.escape(prefix) + r'_[0-9]+\.sqlite', p.name)]
     if not paths:
         return None
     # A failed read of the newest schema must not resurrect stale older rows.
-    path = max(paths, key=lambda p: int(p.stem.rsplit('_', 1)[1])).resolve()
+    path = _resolved(max(paths, key=lambda p: int(p.stem.rsplit('_', 1)[1])))
     if not path.is_relative_to(profile):
         return None
     db = sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=0.2)
@@ -101,17 +117,17 @@ def _read_db(profile, prefix):
 def _safe_rollout(profile, path, thread_id):
     if not path:
         return None
-    resolved = Path(path).resolve()
+    resolved = _resolved(path)
     if (resolved.is_relative_to(profile) and resolved.is_file()
             and resolved.name.startswith('rollout-')
-            and resolved.name.endswith('-' + thread_id + '.jsonl')):
+            and re.search('-' + re.escape(thread_id) + r'(?:_[A-Za-z0-9-]{6,80})?\.jsonl$', resolved.name)):
         return resolved
     return None
 
 
 def read_record(profile: Path, thread_id: str):
     """Read the selected profile only. Rollout headers bridge DB read/migration lag."""
-    profile = profile.resolve()
+    profile = _resolved(profile)
     record = {}
     status = 'unavailable'
     try:
@@ -131,10 +147,10 @@ def read_record(profile: Path, thread_id: str):
         if path is None:
             paths = []
             for folder in ('sessions', 'archived_sessions'):
-                paths.extend(p for p in (profile / folder).glob('**/rollout-*-' + thread_id + '.jsonl')
+                paths.extend(p for p in (profile / folder).glob('**/rollout-*-' + thread_id + '*.jsonl')
                              if _safe_rollout(profile, p, thread_id))
             if len(paths) == 1:
-                path = paths[0].resolve()
+                path = _resolved(paths[0])
             elif len(paths) > 1:
                 return 'conflict', {}
         if path:
@@ -163,6 +179,38 @@ def read_record(profile: Path, thread_id: str):
     return status, record
 
 
+def _turn_events(stream, start, limit, turn_id):
+    """Bound reads and individual lines; never parse unrelated tool output."""
+    stream.seek(max(0, start - 1))
+    partial = start > 0 and stream.read(1) != b'\n'
+    remaining = limit
+    marker = turn_id.encode('ascii')
+    while remaining > 0:
+        line = stream.readline(min(READ_LIMIT, remaining))
+        if not line:
+            break
+        remaining -= len(line)
+        complete = line.endswith(b'\n')
+        if partial:
+            partial = not complete
+            continue
+        if not complete and len(line) >= READ_LIMIT:
+            partial = True
+            continue
+        if marker not in line or (b'"task_started"' not in line and b'"task_complete"' not in line):
+            continue
+        try:
+            event = json.loads(line)
+        except (ValueError, UnicodeError):
+            continue
+        if not isinstance(event, dict):
+            continue
+        body = event.get('payload')
+        if (event.get('type') == 'event_msg' and isinstance(body, dict)
+                and body.get('turn_id') == turn_id):
+            yield body
+
+
 def turn_evidence(profile, record, thread_id, turn_id):
     """Return attribution/final text for this exact turn, never the latest turn."""
     if not turn_id:
@@ -170,7 +218,7 @@ def turn_evidence(profile, record, thread_id, turn_id):
     attribution, final = {}, None
     offset = None
     try:
-        db = _read_db(profile.resolve(), 'thread_history')
+        db = _read_db(_resolved(profile), 'thread_history')
         if db is not None:
             try:
                 row = db.execute('SELECT * FROM thread_turns WHERE thread_id=? AND turn_id=?', (thread_id, turn_id)).fetchone()
@@ -187,23 +235,23 @@ def turn_evidence(profile, record, thread_id, turn_id):
     except (OSError, RuntimeError, sqlite3.Error, ValueError, KeyError):
         pass
     try:
-        path = _safe_rollout(profile.resolve(), record.get('rollout_path'), thread_id)
+        path = _safe_rollout(_resolved(profile), record.get('rollout_path'), thread_id)
         if path:
             with path.open('rb') as stream:
                 size = path.stat().st_size
                 starts = {max(0, size - READ_LIMIT)}
                 if isinstance(offset, int) and 0 <= offset < size:
                     starts.add(offset)
-                for start in sorted(starts):
-                    stream.seek(start)
-                    for line in stream.read(READ_LIMIT).splitlines():
-                        try:
-                            event = json.loads(line)
-                        except (ValueError, UnicodeError):
-                            continue
-                        body = event.get('payload')
-                        if not isinstance(body, dict) or event.get('type') != 'event_msg' or body.get('turn_id') != turn_id:
-                            continue
+                ranges = [(start, READ_LIMIT) for start in sorted(starts)]
+                # Mobile-only activity can precede the UI history projection.
+                # Rewritten rollouts can invalidate its offsets as well. Scan
+                # a bounded larger range only if the quick reads lack proof.
+                if size > READ_LIMIT:
+                    ranges.append((max(0, size - ATTRIBUTION_READ_LIMIT), ATTRIBUTION_READ_LIMIT))
+                for start, limit in ranges:
+                    if limit == ATTRIBUTION_READ_LIMIT and attribution:
+                        continue
+                    for body in _turn_events(stream, start, limit, turn_id):
                         if body.get('type') == 'task_started':
                             candidate = body.get('turn_attribution')
                             if isinstance(candidate, dict):
@@ -225,9 +273,16 @@ def classify(payload, profile: Path):
     result = Decision('unknown', 'missing-identity', tid, turn_id)
     if not valid:
         return result
-    if payload.get('client') not in (None, 'Codex Desktop'):
-        result.kind, result.reason = 'foreign', 'non-desktop-client'
+    client = payload.get('client')
+    if client is not None and (not isinstance(client, str) or len(client) > 256):
+        result.reason = 'invalid-client-label'
         return result
+    # This is the current controlling client's display label, not the recorded
+    # execution origin. Mobile control may change it even on the same Desktop
+    # task. Require exact local turn evidence for these callbacks, including
+    # queue/edit/retry turns; do not guess mobile client product names.
+    result.requires_turn_evidence = (client not in (None, 'Codex Desktop')
+                                     or payload.get('_requires_turn_evidence') is True)
     thread = payload.get('thread') if isinstance(payload.get('thread'), dict) else {}
     turn = payload.get('turn') if isinstance(payload.get('turn'), dict) else {}
     containers = [payload, thread]
@@ -278,6 +333,11 @@ def classify(payload, profile: Path):
     if trigger is not None and trigger not in CONVERSATION_TRIGGERS:
         result.reason = 'unknown-turn-trigger'
         return result
+    if result.requires_turn_evidence:
+        local_trigger, local_ok = _value([attribution], TRIGGER_FIELDS)
+        if not local_ok or local_trigger not in CONVERSATION_TRIGGERS:
+            result.reason = 'unverified-local-turn'
+            return result
     session_source = record.get('source')
     if isinstance(session_source, str) and session_source.startswith('{'):
         try:

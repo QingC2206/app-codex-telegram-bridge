@@ -15,6 +15,7 @@ Bot-managed `/new` tasks use their own App Server events and management records.
 | Field | Meaning | Limitation |
 | --- | --- | --- |
 | `type` / `hook_event_name` | Event/lifecycle type | Does not identify user-facing work |
+| `client` | Current controller's display label | Not the local task's execution origin; mobile control can change it |
 | `source` | Underlying session category | Desktop also uses `vscode` |
 | `originator` | Recorded creating client | Does not identify each turn's purpose |
 | `threadSource` / `thread_source` | Task purpose | Separate from the current trigger |
@@ -24,7 +25,7 @@ Bot-managed `/new` tasks use their own App Server events and management records.
 
 The installed protocol defines `ThreadSource` as an open string and calls it an analytics classification, not an exhaustive enum. Public App Server supports thread reads and events; a separate connection is not a global subscription to the existing Desktop. [Official App Server documentation](https://learn.chatgpt.com/docs/app-server)
 
-## Unified routing in v0.6.11
+## Unified routing
 
 `completion_routing.classify` checks the selected `CODEX_HOME` before delivery. Full task IDs must match exactly; display prefixes and parent IDs cannot supply another task's provenance.
 
@@ -34,15 +35,23 @@ The installed protocol defines `ThreadSource` as an open string and calls it an 
 | Verified Desktop subagent | Apply the separate subagent notification preference |
 | Explicit internal purpose | Suppress titles, descriptions, summaries, predictions, suggestion generation, safety filtering, etc. |
 | Unknown or conflicting provenance | Hold and record redacted structural diagnostics |
-| Explicit non-Desktop origin/client | Exclude from Desktop completion notifications |
+| Explicit non-Desktop creating origin in local records | Exclude from Desktop completion notifications |
 
 Task source and turn trigger are checked independently: `user + remote_ios` and `user + goal` are valid. Turn attribution is read only for the matching turn. The newest state database is authoritative; a matching profile-local session header can bridge database lag or migration. Conflicting records never authorize delivery. Legacy null task purpose is supported for recorded Desktop tasks.
+
+### Normal answers controlled from iOS / Android
+
+Local tasks started, continued, queued, or edited from a phone are included. Desktop-only routing constrains execution and the bot's input transport, not the controlling device. Mobile control uses the connected host's projects and configuration. [Official remote connections guide](https://learn.chatgpt.com/docs/remote-connections)
+
+v0.6.12 removes the early rejection of every callback whose `client` differs from `Codex Desktop`. Such callbacks require both a profile-local Desktop task and a known normal trigger recorded locally for the exact turn. A callback merely claiming `remote_ios` or `remote_android` is insufficient. Queue, edit, and retry turns also qualify without depending on mobile product display names. Normal JSON, subagent preferences, quiet mode, and deduplication retain their existing handling.
+
+After edits, the database-selected current rollout takes precedence, including suffixed filenames and Windows `\\?\` paths. Resolved paths must stay inside the selected profile and the header's full task ID must match. Multiple candidates without a database pointer are held. If history projection lags and quick reads miss attribution, a bounded scan covers at most the final 64 MiB with per-line limits; missing proof remains deferred.
 
 Prompt templates and output fields such as `title`, `suggestion`, `suggestions`, or `exclude` no longer authorize delivery decisions. Legacy template recognizers remain diagnostic compatibility tools only. The separately requested exact `{"suggestions":[]}` suppression policy remains.
 
 ## Deferred verification
 
-Missing records/origins with complete task and turn IDs can enter `telegram_completions.sqlite3`. It stores identifiers, digests, and necessary state—not raw prompts, replies, or workspace paths. Conflicting evidence cannot be removed to qualify for replay.
+Missing records, origins, or required turn evidence with complete task and turn IDs can enter `telegram_completions.sqlite3`. It stores identifiers, digests, and necessary state—not raw prompts, replies, client labels, or workspace paths. The exact-turn evidence requirement survives replay. Conflicting evidence cannot be removed to qualify for replay.
 
 The worker gradually rechecks up to 200 pending entries, expiring them after 24 hours. It reconstructs the exact local turn's final answer from paginated history or legacy transcripts and requires a matching digest. It never submits new Desktop input. A shared reservation prevents duplicate completion delivery; ambiguous Telegram attempts are not retried by this queue. Reservations last seven days. Muted entries and entries crossing a quiet-mode generation are not replayed.
 
@@ -53,3 +62,5 @@ Unknown future sources may temporarily lack notifications until adapted. The lim
 The 2026-10-21 audit checked Desktop **26.1013.4894.0** and bundled backend **0.163.0-alpha.10.2**. Installed code creates separate ephemeral title/description/summary tasks; title generation sets `threadSource=thread_title` and disables lifecycle hooks, while generic completion notifications can still fire. Actual logs show the reported title task is absent from the task database and differs from the user's task. Its original callback was not retained, so its source field was not observed directly.
 
 Read-only classification replay constructed from actual local task records covered 26 user tasks, nine subagent tasks, and four reported temporary tasks. The first two groups were verified; the last group was held. Offline tests also cover conflicting fields, shared ID prefixes, profile isolation, normal JSON, delayed records, paginated history, quiet-mode generations, concurrent reservations, and both completion entry points. Real macOS/Linux notification delivery still requires device acceptance.
+
+Later that day, actual notification logs with Desktop **26.1016.6573.0** showed phone-controlled turns rejected as `non-desktop-client`, while their recorded task origin remained Desktop. After the fix, read-only replay of 12 actual iOS/queued turns with a synthetic client label verified all 12. Original callbacks were not retained; this is not fresh phone-to-Telegram acceptance. Android also has offline regression coverage.

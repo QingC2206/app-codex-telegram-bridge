@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.6.12 — 2026-10-21
+
+- 修复 iOS / Android 远程发起、继续及排队回合因 `client` 标签不同被误判为非 Desktop 而漏通知的问题。核验同环境 Desktop 创建记录和同一回合的本地触发来源，不按移动应用名称建立白名单。
+- 适配编辑后的会话文件后缀及 Windows 长路径格式；优先使用数据库指向的当前文件，保留完整 ID、会话头和环境隔离核验。历史索引未同步时，对长回合增加有上限的来源扫描。
+- 待核验队列保留移动回合的额外证据要求，避免补投递时丢失条件；改善并发写入锁等待。内部消息过滤、子代理开关、静默和去重仍生效，Robot 发送通道继续仅使用 Desktop。
+- Restore notifications for local tasks started, continued, or queued from iOS / Android. A changed callback `client` label no longer excludes work whose Desktop origin and exact local turn are verified; no mobile product-name allowlist is required.
+- Support rewritten rollout suffixes and Windows extended-length paths, using the current database-selected file with full-ID, header, and profile checks. Add a bounded attribution scan for long turns before history projection catches up.
+- Preserve the extra turn-evidence requirement during deferred delivery and tolerate brief concurrent queue writes. Internal filtering, subagent preferences, quiet mode, deduplication, and Desktop-only input routing remain enforced.
+
 ## 0.6.11 — 2026-10-21
 
 - 重做完成通知的来源核验：按完整任务 ID、同环境 Desktop 记录、任务用途与独立回合触发方式分类；修复标题/描述等临时任务被误转发。正常 JSON 不按字段或输入模板过滤，未知来源不再直接放行。

@@ -18,7 +18,7 @@ Each bot configuration has one receiving chat. The language preference belongs t
 
 ## Finding tasks and continuing a conversation
 
-1. Keep Codex Desktop running with the correct account and profile. Tasks may be started locally or remotely from iOS.
+1. Keep Codex Desktop running with the correct account and profile. Tasks may be started or continued locally or from iOS / Android; normal completed answers follow your Telegram notification preferences.
 2. Send `/tasks` to browse tasks or `/running` to see currently running tasks. Buttons open details, progress, diffs, and usage.
 3. Use Telegram's Reply action on a task notification, details, or progress card to send text to its associated task. You can also attach an image or file.
 4. Alternatively, send `/send`, select a task, and enter the next instruction after the prompt. `/send ID message` also works.
@@ -113,11 +113,11 @@ Desktop user-input requests default to a **10-second** timeout. On a timeout or 
 
 Completion notifications have one explicit exception: if the entire body equals `{"suggestions":[]}` after trimming surrounding whitespace, it is skipped before delivery and diagnostic sampling. This is literal equality, without JSON parsing or normalization. Different internal spacing, nonempty arrays, extra fields, code blocks, and explanatory text are not suppressed by this rule. Logs use `exact-empty-suggestions-literal`, separately from provenance detection.
 
-When a notification has unknown provenance and a `suggestion` / `suggestions` shaped reply, the bot keeps forwarding it under the existing rules and saves a structural sample in `telegram_notification_diagnostics.sqlite3` in its data directory. Replies with other shapes and notifications with classified provenance are not sampled. A legitimate JSON reply with the same suggestion shape may be structurally sampled, but is still forwarded.
+Completion notifications with unknown provenance are held and structurally sampled in `telegram_notification_diagnostics.sqlite3`; sampling is not limited to suggestion-shaped JSON. Verified normal replies follow notification preferences, while known internal tasks are suppressed. Phone callbacks require matching local turn evidence and are deferred while records are missing. See [notification provenance and delivery](notifications.en.md).
 
 Samples contain field types, array counts, string lengths, known provenance enum values, database lookup status, and flags for observed request-template features in the latest input. They exclude reply/prompt text, file paths, credentials, full task IDs, and unknown field names. Unknown keys become positional placeholders. Template flags are diagnostic evidence only and do not control filtering.
 
-Repeated samples are counted together, with at most 100 samples retained. Each write removes samples not seen in seven days. Diagnostic write failures do not block notifications. The normal log's `diagnostic_sample` identifies the sample. The database stays local and is neither uploaded nor packaged. Collection does not automatically suppress messages; actual samples must be reviewed before changing provenance detection.
+Repeated samples are counted together, with at most 100 samples retained. Each write removes samples not seen in seven days. Diagnostic write failures do not change classification or prevent deferred verification. The normal log's `diagnostic_sample` identifies the sample. The database stays local and is neither uploaded nor packaged.
 
 ## Troubleshooting
 

@@ -92,6 +92,7 @@ def summarize(payload, *, stored_status, stored_source, composer_match, routing_
         'schema_version': 1,
         'decision': 'held_unknown_source' if routing_decision else 'preserved_unknown_source',
         'routing': ({'kind': routing_decision.kind, 'reason': routing_decision.reason,
+                     'requires_turn_evidence': routing_decision.requires_turn_evidence,
                      'thread_source': routing_decision.thread_source if routing_decision.thread_source in SAFE_PURPOSES else None,
                      'turn_trigger': routing_decision.turn_trigger if routing_decision.turn_trigger in SAFE_PURPOSES else None}
                     if routing_decision else None),

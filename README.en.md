@@ -4,7 +4,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.11 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.12 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
@@ -13,6 +13,8 @@ Documentation and the Telegram interface support Chinese and English, with Chine
 The bridge connects only to **Codex Desktop** and its bundled backend. It never falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
 
 Local tasks **started from iOS before their desktop window loads** are supported: queries remain read-only; sending, answering, and stopping load the original window on demand and verify the task/turn. See the [usage guide](docs/usage.en.md#tasks-started-from-ios-before-their-desktop-window-loads) for details and dual-instance limitations.
+
+**Local tasks started or continued from iOS / Android also notify Telegram**, including queued turns. The phone controls work executed by the connected Desktop. The bridge verifies local task and exact-turn records instead of rejecting changed client labels. Notification preferences and quiet mode still apply. See [notification provenance and delivery](docs/notifications.en.md).
 
 ## Platform support and verification
 

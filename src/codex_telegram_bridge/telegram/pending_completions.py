@@ -35,9 +35,10 @@ def database(path):
         raise OSError('Completion queue must not be a symlink')
     descriptor = os.open(path, os.O_CREAT | os.O_WRONLY, 0o600)
     os.close(descriptor)
-    db = sqlite3.connect(path, timeout=0.2)
+    db = sqlite3.connect(path, timeout=2.0)
     try:
         with db:
+            db.execute('BEGIN IMMEDIATE')
             db.execute('CREATE TABLE IF NOT EXISTS completions (profile TEXT, thread TEXT, turn TEXT, digest TEXT, metadata TEXT, created REAL, next_check REAL, attempts INTEGER, state TEXT, PRIMARY KEY(profile,thread,turn))')
             db.execute('DELETE FROM completions WHERE created<?', (time.time()-RETENTION,))
         yield db
@@ -52,9 +53,14 @@ def defer(payload, decision, profile, path, *, generation=0):
         return False
     # Conflicting/malformed attributes cannot be repaired by deleting the bad
     # evidence on replay. Keep these in structural diagnostics only.
-    if decision.reason not in {'unverified-local-task', 'missing-desktop-origin'}:
+    if decision.reason not in {'unverified-local-task', 'missing-desktop-origin', 'unverified-local-turn'}:
         return False
     metadata = {'_quiet_generation': generation}
+    if decision.requires_turn_evidence:
+        # Never store an arbitrary client label or turn a mobile callback into
+        # a legacy Desktop callback on replay. Only the extra proof requirement
+        # survives; attribution must still come from the exact local turn.
+        metadata['_requires_turn_evidence'] = True
     if decision.thread_source:
         if decision.thread_source not in routing.CONVERSATION_SOURCES | {'subagent'}:
             return False
