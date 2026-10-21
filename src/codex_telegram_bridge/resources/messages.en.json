@@ -772,5 +772,7 @@
   "💬 用户回答": "💬 User answer",
   "任务可以继续运行。请选择选项，或回复此消息填写答案。": "The task can keep running. Choose an option or reply to this message with your answer.",
   "已确认作答，暂未读取到回答内容。": "An answer was confirmed, but its text is not yet available.",
-  "未记录到回答。": "No answer was recorded."
+  "未记录到回答。": "No answer was recorded.",
+  "Desktop 未确认已打开目标任务，消息尚未发送。": "Desktop did not confirm opening the target task. Your message has not been sent.",
+  "Desktop 已尝试打开目标任务，但回复通道尚未就绪。消息未发送，请在 Desktop 检查任务后再试。": "Desktop tried to open the task, but its reply channel is not ready. Your message has not been sent; check the task in Desktop before trying again."
 }

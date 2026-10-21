@@ -653,7 +653,7 @@ def self_test() -> int:
 
     desktop_bot.app.request = fake_desktop_read  # type: ignore[method-assign]
     desktop_bot.desktop.send_follow_up = (  # type: ignore[method-assign]
-        lambda thread_id, prompt, cwd: desktop_ipc_calls.append((thread_id, prompt, cwd))
+        lambda thread_id, prompt, cwd, **kwargs: desktop_ipc_calls.append((thread_id, prompt, cwd))
         or {"mode": "start", "turn_id": "desktop-turn"}
     )
     desktop_bot.send = lambda *_args, **_kwargs: {"message_id": 2}  # type: ignore[method-assign]
@@ -670,7 +670,9 @@ def self_test() -> int:
         cwd: str,
         *,
         start_if_inactive: bool = True,
+        recover_owner: bool = False,
     ) -> dict[str, Any]:
+        assert recover_owner
         desktop_steer_calls.append((thread_id, prompt, cwd, start_if_inactive))
         return {"mode": "steer", "turn_id": "desktop-turn"}
 
@@ -698,7 +700,7 @@ def self_test() -> int:
         raise AssertionError(method)
 
     resume_bot.app.request = fake_resume_request  # type: ignore[method-assign]
-    resume_bot.desktop.send_follow_up = lambda *_args: None  # type: ignore[method-assign]
+    resume_bot.desktop.send_follow_up = lambda *_args, **_kwargs: None  # type: ignore[method-assign]
     resume_bot.send = lambda *_args, **_kwargs: {"message_id": 2}  # type: ignore[method-assign]
     try:
         resume_bot.start_turn("desktop-test", "继续处理")

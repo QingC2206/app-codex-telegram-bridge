@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.6.8
+
+- 修复后台任务存在、Desktop 回复窗口未登记时直接回复和 `/send` 失败的问题：发送前明确找不到持有者时，在同环境 Desktop 打开原任务一次，再验证回复通道；导航会切换 Desktop 当前显示的任务。
+- 导航与持有者探测共用最多 10 秒恢复预算；锁定原进程和环境，发送前复核任务与指定 Turn。接口缺失、实例重启或通道未恢复时不发送，不回退到独立后端或代理委派。
+- 恢复仅适用于尚未发送的外部任务消息；查询、静默模式、机器人自建任务和提交结果未知均不触发恢复，历史失败消息不自动补发。保留原有 10 秒提交等待与回执核对机制。
+- Recover direct replies and `/send` when a background task has no registered Desktop reply owner: open the existing task once in the verified profile before input, then verify the owner. Navigation changes the visible Desktop task.
+- Bound navigation and probes to a shared 10-second recovery budget, pin the original process/profile, and recheck the task and expected turn before sending. Missing interfaces, restarts, or failed recovery stop delivery without backend takeover or agent delegation.
+- Never recover after a possibly submitted input, replay old failures, or navigate during queries, quiet mode, or bot-managed task delivery. Existing submission and receipt timeouts remain unchanged.
+
 ## 0.6.7
 
 - 异步问题卡片使用 Telegram 原生 HTML 富文本：加粗问题标题，末尾状态保持普通字重，工作区和任务 ID 使用等宽样式，原问题与回答分为引用块。

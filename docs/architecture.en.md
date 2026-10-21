@@ -18,7 +18,9 @@ Telegram update → Authorized chat/sender check → Command or reply routing
                                        Hook / task event → Telegram
 ```
 
-App Tools are used for queries only. Human Telegram input uses follower IPC start/steer, never `send_message_to_thread` agent delegation. Delivery is rejected when an existing task has no Desktop owner. Only bot-managed tasks created through `/new` use the bot's own backend bundled with Desktop.
+App Tools are used for queries and for opening an existing task when pre-input discovery finds no owner. Human Telegram input always uses follower IPC start/steer, never `send_message_to_thread` agent delegation. Only bot-managed tasks created through `/new` use the bot's own backend bundled with Desktop; navigation recovery is disabled for these tasks.
+
+For external tasks, recovery runs once only after owner discovery definitively finds no receiver and no user input has been written. It pins the original Desktop process and native connection, verifies the local task ID, calls `navigate_to_codex_page`, and probes the owner again. Navigation changes the visible task; it never takes ownership through a separate backend's `thread/resume`. Navigation and subsequent probes share a recovery budget of up to 10 seconds. A navigation acknowledgement alone does not prove channel readiness. Instance, task, and expected turn are checked again before input. Recovery failure, another instance, or an ambiguous profile stop submission. Post-dispatch errors and unknown outcomes never trigger recovery, and old failed messages are not replayed. Queries, capability probes, and quiet mode never navigate.
 
 Notification filtering uses message types and verifiable internal origins. A normal JSON reply containing `suggestion` is not sufficient evidence for filtering. Asynchronous questions are bound to task, turn, item, and question index. Submission is journaled before dispatch; timeouts and unknown outcomes do not trigger automatic resending.
 

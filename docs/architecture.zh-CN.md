@@ -18,7 +18,9 @@ Telegram 更新 → 授权聊天/发送者校验 → 命令或回复路由
                         Hook / 任务事件 → Telegram
 ```
 
-App Tools 仅用于查询。Telegram 人类输入使用 follower IPC 的 start/steer 机制，不能替换为 `send_message_to_thread` 代理委派。原任务没有 Desktop 持有者时拒绝投递；仅 `/new` 创建的机器人任务由机器人自己的 Desktop 配套后端管理。
+App Tools 用于查询，以及发送前缺少持有者时打开原任务界面。Telegram 人类输入始终使用 follower IPC 的 start/steer 机制，不能替换为 `send_message_to_thread` 代理委派。仅 `/new` 创建的机器人任务由机器人自己的 Desktop 配套后端管理，不对这类任务自动导航恢复。
+
+外部任务在 owner discovery 明确返回无接收者、尚未写入用户消息时，允许一次界面恢复：固定原 Desktop 进程和原生连接，验证同环境任务 ID 后调用 `navigate_to_codex_page`，再轮询持有者。打开界面会切换 Desktop 当前显示的任务，不通过独立后端 `thread/resume` 接管。导航和后续探测共用最多 10 秒的恢复预算；导航成功本身不算通道恢复。发送前再次检查实例、任务和指定 Turn；恢复失败、跨实例或来源歧义时停止。提交后的异常或结果未知不进入恢复流程，旧失败消息不会自动补发。查询、能力探测和静默模式均不触发导航。
 
 通知过滤依据消息类型及可确认的内部来源；包含 `suggestion` 的正常 JSON 内容不构成过滤理由。异步提问绑定 task、turn、item 和问题索引，提交先记账，超时或结果不明时不自动重发。
 

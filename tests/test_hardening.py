@@ -132,6 +132,21 @@ class OwnershipAndAuthTests(unittest.TestCase):
         self.bot.start_turn("task", "continue")
         self.bot._announce_desktop_follow_up.assert_called_once()
         self.assertEqual([c.args[0] for c in self.bot.app.request.call_args_list], ["thread/read"])
+        self.assertTrue(self.bot.desktop.send_follow_up.call_args.kwargs['recover_owner'])
+
+    def test_external_recovery_failure_never_resumes_in_bot_backend(self):
+        self.bot.desktop.send_follow_up.side_effect = b.DesktopIpcUnavailable('recovery not ready')
+        with patch.object(b, 'persisted_thread_is_active', return_value=False):
+            with self.assertRaises(b.DesktopIpcUnavailable):
+                self.bot.start_turn('task', 'continue')
+        self.assertEqual([c.args[0] for c in self.bot.app.request.call_args_list], ['thread/read'])
+        self.bot.desktop.send_follow_up.assert_called_once()
+
+    def test_quiet_mode_blocks_delivery_before_owner_recovery(self):
+        self.bot.state.update(quiet_mode=True)
+        with self.assertRaises(ValueError):
+            self.bot._desktop_follow_up('task', 'continue', '')
+        self.bot.desktop.send_follow_up.assert_not_called()
 
     def test_bot_created_task_can_resume_its_own_background_thread(self):
         self.bot.state.update(managed_threads={"task": {"origin": "bot_created"}})
@@ -144,6 +159,7 @@ class OwnershipAndAuthTests(unittest.TestCase):
         self.assertEqual([c.args[0] for c in self.bot.app.request.call_args_list],
                          ["thread/read", "thread/resume", "turn/start"])
         self.assertEqual(self.bot.active_turns["task"], "bot-turn")
+        self.assertNotIn('recover_owner', self.bot.desktop.send_follow_up.call_args.kwargs)
 
     def test_authorization_precedes_attachment_and_plugin_dispatch(self):
         self.bot.handle_text = Mock()

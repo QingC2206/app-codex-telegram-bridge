@@ -4,7 +4,7 @@
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.7 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.8 · Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
@@ -156,7 +156,7 @@ Quiet mode is independent of completion notification preferences: it limits the 
 ## Task ownership and message delivery
 
 - The bridge verifies the Desktop executable's origin, user, profile, and the server process behind the local connection. It rejects ambiguous profiles or unverifiable connection identities.
-- Existing external tasks continue only through their current Desktop owner. If the owner cannot be found, open the task in the correct Desktop instance first.
+- Existing external tasks continue only through their current Desktop owner. If discovery finds no owner before input is sent, the bot opens the target task once in the verified Desktop profile and checks its reply channel within a recovery budget of up to 10 seconds. This changes the task shown in Desktop. Recovery failure, an app restart, ambiguous profiles, or missing interfaces stop submission. Queries and quiet mode never open tasks; an unknown result after dispatch never triggers recovery or resending.
 - Bot-managed tasks created with `/new` use a separate App Server bundled with Desktop. This backend does not automatically resume or take over existing Desktop tasks.
 - Human messages from Telegram use the user-input channel and retain their user origin. Agent-to-agent delegation tools are not used to impersonate user input.
 - A JSON response containing `suggestion` is not filtered merely because of that field. Prediction suggestions are identified using the record type and explicit internal-source evidence.

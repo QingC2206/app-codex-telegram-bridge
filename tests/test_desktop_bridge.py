@@ -10,7 +10,7 @@ import codex_telegram_bridge.codex.desktop as d
 import codex_telegram_bridge.app as b
 import codex_telegram_bridge.telegram.notifications as n
 class FakeTransport(b.CodexDesktopIpc):
-    """Recorded follower frames; App Tools here permit only read operations."""
+    """Recorded follower frames; native tools may read or open an existing UI."""
     def __init__(self, timeout=35):
         self.timeout = timeout
         self.requests, self.closed = [], []
@@ -23,6 +23,9 @@ class FakeTransport(b.CodexDesktopIpc):
         self.owner_present = True
         self.steer_inactive = False
         self.mutation_error = None
+        self.on_navigate = lambda: None
+        self.navigation_result = {'navigated': True}
+        self.lose_navigation_reply = False
 
     def _open(self):
         return 55
@@ -60,10 +63,15 @@ class FakeTransport(b.CodexDesktopIpc):
         if method == 'tools/list':
             result = {'tools': [{'name': name, 'namespace': 'codex_app'} for name in self.catalog_names]}
         else:
-            assert request['params']['tool'] in {'read_thread', 'list_threads'}, 'Agent delegation must never submit human input'
+            assert request['params']['tool'] in {'read_thread', 'list_threads', 'navigate_to_codex_page'}, 'Agent delegation must never submit human input'
             content = self.sidebar if request['params']['tool'] == 'list_threads' else {
                 'thread': {'id': self.thread_id, 'status': {'type': self.status}},
                 'turns': [{'id': self.turn_id, 'status': 'inProgress'}]}
+            if request['params']['tool'] == 'navigate_to_codex_page':
+                self.on_navigate()
+                if self.lose_navigation_reply:
+                    raise TimeoutError('lost navigation acknowledgement')
+                content = self.navigation_result
             result = {'success': True, 'contentItems': [{'type': 'inputText', 'text': json.dumps(content)}]}
         return {'id': request['id'], 'result': result}
 
@@ -160,6 +168,164 @@ class BridgeTests(unittest.TestCase):
         self.assertIsNone(self.control.send_follow_up('task', '继续', ''))
         self.assertFalse(self.mutations())
         self.assertFalse(self.transport.requests)
+
+    def enable_recovery(self):
+        self.owner.owner_present = False
+        self.transport.catalog_names.add('navigate_to_codex_page')
+        self.transport.on_navigate = lambda: setattr(self.owner, 'owner_present', True)
+
+    def navigations(self):
+        return [r for r in self.transport.requests if r['method'] == 'tools/call'
+                and r['params']['tool'] == 'navigate_to_codex_page']
+
+    def test_recovery_opens_exact_task_then_submits_once_to_original_instance(self):
+        self.enable_recovery()
+        result = self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertTrue(result['owner_recovered'])
+        self.assertEqual(len(self.mutations()), 1)
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertEqual(self.navigations()[0]['params']['arguments'], {'threadId': 'task'})
+        self.assertEqual(self.navigations()[0]['params']['threadId'], 'task')
+        self.assertEqual([r['params']['tool'] for r in self.transport.requests if r['method'] == 'tools/call'],
+                         ['read_thread', 'navigate_to_codex_page', 'read_thread'])
+        self.assertEqual(self.owner.expected_server_pid, 44)
+        self.assertTrue(all(call.args[1] == 44 for call in self.verify.call_args_list))
+
+    def test_existing_owner_never_navigates(self):
+        self.transport.catalog_names.add('navigate_to_codex_page')
+        self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.navigations())
+        self.assertEqual(len(self.mutations()), 1)
+
+    def test_missing_navigation_capability_stops_before_input(self):
+        self.enable_recovery()
+        self.transport.catalog_names.remove('navigate_to_codex_page')
+        with self.assertRaises(d.DesktopIpcUnavailable):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.navigations())
+        self.assertFalse(self.mutations())
+
+    def test_wrong_task_stops_before_navigation_and_input(self):
+        self.enable_recovery()
+        self.transport.thread_id = 'another-task'
+        with self.assertRaises(d.DesktopBridgeSafetyError):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.navigations())
+        self.assertFalse(self.mutations())
+
+    def test_restart_before_recovery_does_not_open_or_submit(self):
+        self.enable_recovery()
+        self.discover.side_effect = [d.DesktopEndpoint(44, 'old'), d.DesktopEndpoint(66, 'new')]
+        with self.assertRaises(d.DesktopBridgeSafetyError):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.navigations())
+        self.assertFalse(self.mutations())
+
+    def test_restart_after_navigation_never_switches_instance(self):
+        self.enable_recovery()
+        self.transport.on_navigate = lambda: setattr(self.discover, 'return_value', d.DesktopEndpoint(66, 'new'))
+        with self.assertRaises(d.DesktopBridgeSafetyError):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertFalse(self.mutations())
+
+    def test_ambiguous_profile_during_recovery_stops_before_navigation(self):
+        self.enable_recovery()
+        with patch.object(d, 'validate_thread_profile', side_effect=[None, d.DesktopBridgeSafetyError('duplicate')]):
+            with self.assertRaises(d.DesktopBridgeSafetyError):
+                self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.navigations())
+        self.assertFalse(self.mutations())
+
+    def test_navigation_must_acknowledge_success_before_input(self):
+        for response in ({}, {'navigated': False}, {'navigated': 'true'}):
+            with self.subTest(response=response):
+                self.enable_recovery()
+                self.transport.navigation_result = response
+                with self.assertRaises(d.DesktopIpcUnavailable):
+                    self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+                self.assertFalse(self.mutations())
+
+    def test_lost_navigation_ack_is_not_an_unknown_user_submission(self):
+        self.enable_recovery()
+        self.transport.lose_navigation_reply = True
+        with self.assertRaises(d.DesktopIpcUnavailable):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertFalse(self.mutations())
+
+    def test_no_owner_after_navigation_is_bounded_and_never_submits(self):
+        self.enable_recovery()
+        self.transport.on_navigate = lambda: None
+        elapsed = [0.0]
+        def sleep(seconds):
+            elapsed[0] += seconds
+        with patch.object(d.time, 'monotonic', side_effect=lambda: elapsed[0]), \
+                patch.object(d.time, 'sleep', side_effect=sleep):
+            with self.assertRaises(d.DesktopIpcUnavailable):
+                self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertEqual(elapsed[0], 10)
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertFalse(self.mutations())
+
+    def test_recovery_budget_covers_native_navigation_and_broker_queries(self):
+        self.enable_recovery()
+        self.transport.on_navigate = lambda: None
+        elapsed = [0.0]
+        original = self.owner._next_message
+        def receive(handle, deadline):
+            if self.navigations():
+                self.assertLessEqual(deadline, 10.0)
+                elapsed[0] += 4
+            return original(handle, deadline)
+        # Model time spent in discovery after navigation, without a 10s sleep.
+        with patch.object(d.time, 'monotonic', side_effect=lambda: elapsed[0]), \
+                patch.object(d.time, 'sleep', side_effect=lambda seconds: elapsed.__setitem__(0, elapsed[0] + seconds)), \
+                patch.object(self.owner, '_next_message', side_effect=receive):
+            with self.assertRaises(d.DesktopIpcUnavailable):
+                self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.mutations())
+        self.assertEqual(len(self.navigations()), 1)
+
+    def test_delayed_owner_is_probed_without_repeating_navigation(self):
+        self.enable_recovery()
+        self.transport.on_navigate = lambda: None
+        with patch.object(d.time, 'sleep', side_effect=lambda _: setattr(self.owner, 'owner_present', True)):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertEqual(len(self.mutations()), 1)
+
+    def test_recovered_owner_still_requires_expected_active_turn(self):
+        self.enable_recovery()
+        with self.assertRaises(d.DesktopIpcInactive):
+            self.control.send_follow_up('task', 'answer', '', expected_turn_id='changed-turn', recover_owner=True)
+        self.assertFalse(self.mutations())
+
+    def test_dispatched_unknown_submission_never_reopens_or_retries(self):
+        self.enable_recovery()
+        self.owner.fail_read_call = True
+        with self.assertRaises(d.DesktopSubmissionUnknown):
+            self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertEqual(len(self.mutations()), 1)
+
+    def test_capability_probe_never_opens_task(self):
+        self.enable_recovery()
+        self.assertFalse(self.control.can_interrupt('task'))
+        self.assertFalse(self.navigations())
+        self.assertFalse(self.mutations())
+
+    def test_owner_lost_again_after_recovery_does_not_loop(self):
+        self.enable_recovery()
+        original = self.owner.find_thread_owner
+        def probe(thread):
+            found = original(thread)
+            self.owner.owner_present = False
+            return found
+        with patch.object(self.owner, 'find_thread_owner', side_effect=probe):
+            self.assertIsNone(self.control.send_follow_up('task', 'hello', '', recover_owner=True))
+        self.assertEqual(len(self.navigations()), 1)
+        self.assertFalse(self.mutations())
 
     def test_owner_probes_and_submissions_use_separate_receive_buffers(self):
         control = d.DesktopControl(b.CodexDesktopIpc)

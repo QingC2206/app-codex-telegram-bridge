@@ -29,6 +29,10 @@ class CodexDesktopIpc(Transport):
         *,
         target_client_id: str | None = None,
     ) -> dict[str, Any]:
+        remaining = getattr(self, '_deadline', float('inf')) - time.monotonic()
+        if remaining <= 0:
+            raise DesktopIpcUnavailable(_t('Desktop 持有者查询失败，消息尚未发送。'))
+        timeout = min(self.timeout, remaining)
         request_id = str(uuid.uuid4())
         version = self._METHOD_VERSIONS[method]
         if method == "thread-follower-interrupt-turn" and not params.get("expectedTurnId"):
@@ -41,15 +45,16 @@ class CodexDesktopIpc(Transport):
             "version": version,
             "method": method,
             "params": params,
-            "timeoutMs": int(self.timeout * 1000),
+            "timeoutMs": max(1, int(timeout * 1000)),
         }
         if target_client_id:
             message["targetClientId"] = target_client_id
         mutating = method in {'thread-follower-start-turn', 'thread-follower-steer-turn',
                               'thread-follower-interrupt-turn'}
         try:
+            self.timeout = timeout
             self._write(handle, message)
-            deadline = time.monotonic() + self.timeout
+            deadline = min(time.monotonic() + timeout, getattr(self, '_deadline', float('inf')))
             while True:
                 response = self._next_message(handle, deadline)
                 if response.get("type") == "client-discovery-request":

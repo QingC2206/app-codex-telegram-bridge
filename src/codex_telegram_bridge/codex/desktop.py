@@ -1,7 +1,8 @@
 """Desktop-owned user input via the app's local follower IPC.
 
-Discovery reads only the Desktop process environment. No task is resumed by
-this module, and a possibly submitted call is never retried on another route.
+Discovery reads only the Desktop process environment. Owner recovery opens the
+existing task in the verified Desktop; it never creates another backend writer.
+A possibly submitted input is never retried on another route.
 """
 from __future__ import annotations
 from codex_telegram_bridge.i18n import tr as _t
@@ -256,6 +257,33 @@ class DesktopAppTools:
         finally:
             transport._close(handle)
 
+    def open_thread(self, thread_id: str, *, deadline: float, before_open: Callable[[], None]) -> None:
+        """Open a verified local task without sending input or resuming via CLI.
+
+        Navigation changes the app's visible task. Its acknowledgement does not
+        prove that a follower owner is ready; the caller must discover it again.
+        """
+        reader = DesktopAppTools(self.transport_factory, self.timeout, self.discover)
+        reader._deadline = deadline
+        transport, handle = reader._connect()
+        try:
+            reader._catalog(transport, handle, {'read_thread', 'navigate_to_codex_page'})
+            state = _content_json(reader._call(transport, handle, 'read_thread', thread_id,
+                {'threadId': thread_id, 'hostId': 'local', 'turnLimit': 1,
+                 'includeOutputs': False, 'maxOutputCharsPerItem': 0}))
+            thread = state.get('thread')
+            if not isinstance(thread, dict) or thread.get('id') != thread_id:
+                raise DesktopBridgeSafetyError(_t('Desktop 返回的任务与目标不一致，未提交消息。'))
+            before_open()
+            # This UI operation carries no user input. A lost navigation reply
+            # must not be treated as a possibly submitted user message.
+            result = _content_json(reader._call(transport, handle, 'navigate_to_codex_page',
+                                                thread_id, {'threadId': thread_id}))
+            if result.get('navigated') is not True:
+                raise DesktopIpcUnavailable(_t('Desktop 未确认已打开目标任务，消息尚未发送。'))
+        finally:
+            transport._close(handle)
+
     def list_threads(self, context_thread_id: str, *, timeout: float | None = None) -> dict[str, Any]:
         """Read live sidebar state, including every pinned task.
 
@@ -303,33 +331,65 @@ class DesktopControl:
         self._interrupt_capabilities[thread_id] = (time.monotonic(), bool(available))
         return bool(available)
 
-    def _legacy_for_current_desktop(self, thread_id: str = '') -> Any:
+    def _legacy_for_current_desktop(self, thread_id: str = '', *,
+                                    endpoint: DesktopEndpoint | None = None,
+                                    timeout: float | None = None) -> Any:
         # The old broker is global. Verify its server is the same-profile app,
         # so a Cockpit/second-subscription instance cannot receive the message.
-        endpoint = self.native.discover()
+        endpoint = endpoint or self.native.discover()
         if thread_id:
             validate_thread_profile(endpoint, thread_id)
         # Each operation has its own pipe handle and receive buffer. Observer
         # capability probes must not clear a concurrent submission's buffer.
-        transport = self.transport_factory(timeout=self.timeout)
+        transport = self.transport_factory(timeout=self.timeout if timeout is None else timeout)
         transport.expected_server_pid = endpoint.pid
         if os.name != "nt":
             from ..platforms.transport import default_broker_path
             transport.PIPE_PATH = default_broker_path(endpoint.profile)
         return transport
 
+    def _check_instance(self, endpoint: DesktopEndpoint, thread_id: str) -> None:
+        current = self.native.discover()
+        if current != endpoint or current.profile != endpoint.profile:
+            raise DesktopBridgeSafetyError(_t('Desktop 在提交前已重启，未发送消息；请重新检查任务。'))
+        validate_thread_profile(current, thread_id)
+
+    def _recover_thread_owner(self, endpoint: DesktopEndpoint, thread_id: str) -> None:
+        # Called only after discovery proved that no input frame was sent.
+        # The native pipe and every broker probe stay pinned to this instance.
+        deadline = time.monotonic() + min(self.timeout, 10.0)
+        check = lambda: self._check_instance(endpoint, thread_id)
+        check()
+        native = DesktopAppTools(self.native.transport_factory, self.timeout, lambda: endpoint)
+        native.open_thread(thread_id, deadline=deadline, before_open=check)
+        while time.monotonic() < deadline:
+            check()
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            probe = self._legacy_for_current_desktop(thread_id, endpoint=endpoint, timeout=remaining)
+            probe._deadline = deadline
+            if probe.find_thread_owner(thread_id) and time.monotonic() < deadline:
+                self._interrupt_capabilities.pop(thread_id, None)
+                return
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.25, remaining))
+        raise DesktopIpcUnavailable(_t('Desktop 已尝试打开目标任务，但回复通道尚未就绪。消息未发送，请在 Desktop 检查任务后再试。'))
+
     def send_follow_up(self, thread_id: str, text: str, cwd: str, *, start_if_inactive: bool = True,
-                       expected_turn_id: str = '') -> dict[str, Any] | None:
+                       expected_turn_id: str = '', recover_owner: bool = False) -> dict[str, Any] | None:
         if not text.strip():
             raise ValueError(_t('回复内容不能为空。'))
-        owner = self._legacy_for_current_desktop(thread_id)
+        endpoint = self.native.discover()
+        owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
+        reader = DesktopAppTools(self.native.transport_factory, self.native.timeout, lambda: endpoint)
 
         def guard() -> None:
             # Run after owner discovery and immediately before the one input
             # request. The native read is profile-specific and never resumes.
-            if self.native.discover().pid != owner.expected_server_pid:
-                raise DesktopBridgeSafetyError(_t('Desktop 在提交前已重启，未发送消息；请重新检查任务。'))
-            state = self.native.read_thread(thread_id)
+            self._check_instance(endpoint, thread_id)
+            state = reader.read_thread(thread_id)
             thread = state.get('thread')
             if not isinstance(thread, dict) or thread.get('id') != thread_id:
                 raise DesktopBridgeSafetyError(_t('Desktop 返回的任务与目标不一致，未提交消息。'))
@@ -346,6 +406,17 @@ class DesktopControl:
         result = owner.send_follow_up(thread_id, text, cwd,
                                       start_if_inactive=start_if_inactive and not expected_turn_id,
                                       before_submit=guard)
+        if result is None and recover_owner:
+            # None is returned exclusively by pre-input owner discovery. Do
+            # not catch dispatch errors here, especially unknown outcomes.
+            self._recover_thread_owner(endpoint, thread_id)
+            self._check_instance(endpoint, thread_id)
+            owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
+            result = owner.send_follow_up(thread_id, text, cwd,
+                                          start_if_inactive=start_if_inactive and not expected_turn_id,
+                                          before_submit=guard)
+            if result is not None:
+                result['owner_recovered'] = True
         if result is not None and expected_turn_id and result.get('turn_id') != expected_turn_id:
             raise DesktopSubmissionUnknown(_t('Desktop 接收消息的 Turn 与原问题不一致，请先核对；不会重发回答。'))
         return result

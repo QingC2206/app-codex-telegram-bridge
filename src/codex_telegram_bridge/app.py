@@ -3061,13 +3061,16 @@ class TelegramCodexBot:
         self._reaction('👀', thread_id)
         tracked = telegram_notify_module.remember_desktop_submission(self.token, self.chat_id, source, thread_id, text)
         try:
+            recovery = {'recover_owner': True} if not self._owns_thread(thread_id) else {}
             if expected_turn_id:
                 result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False,
-                                                     expected_turn_id=expected_turn_id)
+                                                     expected_turn_id=expected_turn_id, **recovery)
             elif start_if_inactive:
-                result = self.desktop.send_follow_up(thread_id, text, cwd)
+                result = self.desktop.send_follow_up(thread_id, text, cwd, **recovery)
             else:
-                result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False)
+                result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False, **recovery)
+            if result and result.get('owner_recovered'):
+                log(f'Desktop owner recovered before input: thread={thread_id[:8]}', self.token)
         except DesktopSubmissionUnknown as exc:
             # Desktop may accept the input after its own acknowledgement timer
             # expires. Reconcile local user receipts, never submit a second time.

@@ -25,6 +25,8 @@ Each bot configuration has one receiving chat. The language preference belongs t
 
 Ordinary text does not automatically select the most recent task. Without a task association, the bot asks you to select one. If an old message has no association, open the corresponding task details first.
 
+If no reply owner is found before submission, the bot tries to open the target task once in the same Desktop profile, with up to 10 seconds for channel recovery. This changes the task visible on your computer; input is sent only after the channel is verified. Recovery failure does not take over the task or replay earlier failed messages. Queries and quiet mode do not switch tasks.
+
 When directly replying to a running task, choose:
 
 - **Append without interrupting:** append to the current task.
@@ -111,7 +113,7 @@ Repeated samples are counted together, with at most 100 samples retained. Each w
 
 | Symptom | What to check |
 | --- | --- |
-| Desktop owner not found | Open the task in the correct Desktop instance and check that `CODEX_HOME` matches |
+| Desktop owner not found / reply channel not ready | The bot tried to open the task in the same Desktop profile. Check the target task and `CODEX_HOME` on your computer; retry only after confirming that this message was not sent |
 | Unknown submission outcome | Check the latest Desktop messages before resending |
 | Menu still uses the old language | Reopen the menu later or send `/language`; typed commands do not depend on the menu |
 | Old cards remain in Chinese | Refresh or reopen the card; original replies retain their original text |
