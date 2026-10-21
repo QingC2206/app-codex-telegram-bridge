@@ -1725,9 +1725,11 @@ def completion_thread_source(payload: dict[str, Any]) -> str | None:
         status, stored = _stored_thread_purpose(next(iter(identifiers)))
         if stored:
             evidence.add(stored)
-    if (not evidence and status == "missing" and len(identifiers) == 1
-            and _composer_prediction_request(payload)):
-        return "composer_predictions"
+    if not evidence and status == "missing" and len(identifiers) == 1:
+        if _composer_prediction_request(payload):
+            return "composer_predictions"
+        from .internal_requests import generation_request_source
+        return generation_request_source(payload)
     return next(iter(evidence)) if len(evidence) == 1 else None
 
 
@@ -1750,6 +1752,10 @@ def _has_suggestion_envelope(payload: dict[str, Any]) -> bool:
         return False
     if set(parsed) == {"suggestion"}:
         return parsed["suggestion"] is None or isinstance(parsed["suggestion"], str)
+    if set(parsed) == {'exclude'}:
+        return isinstance(parsed['exclude'], list) and all(
+            isinstance(item, dict) and set(item) == {'id', 'reason'}
+            and all(isinstance(value, str) for value in item.values()) for item in parsed['exclude'])
     if set(parsed) != {"suggestions"}:
         return False
     suggestions = parsed["suggestions"]
@@ -1782,7 +1788,7 @@ def is_internal_suggestions_completion(payload: dict[str, Any]) -> bool:
         except Exception as exc:
             # Diagnostic failures never change forwarding or disclose values.
             diagnostic = f'; diagnostic_unavailable={type(exc).__name__}'
-        log_error(f"preserved unclassified suggestion-shaped completion for {safe_id}; source=unknown{diagnostic}")
+        log_error(f"preserved unclassified internal-shaped completion for {safe_id}; source=unknown{diagnostic}")
     return False
 
 
@@ -2074,7 +2080,10 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str) -> int:
     if is_internal_suggestions_completion(payload):
         thread_id = str(payload.get("thread-id") or "")
         safe_id = thread_id[:8] if re.fullmatch(r"[A-Za-z0-9-]{6,64}", thread_id) else "unknown"
-        evidence = "app-generated-prediction-request" if _composer_prediction_request(payload) else "source-metadata"
+        from .internal_requests import generation_request_source
+        request_source = generation_request_source(payload)
+        evidence = ("app-generated-prediction-request" if _composer_prediction_request(payload)
+                    else f'app-generated-{request_source}-request' if request_source else 'source-metadata')
         log_error(f"skipped internal suggestions completion for {safe_id}; evidence={evidence}")
         return 0
     if is_internal_task_metadata_completion(payload):

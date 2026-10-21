@@ -22,7 +22,7 @@ messages role content text last-assistant-message last_assistant_message cwd mod
 timestamp created_at createdAt event data params payload session_id sessionId
 agent_id agent_type parent_thread_id status suggestions suggestion title description
 prompt appId appIds pluginId outputSchema responseSchema properties required items
-additionalProperties $schema'''.split())
+additionalProperties $schema exclude reason'''.split())
 PURPOSE_FIELDS = frozenset('''threadSource thread_source thread-source turnTrigger
 turn_trigger turn-trigger source sourceKind source_kind purpose origin originator'''.split())
 SAFE_PURPOSES = frozenset('''composer_predictions ambient_suggestions ambient_suggestion_safety
@@ -76,6 +76,7 @@ def _shape(value, field='', *, depth=0, budget=None):
 
 
 def summarize(payload, *, stored_status, stored_source, composer_match):
+    from .internal_requests import generation_request_source, SAFETY_PREFIX, SAFETY_CANDIDATES
     inputs = payload.get('input-messages', payload.get('input_messages'))
     latest = inputs[-1] if isinstance(inputs, list) and inputs else None
     text = latest.strip().replace('\r\n', '\n') if isinstance(latest, str) and len(latest) <= 2*1024*1024 else ''
@@ -104,6 +105,10 @@ def summarize(payload, *, stored_status, stored_source, composer_match):
             'recent_project_tasks': '\nRecent Codex tasks in this project:\n' in text,
             'recent_projectless_tasks': '\nRecent Projectless Codex tasks with the same cwd:\n' in text,
             'dismissed_suggestions_section': '\nAvoid repeating these previously dismissed suggestions:\n' in text,
+            'ambient_template_match': generation_request_source(payload) == 'ambient_suggestions',
+            'safety_overview_prefix': text.startswith(SAFETY_PREFIX),
+            'safety_candidates_section': SAFETY_CANDIDATES in text,
+            'safety_template_match': generation_request_source(payload) == 'ambient_suggestion_safety',
         },
     }
 

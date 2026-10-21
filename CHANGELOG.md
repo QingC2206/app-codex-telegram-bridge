@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.6.10
+
+- 修复 Desktop 临时任务遗漏来源字段时，非空 `suggestions` 建议和 `exclude` 安全筛选结果被误转发的问题。匹配已核对的应用生成输入模板，要求同环境数据库可读且完整任务 ID 不存在；保留明确来源和冲突检查。
+- 正常任务的同形 JSON、引用示例和未知模板继续保留；不按返回字段一刀切。将 `exclude` 类未知来源加入脱敏诊断，不记录原始输入和回答。
+- Stop forwarding ambient suggestions and safety-filter output from unattributed ephemeral Desktop tasks. Match verified generation input templates only when the profile database is readable and the full task ID is absent; preserve explicit attribution and conflict checks.
+- Preserve normal JSON replies, quoted examples, and unknown templates. Extend structural diagnostics to unknown `exclude` results without recording raw prompts or answers.
+
 ## 0.6.9
 
 - 适配 iOS 远程启动但窗口尚未加载的本机 Desktop 任务：直接回复、`/send`、追加和异步回答支持按需恢复原窗口；中止及“中断后发送”增加同实例、同 Turn 核验和一次恢复。
