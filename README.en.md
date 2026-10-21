@@ -8,7 +8,7 @@ Receive replies, continue existing tasks, answer questions, inspect running task
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
-[Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Documentation index](docs/README.en.md)
+[Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Changelog](CHANGELOG.md) · [Documentation index](docs/README.en.md)
 
 The bridge connects only to **Codex Desktop** and its bundled backend. It never falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
 
@@ -218,4 +218,4 @@ tools/                     Python tools for tests, verification, and releases
 docs/                      Setup, architecture, plugin, and verification guides
 ```
 
-See the [plugin API](docs/plugins.en.md) for plugin development and the [changelog (Chinese)](CHANGELOG.md) for version history. Licensed under the [MIT License](LICENSE).
+See the [plugin API](docs/plugins.en.md) for plugin development and the [changelog](CHANGELOG.md) for version history. Licensed under the [MIT License](LICENSE).

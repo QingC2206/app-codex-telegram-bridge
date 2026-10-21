@@ -7,3 +7,4 @@
 - [Plugin API and bilingual plugins](plugins.en.md)
 - [Architecture and compatibility boundaries](architecture.en.md)
 - [Testing and real-device verification](testing.en.md)
+- [Changelog](../CHANGELOG.md)

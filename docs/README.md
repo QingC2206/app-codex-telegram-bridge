@@ -7,3 +7,4 @@
 - [插件 API 与双语插件](plugins.zh-CN.md)
 - [架构与兼容边界](architecture.zh-CN.md)
 - [测试与实机验收](testing.zh-CN.md)
+- [更新日志](../CHANGELOG.md)
