@@ -346,6 +346,35 @@ class AsyncInputTests(unittest.TestCase):
                         'from': {'id': 111, 'is_bot': True}}}})
         self.assertEqual(captured, [70])
 
+    def test_opening_async_text_input_does_not_complete_question_feedback(self):
+        from types import SimpleNamespace
+        from codex_telegram_bridge.storage.bridge import BridgeState
+        from codex_telegram_bridge.telegram.feedback import Feedback
+        from codex_telegram_bridge.telegram import notifications
+
+        row = self.observed()
+        self.bot._answer_callback = Mock()
+        state = BridgeState(self.manager.database.parent / 'feedback.sqlite3')
+        self.addCleanup(state.close)
+        feedback = Feedback(state, self.bot.token, self.bot.chat_id, Mock(), Mock())
+        for durable in (False, True):
+            with self.subTest(durable=durable), patch.object(
+                    notifications, 'set_task_reaction', return_value=True) as reaction:
+                self.bot.delivery = SimpleNamespace(feedback=feedback) if durable else None
+                sources = []
+                self.bot.send.side_effect = lambda *a, **kw: sources.append(
+                    self.bot._ui_local.source_message_id) or {'message_id': 71}
+                self.bot.handle_update({'update_id': 91 + int(durable), 'callback_query': {
+                    'id': 'open-text', 'from': {'id': 123, 'is_bot': False},
+                    'data': 'asyncq|' + row['key'] + ':other',
+                    'message': {'message_id': 70, 'chat': {'id': 123, 'type': 'private'}}}})
+                self.assertEqual(sources, [70])
+                self.assertEqual(self.bot.pending_free_text[self.bot.chat_id], 'async:' + row['key'])
+                self.assertEqual(self.manager.get(row['key'])['status'], row['status'])
+                self.assertEqual(state.feedback_records(), [])
+                reaction.assert_not_called()
+                self.bot._desktop_follow_up.assert_not_called()
+
     def test_bot_owned_turn_uses_its_existing_server_without_resuming(self):
         row = self.observed()
         self.bot._owns_thread.return_value = True

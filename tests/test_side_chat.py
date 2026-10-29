@@ -12,6 +12,10 @@ class FakeApp:
     def __init__(self,event,request):
         self.event=event;self.request_handler=request;self.calls=[];self.process=Mock()
         self.process.poll.return_value=None;self.count=0;self.fail=None
+        # This transport fixture represents an already certified side process;
+        # real capability verification is covered through CodexAppServer tests.
+        from codex_telegram_bridge.core.side_policy import POLICY_VERSION
+        self.side_policy_identity=(POLICY_VERSION,1)
     def request(self,method,params,**kwargs):
         self.calls.append((method,params))
         if method==self.fail:raise TimeoutError('ambiguous')

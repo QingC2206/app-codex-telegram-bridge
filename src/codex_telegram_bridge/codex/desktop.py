@@ -9,7 +9,6 @@ from codex_telegram_bridge.i18n import tr as _t
 
 from dataclasses import dataclass, field
 import json
-import os
 from pathlib import Path
 import re
 import sqlite3
@@ -19,6 +18,8 @@ import time
 from typing import Any, Callable
 import uuid
 from .errors import *
+from ..platforms.desktop_access import desktop_access
+from ..platforms.transport import default_broker_path
 from ..paths import codex_home
 from ..platforms.discovery import desktop_roots as _desktop_roots, process_environment as _process_environment, validate_pipe_server, valid_native_endpoint
 
@@ -78,8 +79,8 @@ def validate_thread_profile(endpoint: DesktopEndpoint, thread_id: str) -> None:
     """The global broker also has clients from other Desktop profiles.
 
     A copied thread ID in two running profiles cannot be safely routed by ID.
-    The native, profile-specific read below proves the target exists here;
-    this check rejects an ambiguous copy in another running profile.
+    A profile-specific read proves the target exists here; this check rejects
+    an ambiguous copy in another running profile.
     """
     for profile in endpoint.other_profiles:
         databases = [p for p in profile.glob('state_*.sqlite')
@@ -98,6 +99,8 @@ def validate_thread_profile(endpoint: DesktopEndpoint, thread_id: str) -> None:
             raise DesktopBridgeSafetyError(_t('无法排除另一 Desktop 环境中的同名任务，未提交消息。')) from exc
         if duplicate:
             raise DesktopBridgeSafetyError(_t('同一任务编号存在于多个运行中的 Desktop 环境，未提交消息。'))
+
+
 
 
 
@@ -132,6 +135,13 @@ class DesktopAppTools:
         self.transport_factory = transport_factory
         self.timeout = timeout
         self.discover = discover
+
+    def probe(self):
+        transport, handle = self._connect()
+        try:
+            self._catalog(transport, handle, {'read_thread'})
+        finally:
+            transport._close(handle)
 
     def for_current_instance(self) -> DesktopAppTools:
         """Pin a read batch to one verified profile/process, with new pipes.
@@ -321,16 +331,20 @@ def thread_activity(state: dict[str, Any], thread_id: str) -> tuple[bool, str]:
 
 
 class DesktopControl:
-    """Read through App Tools; submit human input only through its owner.
+    """Submit human input only through its verified Desktop owner.
 
     send_message_to_thread deliberately represents an agent delegation. It is
     never a fallback for human Telegram input, even when no owner is found.
     """
-    def __init__(self, transport_factory: Callable[..., Any], timeout: float = 10):
-        self.native = DesktopAppTools(transport_factory, timeout)
+    def __init__(self, transport_factory: Callable[..., Any], timeout: float = 10, *, access=None):
         self.transport_factory = transport_factory
         self.timeout = timeout
+        self.access = access or desktop_access()
+        self.native = self.access.reader(transport_factory, timeout, discover_desktop)
         self._interrupt_capabilities: dict[str, tuple[float, bool]] = {}
+
+    def _reader(self, endpoint):
+        return self.access.reader(self.native.transport_factory, self.timeout, lambda: endpoint)
 
     def can_interrupt(self, thread_id: str, *, probe: bool = True) -> bool:
         cached = self._interrupt_capabilities.get(thread_id)
@@ -342,7 +356,7 @@ class DesktopControl:
         try:
             endpoint = self.native.discover()
             available = self._legacy_for_current_desktop(thread_id, endpoint=endpoint).find_thread_owner(thread_id)
-            if not available:
+            if not available and getattr(self.native, 'has_sidebar_catalogue', True):
                 # A remote iOS turn can be active before any renderer owns it.
                 # Check the recovery capability without navigating or resuming.
                 native = DesktopAppTools(self.native.transport_factory, self.timeout, lambda: endpoint)
@@ -375,9 +389,7 @@ class DesktopControl:
         # capability probes must not clear a concurrent submission's buffer.
         transport = self.transport_factory(timeout=self.timeout if timeout is None else timeout)
         transport.expected_server_pid = endpoint.pid
-        if os.name != "nt":
-            from ..platforms.transport import default_broker_path
-            transport.PIPE_PATH = default_broker_path(endpoint.profile)
+        transport.PIPE_PATH = default_broker_path(endpoint.profile)
         return transport
 
     def _check_instance(self, endpoint: DesktopEndpoint, thread_id: str) -> None:
@@ -392,16 +404,27 @@ class DesktopControl:
         deadline = time.monotonic() + min(self.timeout, 10.0)
         check = lambda: self._check_instance(endpoint, thread_id)
         check()
-        native = DesktopAppTools(self.native.transport_factory, self.timeout, lambda: endpoint)
-        native.open_thread(thread_id, deadline=deadline, before_open=check)
+        native = self._reader(endpoint)
+        self.access.open_thread(endpoint, thread_id, native, deadline=deadline, check_instance=check)
         while time.monotonic() < deadline:
             check()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break
-            probe = self._legacy_for_current_desktop(thread_id, endpoint=endpoint, timeout=remaining)
+            # macOS can finish loading after a discovery request has already
+            # captured its responders. Keep those read-only probes short so a
+            # stale unanswered probe cannot consume the whole recovery budget.
+            transient_discovery = self.access.recover_discovery_unavailable
+            probe = self._legacy_for_current_desktop(thread_id, endpoint=endpoint,
+                timeout=min(remaining, 1.0) if transient_discovery else remaining)
             probe._deadline = deadline
-            if probe.find_thread_owner(thread_id) and time.monotonic() < deadline:
+            try:
+                found = probe.find_thread_owner(thread_id)
+            except DesktopIpcUnavailable:
+                if not transient_discovery:
+                    raise
+                found = False
+            if found and time.monotonic() < deadline:
                 self._interrupt_capabilities.pop(thread_id, None)
                 return
             remaining = deadline - time.monotonic()
@@ -415,32 +438,27 @@ class DesktopControl:
             raise ValueError(_t('回复内容不能为空。'))
         endpoint = self.native.discover()
         owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
-        reader = DesktopAppTools(self.native.transport_factory, self.native.timeout, lambda: endpoint)
+        reader = self._reader(endpoint)
 
         def guard() -> None:
             # Run after owner discovery and immediately before the one input
-            # request. The native read is profile-specific and never resumes.
+            # request. Never resume a Desktop thread in another app-server.
             self._check_instance(endpoint, thread_id)
-            state = reader.read_thread(thread_id)
-            thread = state.get('thread')
-            if not isinstance(thread, dict) or thread.get('id') != thread_id:
-                raise DesktopBridgeSafetyError(_t('Desktop 返回的任务与目标不一致，未提交消息。'))
-            if not start_if_inactive or expected_turn_id:
-                status = thread.get('status')
-                if not isinstance(status, dict) or status.get('type') != 'active':
-                    raise DesktopIpcInactive(_t('该 Desktop 任务当前没有运行中的 Turn。'))
-            if expected_turn_id:
-                turns = state.get('turns')
-                if (not isinstance(turns, list) or not turns or not isinstance(turns[0], dict)
-                        or turns[0].get('id') != expected_turn_id):
-                    raise DesktopIpcInactive(_t('Desktop 当前 Turn 与原问题不一致，未提交回答。'))
+            self.access.validate_reply(endpoint, thread_id, reader,
+                start_if_inactive=start_if_inactive, expected_turn_id=expected_turn_id,
+                check_instance=lambda: self._check_instance(endpoint, thread_id))
 
-        result = owner.send_follow_up(thread_id, text, cwd,
-                                      start_if_inactive=start_if_inactive and not expected_turn_id,
-                                      before_submit=guard)
+        try:
+            result = owner.send_follow_up(thread_id, text, cwd,
+                                          start_if_inactive=start_if_inactive and not expected_turn_id,
+                                          before_submit=guard)
+        except DesktopOwnerDiscoveryUnavailable:
+            if not (recover_owner and self.access.recover_discovery_unavailable):
+                raise
+            result = None
         if result is None and recover_owner:
-            # None is returned exclusively by pre-input owner discovery. Do
-            # not catch dispatch errors here, especially unknown outcomes.
+            # Only pre-input discovery reaches here. A recovered owner must
+            # pass the same instance/profile/Turn guard before the one input.
             self._recover_thread_owner(endpoint, thread_id)
             self._check_instance(endpoint, thread_id)
             owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
@@ -455,7 +473,10 @@ class DesktopControl:
 
     def interrupt_turn(self, thread_id: str, turn_id: str = "", *, recover_owner: bool = False) -> bool:
         endpoint = self.native.discover()
-        reader = DesktopAppTools(self.native.transport_factory, self.timeout, lambda: endpoint)
+        reader = self._reader(endpoint)
+        if (recover_owner and not getattr(reader, 'has_sidebar_catalogue', True)
+                and not self._legacy_for_current_desktop(thread_id, endpoint=endpoint).find_thread_owner(thread_id)):
+            self._recover_thread_owner(endpoint, thread_id)
         self._check_instance(endpoint, thread_id)
         active, current_turn = thread_activity(reader.read_thread(thread_id), thread_id)
         if not active or not current_turn or turn_id and turn_id != current_turn:

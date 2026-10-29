@@ -141,6 +141,11 @@ class CodexDesktopIpc(Transport):
             except DesktopIpcError as exc:
                 if "no-client-found" in str(exc).lower():
                     return None
+                if isinstance(exc, DesktopIpcUnavailable):
+                    # Preserve the exact pre-input phase so platform policy may
+                    # open the original task. Initialization, validation and
+                    # possibly accepted writes must never enter that recovery.
+                    raise DesktopOwnerDiscoveryUnavailable(str(exc)) from exc
                 raise
             owner_id = owner.get("handledByClientId")
             if not isinstance(owner_id, str) or not owner_id:

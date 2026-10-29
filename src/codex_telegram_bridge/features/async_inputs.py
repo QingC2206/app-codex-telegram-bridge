@@ -263,6 +263,9 @@ class AsyncInputs:
                 if cache_id:
                     keyboard.extend(build_notification_keyboard(cache_id=cache_id)['inline_keyboard'])
                 sent = self.bot.send(text, {'inline_keyboard': keyboard}, parse_mode='HTML')
+                if isinstance(sent, dict) and sent.get('_pending_outbox'):
+                    self.bot.delivery.after_delivery(sent['_pending_outbox'], 'async', row['key'])
+                    continue
                 message = sent.get('message_id') if isinstance(sent, dict) else None
                 if not isinstance(message, int) or message <= 0:
                     raise ValueError(_t('Telegram 未确认提问消息 ID；不会重复发送。'))

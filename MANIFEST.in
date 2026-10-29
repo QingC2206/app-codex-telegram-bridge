@@ -1,4 +1,4 @@
-include README.md README.en.md LICENSE SECURITY.md CHANGELOG.md VERSION install.py pyproject.toml
+include README.md README.en.md LICENSE SECURITY.md CHANGELOG.md install.py pyproject.toml
 recursive-include docs *.md
 recursive-include tools *.py
 recursive-include tests *.py

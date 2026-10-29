@@ -106,13 +106,14 @@ class QuietModeTests(unittest.TestCase):
         timer = Mock()
         self.bot.watch_timers['task-1'] = timer
         self.bot.watches['task-1'] = {'message_id': 7}
-        self.bot.state.update(quota_reset_reservation={'id': 'r', 'status': 'armed'},
+        self.bot.quota_state.activate('fixture-account', self.bot.quota_state.connection())
+        self.bot.quota_state.update(quota_reset_reservation={'id': 'r', 'status': 'armed'},
                               quota_reset_confirmation={'token': 'old'})
         self.bot._set_quiet_mode(True)
         timer.cancel.assert_called_once()
         self.assertFalse(self.bot.watches)
-        self.assertEqual(self.bot.state.snapshot()['quota_reset_reservation']['status'], 'cancelled')
-        self.assertFalse(self.bot.state.snapshot()['quota_reset_confirmation'])
+        self.assertEqual(self.bot.quota_state.snapshot()['quota_reset_reservation']['status'], 'cancelled')
+        self.assertFalse(self.bot.quota_state.snapshot()['quota_reset_confirmation'])
         self.bot.quota_resets.maybe_execute()
         self.bot.app.request.assert_not_called()
         self.bot.desktop.interrupt_turn.assert_not_called()

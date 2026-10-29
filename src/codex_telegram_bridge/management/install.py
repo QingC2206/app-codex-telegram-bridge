@@ -1,27 +1,19 @@
 """Register only this tool's settings; preserve unrelated config and hooks."""
 import copy
-from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import subprocess
 import sys
-import uuid
 
 import tomlkit
 
 from ..paths import codex_home, ensure_data_dir
 from . import services
-
-
-def _write(path, data):
-    path.parent.mkdir(parents=True,exist_ok=True)
-    temporary=path.with_name(path.name+'.tmp-'+uuid.uuid4().hex)
-    try:
-        temporary.write_bytes(data);temporary.chmod(0o600);os.replace(temporary,path)
-    finally:
-        if temporary.exists(): temporary.unlink()
+from .transaction import atomic_write as _write, install_files
+from .hook_handlers import direct_command_arguments, partition_command_handlers
 
 
 def notify_command():
@@ -29,13 +21,56 @@ def notify_command():
             '--data-dir',str(ensure_data_dir()),'notify']
 
 
+def _owned_command(command):
+    data = ensure_data_dir()
+    args = direct_command_arguments(command)
+    if args == notify_command():
+        return True
+    manifest = data/'bridge-install.json'
+    if manifest.is_file():
+        try:
+            recorded = json.loads(manifest.read_text(encoding='utf-8')).get('installed_notify')
+            if isinstance(recorded, list) and all(isinstance(arg, str) for arg in recorded) and args == recorded:
+                return True
+        except (OSError, ValueError, AttributeError):
+            pass
+    if not args or not re.fullmatch(r'pythonw?(?:\d+(?:\.\d+)*)?(?:\.exe)?',
+                                   re.split(r'[/\\]', args[0])[-1], re.I):
+        return False
+
+    def same_path(value, expected):
+        try:
+            candidate = Path(value).expanduser()
+            return candidate.is_absolute() and candidate.resolve() == expected.resolve()
+        except (OSError, RuntimeError, ValueError):
+            return False
+
+    # The pre-package installer called this exact script without extra flags.
+    if len(args) == 2 and same_path(args[1], data/'telegram_notify.py'):
+        return True
+    if args[1:3] != ['-m', 'codex_telegram_bridge']:
+        return False
+    options = {}
+    tail = args[3:]
+    while tail and tail[0].startswith('--'):
+        key, equal, value = tail[0].partition('=')
+        if key not in {'--codex-home', '--data-dir'} or key in options:
+            return False
+        if equal:
+            tail = tail[1:]
+        elif len(tail) >= 2:
+            value, tail = tail[1], tail[2:]
+        else:
+            return False
+        options[key] = value
+    return (tail == ['notify'] and '--data-dir' in options
+            and same_path(options['--data-dir'], data)
+            and ('--codex-home' not in options
+                 or same_path(options['--codex-home'], codex_home())))
+
+
 def _hook_owned(entry):
-    for hook in entry.get('hooks',[]):
-        command=hook.get('command','')
-        if not isinstance(command,str): continue
-        if ('codex_telegram_bridge' in command and str(ensure_data_dir()) in command) or str(ensure_data_dir()/'telegram_notify.py') in command:
-            return True
-    return False
+    return bool(partition_command_handlers([entry], _owned_command)[1])
 
 
 def install(*, service=True, replace_notify=False):
@@ -62,34 +97,16 @@ def install(*, service=True, replace_notify=False):
     container=hooks.setdefault('hooks',{})
     entries=container.get('PreToolUse',[])
     if not isinstance(entries,list): raise ValueError('PreToolUse hooks must be an array.')
-    owned=[entry for entry in entries if _hook_owned(entry)]
+    kept, owned = partition_command_handlers(entries, _owned_command)
     if not manifest.get('previous_hooks'): manifest['previous_hooks']=copy.deepcopy(owned)
     shell_command=subprocess.list2cmdline(command) if os.name=='nt' else shlex.join(command)
-    container['PreToolUse']=[entry for entry in entries if not _hook_owned(entry)]+[
+    container['PreToolUse']=kept+[
         {'matcher':'^request_user_input(?:_async)?$','hooks':[{'type':'command','command':shell_command,'async':True,'timeout':30}]}]
-    backup=data/'backups'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');backup.mkdir(parents=True)
-    for p,content in originals.items():
-        if content is not None: _write(backup/p.name,content)
-    service_before = services.snapshot() if service else None
-    service_changed = False
-    try:
-        _write(config_path,tomlkit.dumps(config).encode())
-        _write(hooks_path,(json.dumps(hooks,ensure_ascii=False,indent=2)+'\n').encode())
-        if service:
-            service_changed = True
-            services.manage('install')
-            if sys.platform!='darwin': services.manage('start')
-        _write(manifest_path,json.dumps(manifest,ensure_ascii=False,indent=2).encode())
-    except Exception:
-        for p,content in originals.items():
-            if content is not None: _write(p,content)
-            elif p.exists(): p.unlink()
-        if service_changed:
-            try:
-                services.restore(service_before)
-            except Exception as restore_error:
-                raise RuntimeError(f'Installation failed and service rollback failed; backups: {backup}') from restore_error
-        raise
+    install_files({
+        config_path: tomlkit.dumps(config).encode(),
+        hooks_path: (json.dumps(hooks,ensure_ascii=False,indent=2)+'\n').encode(),
+        manifest_path: json.dumps(manifest,ensure_ascii=False,indent=2).encode(),
+    }, service=service, originals=originals)
     print('Installed. Restart Codex Desktop to load hooks. Data: '+str(data))
     return 0
 
@@ -113,7 +130,7 @@ def uninstall():
         hooks=json.loads(path.read_text(encoding='utf-8-sig'))
         entries=hooks.get('hooks',{}).get('PreToolUse',[])
         if entries:
-            hooks['hooks']['PreToolUse']=[entry for entry in entries if not _hook_owned(entry)]
+            hooks['hooks']['PreToolUse']=partition_command_handlers(entries, _owned_command)[0]
             _write(path,json.dumps(hooks,ensure_ascii=False,indent=2).encode())
     manifest_path.unlink()
     print('Hooks and service removed. Credentials, message routes and backups retained: '+str(data))

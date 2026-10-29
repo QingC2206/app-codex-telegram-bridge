@@ -4,13 +4,15 @@
 
 通过 Telegram 管理 Codex Desktop：接收通知、管理任务、双向发送消息。
 
-在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**0.6.12 · Python 3.10+ · Windows / macOS / Linux · MIT**。
+在 Telegram 接收 Codex Desktop 回复、继续原任务、回答提问、查看运行任务和截图。**Python 3.10+ · Windows / macOS / Linux · MIT**。
 
 文档和 Telegram 界面均支持中英文，默认中文。发送 `/settings` → **语言** 通过按钮选择，或用 `/language en` / `/language zh` 切换；重启和升级后保留。任务正文、模型答复与用户输入不自动翻译。
 
 [安装指南](docs/setup.zh-CN.md) · [使用指南](docs/usage.zh-CN.md) · [插件 API](docs/plugins.zh-CN.md) · [更新日志](CHANGELOG.md) · [文档目录](docs/README.md)
 
-本项目只连接 **Codex Desktop** 及其配套后端，禁止回退到 VS Code 扩展或 PATH 中的独立 Codex CLI。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
+默认 **Desktop 模式**只连接 Codex Desktop 及其配套后端，不自动回退到其他客户端。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
+
+另可明确选择[官方 app-server 模式](docs/app-server.md)：通过官方 JSONL 协议执行 Telegram 任务，复用本机 Codex 登录，支持任务续聊与追加、审批、附件、进度、变更、额度、截图和持久化投递。Desktop 完成通知使用独立 Stop Hook，保留已有 `notify`；回复通知中的文字消息会通过 Desktop 持有者继续原对话，保留上下文和任务编号。消息展示复用 Windows 版富文本、完成卡片和原生状态表情，提供任务筛选、进度卡片、完整回复分页和下载按钮；确认未提交的 Desktop 消息可手动重试原任务。具体插件扩展不包含在此模式中。下文原有功能列表及安装器描述适用于 Desktop 模式；使用已有 Conda 环境时请按 app-server 专用步骤安装。
 
 支持 **iOS 远程启动、桌面窗口尚未加载**的本机任务：查询保持只读，发送、回答和中止时按需加载原窗口并核验任务/Turn。说明与双开限制见[使用指南](docs/usage.zh-CN.md#ios-已启动桌面窗口尚未加载的任务)。
 
@@ -96,6 +98,8 @@ git pull --ff-only
 然后重新运行本平台的 `install.py`。检测到唯一的旧版凭据目录时，会继续使用该目录里的凭据、状态、回复关联和附件；有多个旧目录时要求明确指定 `--data-dir`。不要把 Windows DPAPI 凭据复制到其他系统；在新电脑运行配置向导。
 
 多台电脑同时测试时，请各用一个 Telegram Bot；同一个 Bot Token 不能交给多个正在运行的长轮询服务。这样也能避免把 Mac 测试消息交给 Windows 任务。
+
+同一台电脑只允许一个机器人主服务运行，切换系统账户、Codex 配置、数据目录或 Bot 都不会放宽这一限制。通知 Hook 可以独立运行。升级时先停止旧版主服务，再启动新版；整机启动锁占用本机 `127.0.0.1:27321`，不监听或接收网络请求。若该端口被其他程序占用，启动会明确报错，不会换端口绕过限制。
 
 管理命令使用安装器创建的 Python。macOS/Linux 示例：
 
@@ -194,6 +198,8 @@ python tools/check_distribution.py
 
 `python -m build` 生成开发用 wheel/sdist，不宣称通过真实通信验收。发布安装 ZIP 使用独立门禁，向明确指定的活动任务提交一次测试输入，核对对应用户消息回执并验证 Telegram 发送：
 
+版本号只在 `src/codex_telegram_bridge/__init__.py` 的 `__version__` 中维护。wheel/sdist 直接读取该常量；发布 ZIP 的名称和兼容 `VERSION` 文件自动生成，普通构建和源码安装不需要预先生成此文件。
+
 ```text
 python tools/build_release.py --thread-id <允许验收的活动任务完整ID>
 ```
@@ -205,7 +211,10 @@ python tools/build_release.py --thread-id <允许验收的活动任务完整ID>
 ```text
 README.md / README.en.md    中文与英文入口
 src/codex_telegram_bridge/
-  app.py / cli.py           服务编排与统一入口
+  cli.py / app.py           统一入口 / 旧导入兼容
+  core/                    两端共用的任务与交互编排
+  backends/desktop/        默认兼容入口
+  backends/app_server/     明确选择的 app-server 后端
   config.py / paths.py      凭据配置与数据路径
   telegram/                消息收发、格式和通知
   codex/                   Desktop 协议、历史和回执

@@ -87,3 +87,19 @@ def validate_pipe_server(handle: int, expected_pid: int) -> None:
     pid = wintypes.ULONG()
     if not kernel32.GetNamedPipeServerProcessId(handle, ctypes.byref(pid)) or pid.value != expected_pid:
         raise DesktopBridgeSafetyError(_t('Desktop 连接进程已改变或不属于当前环境，未提交消息。'))
+
+
+def desktop_roots():
+    import psutil
+    records = []
+    for process in psutil.process_iter(['pid', 'exe', 'cmdline']):
+        info = process.info
+        if not info['exe']:
+            continue
+        path = Path(info['exe']).resolve()
+        if (path.name.lower() == 'chatgpt.exe' and path.parent.name.lower() == 'app'
+                and path.parent.parent.name.lower().startswith('openai.codex_')
+                and path.parent.parent.parent.name.lower() == 'windowsapps'
+                and not any(arg.startswith('--type=') for arg in (info['cmdline'] or []))):
+            records.append({'ProcessId': info['pid'], 'ExecutablePath': str(path)})
+    return records

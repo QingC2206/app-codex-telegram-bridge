@@ -17,6 +17,7 @@ class PluginTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name)
         self.bot=Mock(token='111:secret',chat_id='123',silent=False)
+        self.bot.stop_event=threading.Event()
         self.bot._ui_local=threading.local()
         self.bot._reaction=Mock(return_value=True)
         self.bot.send=Mock(return_value={'message_id':99})

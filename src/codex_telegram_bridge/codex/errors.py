@@ -6,6 +6,10 @@ class DesktopIpcUnavailable(DesktopIpcError):
     """The route failed before a mutating request could be submitted."""
 
 
+class DesktopOwnerDiscoveryUnavailable(DesktopIpcUnavailable):
+    """An initialized broker could not answer owner discovery; no input was sent."""
+
+
 class DesktopIpcInactive(DesktopIpcError):
     pass
 

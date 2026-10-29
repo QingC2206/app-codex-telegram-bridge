@@ -62,7 +62,9 @@ class QuotaTests(unittest.TestCase):
         self.bot.enqueue = lambda text, keyboard=None: self.alerts.append((text, keyboard))
         self.bot._schedule_quota_monitor_poll = lambda *args: None
         self.bot._answer_callback = lambda *args: None
-        self.bot.state.update(quota_reset_credit_baseline_alerted=True)
+        self.bot.quota_state.fetch()
+        self.bot.quota_state.update(quota_reset_credit_baseline_alerted=True)
+        self.app.calls.clear()
         self.ctl = self.bot.quota_resets
 
     def send(self, text, keyboard=None):
@@ -71,7 +73,7 @@ class QuotaTests(unittest.TestCase):
 
     def observe(self, remaining, reset_at=None):
         self.app.latest = quota(remaining, reset_at=reset_at)
-        self.bot._observe_quota(self.app.latest)
+        self.bot._observe_quota(self.bot.quota_state.fetch())
 
     def button(self, label, actor=123):
         for _, keyboard in reversed(self.alerts + self.sent):
@@ -293,7 +295,8 @@ class QuotaTests(unittest.TestCase):
 
     def test_five_hour_has_no_alert(self):
         for remaining in [10,5,3,1,0,100]:
-            self.bot._observe_quota(quota(80, five_hour=remaining))
+            self.app.latest = quota(80, five_hour=remaining)
+            self.bot._observe_quota(self.bot.quota_state.fetch())
         self.assertEqual(self.alerts, [])
 
     def test_command_cannot_reset(self):
@@ -368,7 +371,8 @@ class QuotaTests(unittest.TestCase):
 
     def test_missing_data_cancels_and_never_rearms(self):
         self.reserve()
-        self.bot._observe_quota({})
+        self.app.latest = {}
+        self.bot._observe_quota(self.bot.quota_state.fetch())
         self.observe(1)
         self.ctl.maybe_execute()
         self.assertEqual(self.app.consumed(), [])
@@ -437,11 +441,12 @@ class QuotaTests(unittest.TestCase):
 
     def test_account_changed_and_card_gone_fail_closed(self):
         self.reserve(3)
+        account = self.bot.quota_state.scope()['account']
         self.app.email = 'another@example.invalid'
         self.observe(1)
         self.ctl.maybe_execute()
         self.assertEqual(self.app.consumed(), [])
-        self.assertEqual(self.ctl.state()['quota_reset_reservation']['status'], 'cancelled')
+        self.assertEqual(self.bot.state.snapshot()['quota_accounts']['accounts'][account]['quota_reset_reservation']['status'], 'cancelled')
 
     def test_pinned_card_not_replaced(self):
         self.reserve(3)
@@ -466,17 +471,21 @@ class QuotaTests(unittest.TestCase):
     def test_durable_before_consume_and_concurrent_ticks(self):
         self.reserve(3)
         self.observe(1)
+        account = self.bot.quota_state.scope()['account']
+        observed = []
         def hook(method):
             if method.endswith('/consume'):
                 state = module.StateStore(self.bot.state.path).snapshot()
-                self.assertEqual(state['quota_reset_reservation']['status'], 'triggered')
-                self.assertEqual(state['quota_reset_attempt']['status'], 'consuming')
+                observed.append(state['quota_accounts']['accounts'][account])
         self.app.hook = hook
         workers = [threading.Thread(target=self.ctl.maybe_execute) for _ in range(8)]
         for worker in workers: worker.start()
         for worker in workers: worker.join(2)
         self.assertTrue(all(not worker.is_alive() for worker in workers))
         self.assertEqual(len(self.app.consumed()), 1)
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0]['quota_reset_reservation']['status'], 'triggered')
+        self.assertEqual(observed[0]['quota_reset_attempt']['status'], 'consuming')
 
     def test_recovery_event_during_final_read_cancels(self):
         self.reserve(3)
@@ -533,10 +542,11 @@ class QuotaTests(unittest.TestCase):
 
     def test_read_failure_cancels_reservation_without_consume(self):
         self.reserve(3)
+        account = self.bot.quota_state.scope()['account']
         self.app.fail = 'account/rateLimits/read'
         self.ctl.maybe_execute()
         self.assertEqual(self.app.consumed(), [])
-        self.assertEqual(self.ctl.state()['quota_reset_reservation']['status'], 'cancelled')
+        self.assertEqual(self.bot.state.snapshot()['quota_accounts']['accounts'][account]['quota_reset_reservation']['status'], 'cancelled')
 
     def test_event_worker_does_not_hide_recovery_from_executor(self):
         self.reserve(3)
@@ -563,7 +573,8 @@ class QuotaTests(unittest.TestCase):
         self.observe(5)
         self.click('立即重置')
         self.click('确认使用 1 张重置卡')
-        self.bot._observe_quota({})
+        self.app.latest = {}
+        self.bot._observe_quota(self.bot.quota_state.fetch())
         self.observe(5)
         with self.assertRaises(ValueError): self.click('立即重置')
         self.assertEqual(len(self.app.consumed()), 1)

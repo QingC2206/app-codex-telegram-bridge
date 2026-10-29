@@ -71,3 +71,9 @@ class ChildProcessJob:
         if self.handle:
             handle, self.handle = self.handle, None
             self.kernel.CloseHandle(handle)
+
+
+def spawn_options():
+    """Keep console children hidden when the service runs under pythonw.exe."""
+    import subprocess
+    return {'creationflags': getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)}

@@ -3,6 +3,7 @@ import json,os,threading,logging
 from pathlib import Path
 from typing import Any,Callable
 from ..paths import data_dir
+from .quota_schema import ROOT, migrated, legacy_quota_key, validate
 
 def default_state() -> dict[str, Any]:
     return {
@@ -39,10 +40,18 @@ class StateStore:
                 self.data["managed_threads"] = {}
             if not isinstance(self.data.get("task_aliases"), list):
                 self.data["task_aliases"] = []
-            if not isinstance(self.data.get("quota_weekly_observation"), dict):
-                self.data["quota_weekly_observation"] = {}
-            if not isinstance(self.data.get("quota_reset_credits_observation"), dict):
-                self.data["quota_reset_credits_observation"] = {}
+            if migrated(self.data):
+                for key in list(self.data):
+                    if legacy_quota_key(key):
+                        if self.data[key]:
+                            raise ValueError('Unassigned legacy quota data conflicts with migrated account state; preserve and review it.')
+                        del self.data[key]
+                validate(self.data)
+            else:
+                if not isinstance(self.data.get("quota_weekly_observation"), dict):
+                    self.data["quota_weekly_observation"] = {}
+                if not isinstance(self.data.get("quota_reset_credits_observation"), dict):
+                    self.data["quota_reset_credits_observation"] = {}
             if not isinstance(self.data.get("quota_monitor_health"), dict):
                 self.data["quota_monitor_health"] = {}
             return dict(self.data)
@@ -53,13 +62,24 @@ class StateStore:
 
     def update(self, **values: Any) -> None:
         with self.lock:
-            self.data.update(values)
-            self._save_locked()
+            if migrated(self.data) and any(legacy_quota_key(key) or key == ROOT for key in values):
+                raise ValueError('Use the account-scoped quota accessor to update quota state.')
+            self.mutate(lambda state: state.update(values))
 
     def mutate(self, callback: Callable[[dict[str, Any]], None]) -> None:
         with self.lock:
-            callback(self.data)
-            self._save_locked()
+            candidate = json.loads(json.dumps(self.data, ensure_ascii=False))
+            callback(candidate)
+            if migrated(self.data) and not migrated(candidate):
+                raise ValueError('Cannot remove account-scoped quota history.')
+            validate(candidate)
+            previous = self.data
+            self.data = candidate
+            try:
+                self._save_locked()
+            except BaseException:
+                self.data = previous
+                raise
 
     def _save_locked(self) -> None:
         temporary = self.path.with_name(f"{self.path.name}.tmp.{os.getpid()}")

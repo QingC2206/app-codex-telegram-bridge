@@ -1,0 +1,4190 @@
+{
+  "schema_version": 2,
+  "created_utc": "2026-10-29T09:27:46.433304+00:00",
+  "platform": "darwin",
+  "python": "3.14.9",
+  "live_windows_desktop": false,
+  "live_telegram": false,
+  "successful": true,
+  "tests_run": 989,
+  "source_changed_during_run": false,
+  "mapping_sha256": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448",
+  "source_digest": "ed676b2e8ec8102c753196f87075726682352dddb13c27a0fb54c4d02becc69a",
+  "records": [
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_discovery_request_does_not_claim_task_ownership",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_fresh_read_only_subscription_is_pinned_and_always_unsubscribed",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_probe_only_initializes_verified_broker_without_task_discovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_restart_invalidates_snapshot",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_timeout_never_navigates_resumes_or_submits",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_unsupported_version_and_invalid_revision_fail_closed_and_close",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.FollowerTransportTests.test_wrong_owner_host_task_and_delta_are_ignored_before_fresh_snapshot",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.SnapshotTests.test_canonical_order_uses_islands_not_dictionary_or_empty_legacy_array",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.SnapshotTests.test_old_page_missing_entity_and_optimistic_turn_are_not_current_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.SnapshotTests.test_unknown_runtime_state_is_not_idle",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_follower_reader.SnapshotTests.test_wrong_task_or_host_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.LocalDesktopTargetTests.test_genuine_desktop_origin_in_current_profile_is_accepted",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.LocalDesktopTargetTests.test_missing_archived_other_profile_and_non_desktop_targets_are_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.LocalDesktopTargetTests.test_transcript_symlink_outside_profile_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_discovery_failure_without_recovery_permission_never_opens",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_discovery_timeout_still_requires_original_profile_before_open",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_initialize_failure_does_not_open_or_submit",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_lost_ack_never_opens_or_replays",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_missing_owner_opens_only_original_thread_then_submits_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_normal_reply_uses_verified_owner_without_signed_app_tools",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_owner_loaded_after_first_probe_is_found_without_reopening",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_restart_during_local_validation_prevents_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_turn_specific_reply_retains_live_turn_check",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_unanswered_owner_discovery_opens_original_before_one_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "platforms.test_macos_desktop_access.MacOSReplyTests.test_mac_unverified_local_target_never_receives_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server.ClientTests.test_jsonl_initialize_responses_notifications_and_error",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server.ClientTests.test_safe_thread_options_override_global_unrestricted_policy",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.HookTests.test_external_schema_and_unimplemented_root_constraints_are_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.HookTests.test_hook_preserves_full_provenance_for_shared_classifier",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.HookTests.test_install_is_idempotent_preserves_notify_and_other_handlers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.HookTests.test_no_transcript_path_escape_or_invalid_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.SharedHookDeliveryTests.test_preupgrade_hook_envelope_is_restored_without_task_execution",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.SharedHookDeliveryTests.test_quiet_generation_and_ingest_suppression_survive_turning_quiet_off",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_gaps.SharedHookDeliveryTests.test_raw_hook_reaches_shared_classifier_without_rewriting_sources",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_effort_is_validated_against_current_model_and_unchanged_on_error",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_failed_attachment_retry_retains_original_attachment_path",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_failed_draft_download_never_submits_and_retains_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_file_download_rejects_escape_and_symlink_and_keeps_workspace_file",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_legacy_page_and_download_resolve_same_original_markdown",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_models_use_stable_values_and_stale_button_never_selects_new_index",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_opening_settings_never_changes_selection_or_defaults",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_removed_model_is_rejected_instead_of_selecting_another",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_settings_and_model_labels_follow_language_without_changing_task_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_app_server_ui.RuntimeUITests.test_unknown_draft_is_not_retryable",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_answered_in_desktop_is_not_submitted_again",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_bot_owned_turn_uses_its_existing_server_without_resuming",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_changed_or_ended_turn_never_receives_an_answer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_choice_answer_survives_restart_and_turn_end",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_clipped_emoji_answer_has_full_text_below_normal_cache_threshold",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_desktop_runtime_overrides_other_readers_interrupted_status",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_direct_reply_is_bound_to_the_original_question_and_sent_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_duplicate_events_and_restart_do_not_resend_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_ended_unanswered_question_keeps_title_without_inventing_answer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_english_card_keeps_answer_in_original_language",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_escaped_native_answer_is_resolved_and_disables_old_card",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_existing_database_migrates_without_losing_question_routes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_html_send_and_queued_edit_preserve_native_entities_and_buttons",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_long_answer_kept_in_database_and_full_reply_cache",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_native_receipt_can_replace_uncertain_local_answer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_opening_async_text_input_does_not_complete_question_feedback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_other_bot_or_chat_cannot_use_the_question_key",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_owner_lost_after_recovery_does_not_mark_answer_submitted",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_question_card_metadata_fallback_does_not_use_robot_working_directory",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_question_card_uses_task_metadata_and_preserves_answer_layout",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_question_content_change_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_question_id_matches_desktop_canonical_serialization",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_quiet_mode_suppresses_html_card_edits",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_reaction_feedback_does_not_replace_answer_card_with_generic_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_real_callback_shape_preserves_question_message_as_reply_source",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_reply_to_expired_card_does_not_fall_through_to_normal_task_message",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_rich_card_escapes_user_content_and_bounds_visible_utf16_length",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_telegram_feedback_failure_does_not_turn_accepted_answer_into_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_uncertain_submission_is_durable_and_never_retried",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_async_inputs.AsyncInputTests.test_unconfirmed_telegram_delivery_is_not_retried",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_both_ingresses_share_provenance_and_preserve_normal_json",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_conflicting_fields_and_ids_are_held",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_conflicts_are_not_replayed_without_the_conflicting_evidence",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_deferred_replay_uses_existing_turn_and_calls_computer_use_only_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_delayed_metadata_recovers_exact_reply_without_storing_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_delivery_reservation_is_atomic_across_workers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_diagnostic_write_failure_does_not_disable_verification_queue",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_extended_windows_rollout_path_stays_in_same_profile",
+      "outcome": "skipped",
+      "reason": "Windows extended-length path syntax"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_filtered_subagent_completion_is_not_replayed_after_preference_change",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_foreign_origin_and_ephemeral_flags_do_not_authorize",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_internal_and_unknown_do_not_touch_credentials_cache_or_reactions",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_internal_purposes_suppressed_without_reading_output",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_long_mobile_turn_without_history_projection_recovers_attribution",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_malformed_client_label_is_not_deferred_as_mobile",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_callback_requires_local_evidence_for_exact_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_client_label_does_not_override_verified_host_and_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_client_never_authorizes_cli_wrong_profile_or_internal_work",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_missing_turn_evidence_enters_queue_and_respects_quiet_generation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_notify_preserves_normal_json_and_dedupes_with_stop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_replay_retains_turn_requirement_across_missing_metadata",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_mobile_subagent_still_follows_notification_preference",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_normal_json_is_not_a_classifier_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_only_matching_turn_attribution_is_used",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_paginated_history_recovers_final_item_with_matching_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_pending_queue_has_expiry_and_limit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_quiet_mode_toggled_while_worker_stopped_does_not_replay",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_recovery_requires_exact_turn_and_body_and_respects_mute",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_replay_failure_is_isolated_to_one_entry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_rewritten_rollout_from_database_wins_over_original_file",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_rewritten_rollout_requires_matching_header_identity",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_rollout_fallback_handles_missing_or_unavailable_state_database",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_shared_short_prefix_never_uses_parent_task_proof",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_skipped_subagent_question_does_not_reserve_its_completion",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_stale_schema_and_wrong_profile_cannot_authorize",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_subagent_context_uses_child_id_and_preference",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_task_source_and_turn_trigger_are_independent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_unknown_source_never_promoted_even_for_plain_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_verification_failure_does_not_abort_existing_receipt_worker",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_completion_routing.CompletionRoutingTests.test_visible_task_sources_follow_desktop_contract",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_absent_owner_uses_guarded_recovery_for_explicit_probe",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_accepted_submission_without_receipt_does_not_pass_or_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_delegation_receipt_cannot_pass_as_human_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_exact_receipt_and_confirmed_telegram_message_are_both_required",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_legacy_install_check_uses_live_desktop_checker_without_starting_backend",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_missing_turn_id_stops_before_explicit_probe",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_no_explicit_task_stops_before_any_io",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_read_only_check_does_not_claim_or_attempt_task_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_receipt_for_another_turn_cannot_pass",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_telegram_success_cannot_hide_desktop_discovery_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_uncertain_submission_is_never_retried",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_wrong_or_inactive_target_is_not_sent_to",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_connection_check.AcceptanceGateTests.test_wrong_telegram_chat_is_not_reported_as_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_429_defers_success_then_retries_only_output",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_already_delivered_progress_is_edited_without_second_send",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_background_completion_persists_before_worker_and_waits_for_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_background_navigation_refresh_keeps_return_and_close_controls",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_completed_failure_is_not_success_after_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_delayed_async_card_keeps_original_question_reply_route",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_delayed_confirmation_binds_only_the_same_unexpired_nonce",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_delayed_reply_prompt_registers_original_thread_after_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_delayed_side_prompt_can_be_quoted_after_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_expired_question_is_not_delivered_after_rate_limit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_foreign_user_cannot_create_delivery_or_feedback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_legacy_background_navigation_adds_controls_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_legacy_pending_notice_cannot_cross_a_new_quiet_generation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_migration_recovers_in_flight_feedback_without_job_replay",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_new_operation_on_same_card_supersedes_old_pending_reaction",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_old_messages_do_not_react_or_submit_after_migration",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_pending_progress_is_replaced_with_final_content",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_query_received_processing_delivered_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_quiet_generation_prevents_backlog_replay_after_unmute",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_reaction_retry_does_not_repeat_query_output",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_replaced_confirmation_is_not_sent_after_rate_limit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_restart_keeps_pending_outputs_but_never_replays_sending",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_retried_draft_feedback_stays_on_original_input_not_clicked_card",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_shared_markdown_pagination_bounds_non_bmp_text_without_loss",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_side_result_reaction_waits_for_every_page",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_unknown_completion_stays_received_and_does_not_replay_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_unknown_query_delivery_is_not_retried_or_celebrated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_unknown_task_submission_stays_unknown_and_never_replays",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_unqualified_input_has_failure_and_no_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_upgrade_pending_legacy_completion_keeps_reply_route_and_delivery_gate",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_controller_delivery.ControllerDeliveryTests.test_upgrade_pending_notification_respects_completion_mute",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_definite_failure_is_not_mislabeled_unknown_or_reported_twice",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_direct_send_command_reaches_native_desktop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_explicit_missing_desktop_retains_send_selection",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_failed_durable_offset_write_prevents_dispatch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_force_reply_target_survives_known_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_lost_user_input_ack_is_never_resumed_or_submitted_again",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_receipt_network_failure_does_not_prevent_actual_submission",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_reply_to_notification_reaches_native_desktop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_reply_to_notification_uses_discovered_modern_pipe",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_send_selected_task_reaches_native_desktop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_send_selected_task_uses_discovered_modern_pipe",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BotEntryTests.test_service_crash_after_dispatch_cannot_replay_consumed_message",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_ambiguous_profile_during_recovery_stops_before_navigation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_capability_probe_never_opens_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_default_desktop_timeout_is_ten_seconds_in_follower_frame",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_delayed_owner_is_probed_without_repeating_navigation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_desktop_restart_during_owner_lookup_stops_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_dispatched_unknown_submission_never_reopens_or_retries",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_empty_input_does_not_connect",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_existing_owner_never_navigates",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_explicit_inactive_error_allows_one_desktop_owned_start",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_generic_error_after_dispatch_stays_uncertain",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_human_input_is_a_follower_frame_without_delegation_or_settings_override",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_live_list_uses_supported_limit_and_real_task_context",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_lost_navigation_ack_is_not_an_unknown_user_submission",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_malformed_native_list_is_not_accepted_as_empty",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_missing_navigation_capability_stops_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_missing_owner_returns_without_agent_or_backend_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_missing_read_capability_stops_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_navigation_must_acknowledge_success_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_no_owner_after_navigation_is_bounded_and_never_submits",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_owner_lost_again_after_recovery_does_not_loop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_owner_probes_and_submissions_use_separate_receive_buffers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_partial_write_or_lost_ack_is_uncertain_and_never_retried",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_pipe_server_mismatch_stops_before_any_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_question_ack_for_different_turn_is_uncertain_without_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_question_answer_rejects_changed_turn_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_read_batch_rejects_restarted_desktop_instead_of_switching_instances",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_read_only_probe_never_sends_a_follow_up",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_receipt_history_deadline_covers_catalog_and_history",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_receipt_history_read_is_bounded_and_read_only",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_recovered_owner_still_requires_expected_active_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_recovery_budget_covers_native_navigation_and_broker_queries",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_recovery_opens_exact_task_then_submits_once_to_original_instance",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_restart_after_navigation_never_switches_instance",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_restart_before_recovery_does_not_open_or_submit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_strict_append_rejects_inactive_without_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_turn_ending_after_preflight_never_starts_answer_in_new_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_windows_unanswered_discovery_keeps_baseline_failure_without_navigation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_wrong_profile_task_stops_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.BridgeTests.test_wrong_task_stops_before_navigation_and_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_cockpit_other_profile_is_never_used",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_conflicting_home_hints_fail_closed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_current_desktop_environment_is_rediscovered_after_restart",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_default_profile_uses_desktop_user_directory",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_isolated_second_subscription_does_not_block_correct_profile",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_isolated_userprofile_cannot_be_replaced_with_bot_home",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_known_pipe_names_do_not_allow_paths_control_characters_or_empty_suffix",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_legacy_browser_use_pipe_remains_supported",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_modern_app_tools_pipe_is_accepted",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_modern_pipe_selection_stays_with_the_correct_subscription",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_no_desktop_is_unavailable",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_process_inventory_excludes_vscode_and_electron_children",
+      "outcome": "skipped",
+      "reason": "Windows process metadata; POSIX checked separately"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_relative_profile_is_not_resolved_using_bot_cwd",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_two_roots_sharing_profile_are_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_unreadable_instance_cannot_be_silently_assumed_safe",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.DiscoveryTests.test_untrusted_endpoint_path_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.ProfileCollisionTests.test_copied_thread_in_other_running_profile_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_bridge.ProfileCollisionTests.test_unreadable_other_profile_state_is_not_assumed_empty",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_acknowledged_turn_without_user_item_is_not_receipt_proof",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_assistant_body_is_never_a_user_receipt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_completion_before_ack_cannot_revert_ok_to_thinking",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_delayed_receipt_is_checked_within_ten_second_budget",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_delayed_receipt_keeps_thinking_and_binds_later",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_delivery_failure_does_not_mark_ok",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_digest_matches_desktop_xml_text_escaping",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_identical_queued_prompts_claim_distinct_receipts_in_order",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_known_rejection_removes_pending_receipt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_live_query_failure_does_not_resubmit_and_respects_total_budget",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_live_receipt_duplicate_prompts_cannot_claim_same_item",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_live_receipt_never_guesses_a_steered_item_or_expected_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_live_receipt_rejects_malformed_or_truncated_items",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_live_receipt_rejects_old_wrong_thread_assistant_and_changed_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_local_receipt_read_failure_preserves_unknown_without_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_mismatched_receipts_cannot_turn_timeout_into_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_moved_rollout_advances_cursor_without_binding_old_history",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_native_without_returned_turn_id_restores_all_reaction_stages",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_no_receipt_stops_at_ten_seconds_and_retains_journal",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_old_delegation_journal_still_reconciles_after_upgrade",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_old_identical_prompt_before_checkpoint_is_not_bound",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_partial_rollout_line_is_retained_until_complete",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_reaction_network_failure_is_persisted_and_retried",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_receipt_bound_by_background_worker_is_also_accepted",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_receipt_check_does_not_wait_for_another_database_writer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_receipt_intent_is_persisted_before_desktop_write",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_receipt_without_explicit_metadata_never_guesses_active_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_restart_reconciles_saved_receipt_without_resending",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_same_final_text_in_different_turns_is_ambiguous",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_stale_retry_cannot_overwrite_successfully_delivered_ok",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_stale_rollout_uses_live_desktop_user_receipt_without_resending",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_timeout_after_acceptance_uses_receipt_without_resending",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_uncertain_submission_is_reconciled_without_any_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_desktop_receipts.ReceiptTests.test_user_receipt_preserves_json_and_xml_as_typed_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.CreditFixTests.test_incomplete_card_details_cannot_authorize",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.CreditFixTests.test_malformed_metadata_blocks_confirmed_consumption",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.CreditFixTests.test_missing_expiry_is_valid_and_normal_confirmation_consumes_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_changed_process_cannot_deliver_queued_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_expired_displayed_card_is_retired",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_expired_rate_limited_question_is_never_sent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_known_failed_side_page_is_failed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_nonblocking_question_survives_continuing_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_unknown_retention_expires_without_claiming_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_unknown_side_page_keeps_unconfirmed_tracking",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_unknown_side_page_wins_over_other_failed_page",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.DeliveryFixTests.test_windows_memory_queue_uses_same_expiry_check",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.UsageFixTests.test_context_occupancy_missing_does_not_claim_zero_percent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.UsageFixTests.test_invalid_counts_are_not_zero_or_truncated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.UsageFixTests.test_malformed_server_group_is_not_silently_excluded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.UsageFixTests.test_missing_subcounts_are_unknown_but_zero_stays_zero",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_delivery_quota.UsageFixTests.test_partial_server_groups_do_not_claim_complete_sum",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_ambiguous_legacy_cancel_cannot_cancel_all_prompts",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_callback_cancel_targets_clicked_message",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_cancel_free_text_prompt_invalidates_its_reply",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_cancel_old_persisted_prompt_after_restart",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_cancel_one_prompt_keeps_sibling_and_persists_cancellation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_delayed_free_text_cannot_answer_next_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_desktop_steer_keeps_expected_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_explicit_prompt_reopens_cancelled_message_and_keeps_other_tombstones",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_finished_turn_choice_needs_new_user_intent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_form_optional_fields_can_be_omitted_without_inventing_default",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_late_free_text_binding_is_checked_even_if_question_advanced",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_late_unquoted_first_answer_cannot_fill_armed_second_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_legacy_question_callback_fails_closed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_normal_question_callbacks_finish_in_order",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_old_question_button_does_not_answer_next_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_old_turn_choice_cannot_steer_new_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_optional_typed_values_keep_validation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_required_form_field_cannot_be_skipped",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_same_turn_choice_steers_only_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_single_question_force_reply_is_new_message_and_requires_quote",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_unknown_steer_is_not_replayed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.InteractionFixTests.test_valid_free_text_is_bound_to_selected_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_429_prompt_binds_only_after_delivery_and_quote_answers_correct_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_cancel_text_input_expires_queued_prompt_without_cancelling_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_delayed_explicit_prompt_clears_only_matching_cancelled_message",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_question_callback_sends_force_reply_as_new_message",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_queued_text_prompt_expires_when_question_advances",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_queued_text_prompt_is_invalid_after_service_restart",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_reopening_same_question_invalidates_first_queued_prompt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_cache_matches_utf16_ascii_code_and_table_preview_boundaries",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_changed_bot_or_chat_never_inherits_existing_allowlist",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_empty_invalid_group_allowlist_leaves_old_configuration_unchanged",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_group_reconfigure_preserves_existing_allowlist_for_same_bot_and_chat",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_internal_unknown_and_foreign_questions_are_not_sent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_legacy_group_reconfigure_checks_protected_old_token_identity",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_missing_and_wrong_profile_question_evidence_are_not_sent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_new_group_requires_explicit_valid_user_ids",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_private_chat_does_not_prompt_for_or_inherit_group_allowlist",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_reconfigure_can_explicitly_replace_group_allowlist",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_subagent_question_uses_child_provenance_and_opt_in",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_utf16_truncated_preview_always_has_full_reply_buttons",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_notifications.NotificationFixTests.test_verified_question_is_sent_without_consuming_completion",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_app_server_registration_reinstall_and_removal_keep_mixed_groups",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_app_server_removal_respects_previous_command_and_other_profile",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_desktop_install_reinstall_preserves_mixed_group_handlers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_desktop_ownership_requires_exact_entrypoint_and_data_directory",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_desktop_uninstall_removes_only_owned_handler_from_mixed_group",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_legacy_script_path_and_python_upgrade_are_owned_exactly",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_recorded_previous_python_command_is_still_owned_after_upgrade",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.MixedHookPreservationTests.test_windows_argument_parser_preserves_backslashes_and_spaces",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_windows_hooks.PluginSpawnContractTests.test_plugin_worker_receives_each_platform_options_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountDeliveryTests.test_delayed_confirmation_and_receipt_cannot_cross_account_or_epoch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountDeliveryTests.test_upgrade_quarantines_only_unowned_background_once_and_preserves_payload",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_account_or_connection_change_during_read_rejects_snapshot",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_card_baselines_are_account_owned_and_switch_back_is_not_a_new_grant",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_failed_account_switch_save_preserves_history_and_revokes_old_authority",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_identical_deadlines_do_not_share_thresholds_or_restore_messages",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_identity_event_during_scope_publication_cannot_restore_old_authority",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_identity_event_immediately_revokes_scope_without_reader_rpc",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_identity_is_stable_across_plan_metadata_but_not_email",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_legacy_outbox_and_direct_output_reject_old_account_scope",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_legacy_root_writes_and_mutate_bypasses_are_rejected_atomically",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_legacy_send_rechecks_scope_after_rendering_before_network",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_old_verified_snapshot_cannot_overwrite_the_new_account",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_other_account_cannot_recover_or_inherit_an_unconfirmed_attempt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_successful_attempt_cannot_use_another_accounts_recovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_switch_back_preserves_history_but_never_revives_authorization",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_unassigned_legacy_attempt_survives_restart_and_blocks_redemption",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_quota_accounts.QuotaAccountTests.test_unverified_push_cannot_mark_attempt_recovered_or_change_history",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_bad_fork_policy_cannot_enter_verified_threads",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_custom_side_arguments_cannot_enable_agents_or_replace_binary",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_dead_or_changed_process_is_never_restarted_for_old_session",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_every_new_side_process_probes_and_verifies_while_main_is_unchanged",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_feature_pages_share_one_deadline",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_feature_pagination_must_complete_and_use_exact_thread",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_fork_overrides_parent_and_rechecks_effective_thread_before_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_main_parent_resume_and_unknown_threads_never_receive_side_calls",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_missing_enabled_removed_and_alternate_multi_agent_flags_fail_closed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_old_owner_cleanup_cannot_clear_or_close_a_replacement_process",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_old_reader_generation_cannot_impersonate_new_connection",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_owner_cleanup_errors_cannot_skip_process_readers_or_stream_cleanup",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_reenabled_thread_never_receives_next_turn_and_stops_side_only",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_schema_must_declare_scoped_thread_and_object_overrides_not_unrelated_fields",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_startup_probe_has_no_stdin_is_bounded_and_uses_platform_options",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SidePolicyTests.test_unrecognized_probe_or_effective_capability_never_reaches_model_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SideSessionPolicyTests.test_delivery_unknown_is_distinguished_from_question_submission_unknown",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SideSessionPolicyTests.test_policy_change_invalidates_existing_side_without_parent_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SideSessionPolicyTests.test_uncertified_client_never_sends_question_or_inherited_boundary",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_side_policy.SideSessionPolicyTests.test_written_submission_lost_ack_is_unknown_without_retry_or_parent_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_both_doctors_share_explicit_versions_and_preserve_legacy_fields",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_build_configuration_has_no_independent_version_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_invalid_or_ambiguous_version_stops_before_creating_archive",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_release_gate_failure_never_writes_an_archive",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_release_main_derives_archive_and_compatibility_file_after_acceptance",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_source_archive_uses_captured_literal_and_replaces_stale_compatibility_file",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_source_import_is_not_replaced_by_an_older_installed_distribution",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix3_versions.VersionTests.test_windows_source_installer_uses_pip_root_without_reading_version_file",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_default_wait_budget_and_attempts_are_bounded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_definite_rejection_is_not_retried",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_explicit_429_uses_server_delays_and_same_bytes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_invalid_success_receipt_is_unknown_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_long_rate_limit_does_not_block_or_retry_early",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_malformed_upload_response_is_unknown",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_shared_policy_does_not_shorten_long_server_delay",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DefaultDocumentTests.test_uncertain_upload_is_never_repeated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_429_progress_merge_preserves_retry_deadline",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_batch_has_a_hard_message_count_bound",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_bot_owned_lifecycle_does_not_duplicate_controller_completion",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_cache_identity_expiry_empty_and_page_boundaries_without_task_execution",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_closed_navigation_cannot_be_overwritten_by_progress",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_closed_watch_and_old_quiet_generation_are_retired",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_default_controller_download_keeps_uncertain_feedback_without_durable_queue",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_diagnostic_samples_use_actual_100_limit_dedup_and_seven_day_boundary",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_document_429_blocks_progress_and_final_until_deadline_then_unknown_remains_unknown",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_document_receipt_is_validated_in_durable_path",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_document_size_and_type_limits_match_both_entrypoints",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_document_snapshot_survives_restart_and_cache_change",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_document_timeout_has_uncertain_feedback_and_no_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_download_checks_id_path_exact_limit_official_url_and_stream_growth",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_expired_question_protection_survives_batch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_failed_attachment_download_never_submits_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_hook_scanning_does_not_wait_for_delivery_worker",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_http_rate_limit_preserves_code_and_delay",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_http_requests_keep_verified_tls_bounded_timeouts_and_upload_type",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_inline_links_escape_markup_and_code_pages_preserve_complete_lines",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_managed_completion_cards_distinguish_success_and_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_manual_test_requires_explicit_entrypoint",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_navigation_creation_version_and_closed_buttons_are_guarded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_notification_metadata_optional_fields_empty_preview_and_subagent_default",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_notification_muted_combines_quiet_and_mute_without_credentials",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_only_pending_progress_can_be_replaced",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_pending_completion_uses_actual_200_limit_24_hour_expiry_and_seven_day_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_progress_scope_does_not_merge_other_versions_destinations_or_generations",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_question_hook_checks_event_and_async_only_hints_observer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_queued_output_wakes_waiting_worker",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_reaction_api_writes_are_serialized_between_processes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_restart_does_not_replay_inflight_document",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_setup_uses_interactive_chat_selection_and_rejects_invalid_bot_identity",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_shutdown_holds_machine_lock_and_database_until_upload_finishes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_subagent_stop_and_notify_share_exact_child_deduplication",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_submission_journal_persists_digest_checkpoint_and_source_before_binding",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_trusted_old_buttons_restore_full_id_but_forwarded_or_body_only_messages_do_not",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_two_panels_coalesce_and_final_question_fifo_precedes_progress",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_delivery.DurableDeliveryTests.test_watch_refresh_marks_only_progress_edits",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_attachment_is_explicitly_data_and_submission_fallback_keeps_target",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_backend_stop_fails_waiters_then_terminates_and_joins_readers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_bootstrap_skips_old_messages_and_one_bad_update_does_not_poison_next",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_callback_is_acknowledged_before_slow_query",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_command_file_and_permission_requests_keep_three_distinct_decisions",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_completion_respects_quiet_and_completion_notification_switch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_diff_prefers_event_then_history_and_never_submits_tasks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_long_detail_is_preview_only_and_does_not_mutate_history",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_new_turn_resets_progress_and_only_final_answer_becomes_completion",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_send_keeps_explicit_target_separate_from_body_and_input_intent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_shutdown_cancels_watchers_closes_side_and_backend_and_wakes_outbox",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_submission_feedback_edit_or_send_failure_never_reclassifies_accepted_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_event_contracts.EventContracts.test_watch_coalesces_changes_and_finishing_or_unwatching_does_not_interrupt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.AsyncEvidenceContracts.test_answer_is_persisted_submitting_before_desktop_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.AsyncEvidenceContracts.test_question_retention_cleans_only_own_bot_chat_after_thirty_days",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_aliases_use_current_page_and_ambiguous_id_prefix_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_command_parser_separates_suffix_arguments_and_preserves_plain_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_cwd_rejects_relative_or_missing_and_preserves_existing_tasks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_diff_extracts_only_latest_changes_and_empty_data_is_not_progress",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_jsonl_out_of_order_responses_and_exit_wake_each_waiter",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_log_query_is_bounded_and_read_only",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_message_projection_excludes_tool_and_reasoning_but_preserves_original_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_new_task_validates_directory_and_binds_first_input_only_to_created_thread",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_rotated_log_preserves_previous_file_and_redacts_new_credentials",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.LedgerContracts.test_usage_separates_cumulative_latest_context_time_and_supported_cost",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.SidePolicyContracts.test_side_idle_lifetime_is_three_hours_then_only_child_is_unsubscribed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_ledger_contracts.SidePolicyContracts.test_side_permissions_are_never_and_approval_requests_are_declined",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_both_controller_entrypoints_reject_before_workers_or_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_cancelled_but_inflight_timer_keeps_machine_lock_until_exit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_client_restarted_by_inflight_request_is_closed_before_unlock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_conflicting_socket_cannot_force_address_reuse",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_context_releases_after_startup_exception",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_controller_holds_reservation_until_shutdown_finishes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_fork_child_cannot_keep_parent_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_hook_entrypoints_remain_available_while_controller_holds_lock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_names_profiles_data_and_bot_identity_cannot_partition_lock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_process_with_other_configuration_is_blocked_then_acquires_after_crash",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_reservation_does_not_listen_and_is_not_inherited_by_exec",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_shared_controller_waits_for_inflight_worker_before_releasing_lock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_shared_shutdown_error_cannot_skip_pending_hook_writer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_unexpected_bind_failure_closes_handle_and_is_not_silenced",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_machine_lock.MachineLockTests.test_windows_requests_exclusive_binding_before_bind",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_atomic_state_replace_failure_preserves_old_file_and_user_values",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_authorized_old_screenshot_callback_reaches_shared_plugin_only_on_request",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_both_offline_doctors_do_not_connect_or_read_credentials",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_both_uninstallers_preserve_route_cache_credential_and_backup_bytes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_cli_binds_profile_before_importing_business_controller",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_cli_sigterm_runs_shutdown_before_releasing_controller_lock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_invalid_cli_runtime_exits_nonzero_before_controller_start",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_language_overrides_are_isolated_between_overlapping_threads",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_plugin_directory_and_entrypoint_symlinks_cannot_escape_trusted_root",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_plugin_start_and_idle_watch_do_not_execute_screenshot",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_service_command_binds_absolute_interpreter_profile_and_data",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_timed_out_plugin_worker_pid_has_exited",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_management_contracts.ManagementContractTests.test_windows_service_uses_the_current_desktop_account",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_ast_hash_ignores_new_empty_python_fields_but_keeps_assertion_changes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_current_report_passes_reviewed_but_native_is_separate",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_editing_mapping_or_test_after_review_invalidates_attestation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_empty_fingerprint_is_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_historical_passed_string_and_missing_native_files_cannot_complete",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_installation_metadata_and_workflow_are_part_of_source_set",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_malformed_native_json_shapes_are_rejected_without_crashing",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_native_content_and_source_version_are_verified",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_native_duplicate_results_or_failed_records_cannot_be_laundered",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_native_record_needs_observations_and_exact_rule_ids",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_new_removed_and_changed_source_files_are_detected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_new_rule_without_review_cannot_hide_in_reviewed_capability",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_repointing_to_unrelated_scenario_requires_reciprocal_review",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_report_and_native_results_do_not_create_hash_self_reference",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_reporter_records_failed_subtests_expected_failures_and_skips",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_reviewed_test_fingerprint_covers_fixture_but_not_unrelated_new_test",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_skipped_or_failed_duplicate_record_is_never_passed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_specific_plugin_exception_cannot_expand_to_common_feature",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_parity.EvidenceGateTests.test_user_deferred_windows_native_does_not_satisfy_complete_gate",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_adapter_selection_and_platform_specific_recovery_policy",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_dpapi_calls_use_user_scope_and_free_output_buffers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_interrupt_pins_original_turn_and_requires_matching_receipt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_legacy_and_paginated_history_use_only_read_methods",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_macos_changed_window_or_display_rejected_before_capture",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_macos_denied_screen_permission_never_launches_capture_or_requests_bypass",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_question_answers_require_explicit_typed_user_envelope",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_receipt_path_pins_full_thread_id_and_rejects_outside_profile",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_wayland_uses_portal_and_propagates_denial_without_image",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_windows_inventory_filters_store_main_process_and_helpers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_windows_job_uses_kill_on_close_and_releases_exact_handle",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_windows_pipe_server_pid_api_mismatch_and_denial_fail_closed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_platform_contracts.PlatformRuleTests.test_x11_changed_targets_and_invalid_png_cannot_return_fake_images",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_plugin_shutdown.PluginShutdownTests.test_shutdown_cannot_miss_job_paused_between_admission_and_thread_start",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_plugin_shutdown.PluginShutdownTests.test_side_chat_stop_waits_for_worker_final_reaction_after_app_exit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_plugin_shutdown.PluginShutdownTests.test_waits_for_inflight_job_and_watcher_without_holding_host_lock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ControllerCandidateTests.test_controller_shares_scan_state_and_uses_batched_history_hints",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ControllerCandidateTests.test_expired_serial_scan_wait_does_not_start_another_scan",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ControllerCandidateTests.test_serial_scan_wait_is_part_of_total_twenty_second_budget",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.LifecycleCandidateTests.test_completed_and_quoted_start_events_do_not_create_active_hints",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.LifecycleCandidateTests.test_indexed_tails_are_bounded_rotating_and_do_not_recurse",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.LifecycleCandidateTests.test_newest_invalid_database_does_not_fall_back_to_old_active_rows",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.LifecycleCandidateTests.test_removed_candidate_is_not_retained_as_priority",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_busy_known_tier_cannot_starve_lifecycle_candidates",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_cached_owned_active_metadata_is_not_live_proof",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_complete_fresh_enumeration_retires_deleted_cached_ids",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_five_second_budget_still_prioritizes_known_activity",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_hot_priority_set_leaves_one_full_read_for_ordinary_discovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_metadata_eviction_keeps_unvisited_ids_in_fair_rotation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_new_unflushed_task_is_found_without_starving_older_candidates",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_old_known_activity_precedes_recent_idle_rows",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_ordinary_candidates_make_progress_across_short_refreshes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_pagination_cannot_exhaust_live_verification_budget",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_recent_confirmation_is_rechecked_and_cleared_when_idle",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_short_budget_alternates_full_read_opportunities_instead_of_starvation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_slow_fresh_page_does_not_erase_historical_continuation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_unclosed_lifecycle_is_prioritized_but_does_not_prove_activity",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix6_running_tasks.ScanSchedulingTests.test_windows_sidebar_activity_precedes_metadata_and_preserves_title",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_authorization_precedes_attachment_and_plugin_dispatch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_bot_created_task_can_resume_its_own_background_thread",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_callbacks_from_other_users_cannot_modify_navigation_or_approvals",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_external_idle_task_is_not_resumed_without_desktop_owner",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_external_recovery_failure_never_resumes_in_bot_backend",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_external_task_uses_desktop_even_with_stale_local_active_state",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_group_requires_explicit_user_allowlist_and_rejects_anonymous_sender",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_old_imported_task_is_not_treated_as_bot_created",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_private_owner_can_send_commands",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_quiet_mode_blocks_delivery_before_owner_recovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.OwnershipAndAuthTests.test_raw_and_url_bot_tokens_are_redacted_without_explicit_token",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_abrupt_service_exit_terminates_bound_child",
+      "outcome": "skipped",
+      "reason": "Native Windows job lifetime"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_failed_initialize_closes_job_and_process",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_failed_job_assignment_terminates_unbound_backend",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_old_reader_exit_does_not_fail_new_process_requests",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_release_of_old_side_process_never_starts_new_backend",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_update_does_not_restart_backend_with_actual_active_thread",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.ProcessTests.test_update_does_not_restart_when_backend_state_is_uncertain",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_active_desktop_backend_overrides_stale_valid_hint",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_ambiguous_active_versions_fail_instead_of_switching",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_config_hint_is_validated",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_desktop_missing_has_no_cli_fallback",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_explicit_desktop_setting_takes_precedence_over_newer_cache",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_newer_vscode_and_path_cli_are_never_selected",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_non_desktop_override_is_rejected_even_with_desktop_installed",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_hardening.RuntimeTests.test_process_discovery_excludes_bot_and_vscode_children",
+      "outcome": "skipped",
+      "reason": "Windows runtime selection; POSIX has separate adapter tests"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_callback_payloads_stay_identical_after_switch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_catalog_coverage_and_placeholders",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_cli_language_is_explicit_and_persistent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_command_switch_and_pending_input_keep_original_payload",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_default_invalid_and_persisted_preferences",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_english_telegram_client_does_not_override_chinese_default",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_language_callback_and_unauthorized_sender",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_menus_default_chinese_with_selected_chat_override",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_profile_isolation_and_scoped_language",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_template_values_and_model_json_are_never_translated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_i18n.LanguageTests.test_unknown_quota_and_plugin_context",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_approval_and_input_prompts_separate_heading_fields_and_body",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_background_reconciliation_requires_confirmed_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_callback_navigation_edits_same_card_and_acknowledges",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_choice_keeps_received_until_submit_and_cancel_clears",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_close_navigation_deletes_only_panel_and_cancels_watch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_close_without_known_panel_cannot_delete_original",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_completion_before_submission_feedback_does_not_leave_thinking",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_desktop_and_stop_hooks_only_clear_after_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_desktop_completion_passes_task_id_to_title_lookup",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_diff_heading_separated_and_code_unchanged",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_direct_reply_uses_original_message_reactions_without_receipt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_download_is_bounded_and_does_not_trust_filename",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_download_rejects_oversize_and_hides_token_on_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_duplicate_choice_submits_only_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_failed_ok_is_persisted_for_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_hook_and_desktop_results_reply_to_original_message",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_idle_task_has_no_stop_button",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_immediate_response_uses_message_source_but_background_does_not",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_latest_same_turn_message_wins_and_late_old_binding_cannot_regress",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_legacy_terminal_reaction_retries_use_supported_replacements",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_logs_preserve_lines_inside_code_and_redact_credentials",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_managed_completion_attaches_cleanup_to_final_reply",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_managed_outbox_uses_exact_completion_source",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_manual_panel_deletion_allows_reopening_from_original",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_muted_completion_without_delivery_keeps_reactions",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_native_reply_source_isolated_by_bot_chat_task_and_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_navigation_bot_chat_and_original_are_isolated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_navigation_explicit_rejection_allows_new_create",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_navigation_preserves_original_and_reuses_panel_across_pages_and_restart",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_navigation_timeout_does_not_duplicate_panel",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_new_turn_remembers_telegram_source_without_reaction_dependency",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_notification_levels_and_global_silent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_notification_lookup_missing_or_corrupt_db_does_not_block_send",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_notification_uses_current_display_name_and_exact_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_old_cancel_does_not_cancel_new_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_old_completion_marker_is_not_delivery_proof",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_old_queued_watch_edit_cannot_overwrite_new_page_or_closed_panel",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_outbox_removes_reaction_only_after_successful_reply",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_outbox_send_failure_retains_thinking",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_photo_reply_passes_local_file_and_caption_to_selected_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_plain_panel_edit_removes_native_task_mapping",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_progress_subpage_has_back_and_close_and_leaving_cancels_watch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_question_answer_uses_reaction_and_suppresses_sent_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_question_reply_is_associated_even_when_reactions_are_unsupported",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_reaction_lifecycle_and_turn_isolation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_receipt_becomes_waiting_choice_without_extra_send",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_reconciliation_retries_clear_after_confirmed_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_reply_association_survives_reaction_failure_and_completion_cleanup",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_reply_to_new_card_without_visible_direct_button_keeps_route",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_rich_reply_fallback_keeps_target_and_timeout_is_not_resent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_task_detail_separates_fields_without_rewriting_reply_markdown",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_task_filters_and_exact_completed_status",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_task_lists_selection_and_progress_have_explicit_paragraphs",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_ui_context_does_not_capture_background_notification",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_unbound_file_never_downloads",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_unmanaged_completion_does_not_clear_before_notification_hook",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_unsupported_reactions_fall_back_without_blocking_submission",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_upgrade_recovers_current_turn_source_from_existing_reaction",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_interactions.InteractionTests.test_usage_fields_are_separate_paragraphs",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_ambient_sections_fields_and_scope_must_match",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_conflicting_explicit_source_or_thread_id_never_uses_template_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_crlf_templates_remain_supported",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_matched_notification_stops_before_credentials_cache_reactions_or_send",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_normal_suggestions_and_exclusions_are_delivered_in_both_paths",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_prior_request_cannot_label_later_turn_and_multiple_inputs_are_not_ephemeral",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_real_user_or_stored_unknown_thread_keeps_even_identical_request",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_safety_policy_footer_and_candidate_shape_must_match",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_supported_requests_are_classified_independently_of_output",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_unknown_exclusion_is_recorded_without_prompt_content",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_user_copies_quotes_or_discusses_request_without_being_filtered",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_internal_requests.InternalRequestTests.test_wrong_client_event_missing_id_and_oversize_are_preserved",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_legacy_scenario.LegacyScenario.test_original_scenario",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_code_examples_escaped_embeds_and_remote_urls_are_untouched",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_completion_ok_waits_for_full_text_after_photo",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_duplicate_image_references_upload_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_edit_or_page_refresh_does_not_upload",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_failed_photo_after_preview_keeps_path_button",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_long_path_button_is_isolated_by_bot_chat_and_expiry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_long_path_callback_displays_path_without_upload_or_task_command",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_missing_invalid_and_oversized_images_do_not_block_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_multipart_explicit_rejections_are_typed_and_redacted",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_multiple_photos_partial_failure_keeps_one_fallback_button",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_network_device_and_relative_paths_are_not_read",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_photo_after_notification_preview_is_still_uploaded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_relative_notice_image_uses_cwd_and_does_not_send_private_fields",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_reply_photo_count_and_byte_budgets_use_paths_for_remainder",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_short_path_button_and_unicode_limit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_upload_precedes_text_and_preserves_both_reply_routes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_upload_rejection_keeps_text_and_copy_path_button",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_upload_timeout_is_not_retried_and_text_still_sends",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_local_images.LocalImageTests.test_windows_paths_file_uri_angles_and_relative_base",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.BootstrapTests.test_running_service_stops_before_pip_and_recovers_on_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_corrupt_hooks_do_not_modify_config",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_failed_registration_restores_original_config",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_failed_restart_restores_existing_installation_record",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_foreign_notify_requires_explicit_replacement_and_restores",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_hook_only_install_does_not_touch_service",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_install_and_uninstall_preserve_unrelated_settings_and_data",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_reinstall_does_not_duplicate_hooks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.InstallTests.test_uninstall_respects_new_notify_config_changed_by_user",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceDefinitionTests.test_launch_agent_has_exact_argument_boundaries",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceDefinitionTests.test_schtasks_text_with_utf16_declaration_is_normalized",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceDefinitionTests.test_systemd_quotes_percent_dollar_and_spaces",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceDefinitionTests.test_task_xml_preserves_unicode_and_rejects_malformed_definitions",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceDefinitionTests.test_windows_task_is_xml_not_a_shell_script",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceRecoveryTests.test_failed_first_install_removes_only_created_agent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceRecoveryTests.test_linux_service_rollback_restores_content_and_prior_state",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceRecoveryTests.test_other_profiles_launch_agent_is_never_removed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_management.ServiceRecoveryTests.test_windows_service_rollback_reimports_original_xml",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_deduplication_retention_and_concurrent_writers",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_latest_request_flags_never_inspect_older_or_reply_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_ordinary_answers_and_attributed_suggestions_do_not_create_samples",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_oversized_and_deep_inputs_are_bounded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_sample_waits_for_brief_competing_writer_without_losing_occurrence",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_sensitive_values_and_unknown_field_names_are_never_persisted",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_structured_metadata_types_and_conflicts_are_visible",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_unknown_notification_is_held_with_original_json_not_sent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_unknown_suggestion_is_recorded_but_not_filtered",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_notification_diagnostics.NotificationDiagnosticTests.test_write_failure_does_not_change_classification_or_leak_exception",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_async_plugin_defers_generic_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_attachment_without_task_gets_error_before_download",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_error_reaction_network_retry_is_retired_after_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_error_reply_is_detected_even_when_handler_returns_normally",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_failed_quota_refresh_button_ends_in_error",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_failure_to_send_query_reply_never_sets_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_leading_space_command_does_not_become_pending_task_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_new_task_submission_does_not_finish_on_acceptance",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_other_regular_commands_share_feedback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_pending_direct_reply_does_not_claim_unquoted_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_quota_failure_never_sets_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_quota_query_has_received_processing_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_quota_refresh_button_reacts_on_clicked_card",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_rejected_running_choice_marks_original_input_failed_and_retires_feedback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_restart_marks_old_operation_error_without_replaying_query",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_side_chat_defers_generic_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_startup_cleanup_does_not_touch_new_operation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_task_submission_does_not_finish_on_acceptance",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unauthorized_message_and_callback_receive_no_reaction",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_uncertain_running_choice_keeps_original_feedback_unresolved",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unhandled_command_failure_sets_error_and_preserves_exception",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unknown_callback_submission_shows_warning",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unknown_command_gets_error",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unknown_quoted_message_gets_error_without_task_submission",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unknown_submission_neither_claims_failure_nor_success",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unqualified_text_gets_error_and_task_selection_guidance",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_operation_feedback.OperationFeedbackTests.test_unsupported_reactions_do_not_block_query_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.BackendContracts.test_both_clients_launch_with_windows_hidden_window_and_owned_job",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.BackendContracts.test_compatibility_imports_are_the_same_module_not_copied_code",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.BackendContracts.test_posix_keeps_process_group_semantics",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.InstallerParityTests.test_both_backends_rollback_files_and_service_when_windows_start_fails",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.InstallerParityTests.test_foreign_service_is_rejected_before_changing_any_hooks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.InstallerParityTests.test_nonzero_start_status_is_a_transaction_failure",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.InstallerParityTests.test_windows_linux_start_explicitly_and_macos_bootstrap_starts_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.RecoveryCommandTests.test_default_windows_dispatch_remains_desktop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.RecoveryCommandTests.test_invalid_runtime_never_blocks_credential_setup",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.RecoveryCommandTests.test_invalid_runtime_never_blocks_service_recovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.RecoveryCommandTests.test_invalid_runtime_still_prevents_run",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platform_compatibility.RecoveryCommandTests.test_uninstall_selects_owned_manifest_without_loading_runtime",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.NativeUnixTransportTests.test_abrupt_parent_exit_reaps_owned_child",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.NativeUnixTransportTests.test_group_writable_socket_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.NativeUnixTransportTests.test_invalid_frame_is_not_interpreted_as_json",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.NativeUnixTransportTests.test_real_peer_and_fragmented_coalesced_frames",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.NativeUnixTransportTests.test_symlink_socket_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.NativeUnixTransportTests.test_wrong_server_pid_rejected_before_any_write",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PathAndCredentialsTests.test_ambiguous_legacy_installations_require_explicit_selection",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PathAndCredentialsTests.test_keyring_config_contains_only_reference",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PathAndCredentialsTests.test_legacy_routes_and_credentials_reused_without_copying",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PathAndCredentialsTests.test_machine_lock_excludes_another_instance_and_releases",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PathAndCredentialsTests.test_new_data_is_separate_from_package",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PathAndCredentialsTests.test_no_plaintext_fallback_on_keyring_error",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PosixDiscoveryTests.test_asar_header_is_bounded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PosixDiscoveryTests.test_linux_desktop_package_is_required_not_cli_basename",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PosixDiscoveryTests.test_mac_bundle_identity_and_electron_metadata_both_required",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PosixDiscoveryTests.test_mac_nested_bundled_runtime_found_before_starting_a_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PosixDiscoveryTests.test_native_endpoint_grammar_rejects_traversal_and_wrong_service",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_platforms.PosixDiscoveryTests.test_unpaired_cli_override_rejected_before_returning_runtime",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_bundled_screenshot_discovered_and_markdown_retired",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_callback_bound_to_chat_panel_revision_and_expiry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_disabled_removed_syntax_invalid_and_conflicting_plugins_isolated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_document_and_album_reply_to_command_without_automatic_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_duplicate_request_and_busy_clicks_cannot_start_two_jobs",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_hot_update_uses_new_code_and_inflight_snapshot_is_immutable",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_invalid_output_and_attachment_escape_rejected_before_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_local_config_change_is_loaded_and_changes_callback_revision",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_ok_reaction_only_after_delivery_failure_not_retried_and_lock_released",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_panel_navigation_invalidates_sibling_buttons",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_plugin_command_and_callback_authorization_stays_in_core",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_reserved_commands_and_unknown_api_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_timeout_terminates_worker_and_exception_does_not_escape",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_worker_keeps_bound_profile_when_inherited_environment_changes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_worker_language_and_translated_menu_with_legacy_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_plugins.PluginTests.test_worker_round_trip_without_model_or_secret_environment",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_attributed_internal_output_still_skips_without_body_heuristics",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_bounded_history_reports_truncation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_history_uses_pages_and_preserves_chronological_order",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_nonblocking_prompt_is_labelled_and_expiry_rejects_answer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_normal_json_is_preserved_even_with_internal_shape",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_old_transport_prompt_cannot_answer_new_process",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_resolved_request_only_removes_matching_thread_and_request",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_restart_nonce_does_not_reuse_old_callback_sequence",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_scalar_form_rejects_invalid_answer_before_advancing",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_stop_requires_the_exact_confirmed_interrupted_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_time_request_and_unsupported_verification_have_typed_responses",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_unavailable_stop_is_not_offered_and_no_backend_is_resumed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_protocol_adaptation.ProtocolTests.test_wrong_turn_item_and_duplicate_cursor_are_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_async_questions_observed_during_quiet_are_not_replayed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_attachment_is_rejected_before_download",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_background_generation_invalidates_late_side_replies",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_enable_cancels_watch_and_reservation_without_interrupting_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_execution_boundaries_reject_work_even_without_command_dispatch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_hook_processes_read_quiet_mode_before_credentials_or_network",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_managed_completion_and_blocking_question_are_silent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_persisted_mode_keeps_mute_and_routing_preferences",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_queries_and_settings_still_dispatch",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_queued_and_quiet_period_events_are_not_replayed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quiet_mode.QuietModeTests.test_text_and_old_buttons_cannot_submit_or_run_plugins",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_reaction_acknowledgements.ReactionAcknowledgementTests.test_definite_rejection_stays_false_and_submission_keeps_text_and_target",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_reaction_acknowledgements.ReactionAcknowledgementTests.test_only_confirmed_success_is_deduplicated_and_old_state_is_revalidated",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_reaction_acknowledgements.ReactionAcknowledgementTests.test_rejection_does_not_block_new_state_or_transient_retry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_async_answer_recovers_owner_and_keeps_question_and_turn_identity",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_confirmed_interrupt_then_idle_allows_one_follow_up",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_direct_reply_to_unloaded_active_task_prompts_then_appends_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_interrupt_unknown_prevents_follow_up",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_native_activity_overrides_stale_bot_and_rollout_state",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_quiet_mode_blocks_interrupt_before_navigation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_send_selection_loads_unopened_idle_task_and_starts_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_steer_prompt_recognizes_unloaded_active_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_stop_recovers_owner_without_backend_interrupt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_task_detail_from_notification_uses_live_status_and_stop_button",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_unloaded_steer_mismatched_ack_is_unknown_and_not_replayed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_unverified_idle_after_stop_prevents_follow_up",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedBotTests.test_watch_reads_active_ios_state_even_without_local_lifecycle_event",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_capability_without_navigation_tool_fails_closed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_cross_instance_broker_failure_never_attempts_recovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_instance_restart_during_recovery_cannot_interrupt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_interrupt_checks_turn_again_after_navigation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_interrupt_loads_once_and_pins_original_turn_in_protocol_v4",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_lost_interrupt_ack_never_repeats_or_sends_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_stale_or_missing_turn_never_navigates_or_interrupts",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_remote_tasks.UnloadedControlTests.test_unknown_native_state_is_not_idle",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_command_dispatch_and_menu_discoverability",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_detail_returns_to_running_page_and_rechecks_desktop_status",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_incomplete_empty_result_does_not_claim_that_no_task_is_running",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_pagination_preserves_active_filter_and_aliases",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_refresh_rechecks_runtime_and_clears_stale_cached_active_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_stop_and_steer_selectors_share_live_running_scan",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningPanelTests.test_waiting_flags_workspace_and_direct_reply_are_shown",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_bot_owned_turn_requires_active_status_from_current_backend",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_budget_expiry_is_marked_incomplete",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_empty_history_does_not_create_a_fake_task_to_query_desktop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_failed_or_mismatched_live_read_is_not_reported_as_no_tasks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_follower_without_sidebar_checks_live_state_even_before_history_flush",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_ios_background_turn_is_checked_even_when_sidebar_is_not_loaded",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_live_desktop_overrides_unloaded_metadata_and_keeps_real_title",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_missing_lifecycle_record_is_checked_in_desktop_instead_of_assuming_idle",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_native_disconnect_propagates_instead_of_becoming_an_empty_list",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_older_running_task_on_later_page_is_not_lost_at_sidebar_limit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_pagination_cycle_retains_confirmed_results_and_warns_about_coverage",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_remote_other_source_and_idle_tasks_are_not_running_local_codex",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_unavailable_local_runtime_does_not_claim_to_be_an_empty_list",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_running_tasks.RunningQueryTests.test_unclosed_crashed_turn_is_only_a_candidate_not_live_proof",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_invalid_or_huge_image_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_minimized_window_restored_after_child_timeout",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_negative_monitor_coordinates_and_vertical_layout",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_old_screenshot_buttons_delegate_to_plugin_without_model",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_one_photo_and_album_limit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_other_chat_cannot_request_screenshot",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_oversized_photo_rejected_before_sending_without_file_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_partial_capture_returns_successful_screens_and_warning",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_photo_group_uses_unmodified_input_and_reply_target",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_plugin_captures_monitors_first_but_returns_codex_first",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_png_preserves_colors_dimensions_and_row_order",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_reused_hwnd_rejected_by_pid",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_screen_capture.ScreenTests.test_store_build_recognized_without_matching_normal_chatgpt",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_browsing_and_help_preserve_preferences_and_pending_inputs",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_invalid_and_unauthorized_settings_cannot_write",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_language_switch_refreshes_menu_and_keeps_back_navigation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_menu_quota_first_settings_consolidated_and_plugins_last",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_notification_actions_are_explicit_and_preserve_credentials",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_plugin_markers_follow_language_and_fit_description_budget",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_settings.SettingsTests.test_settings_cwd_and_legacy_commands_remain_available",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.PollingRecoveryTests.test_polling_commits_offset_before_action_and_never_replays_duplicates",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_command_requires_action_and_file_change_requires_reviewable_diff",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_cwd_only_changes_default_and_not_selection_or_ownership",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_failed_completion_carries_failure_reaction",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_failed_delivery_cannot_later_become_success_when_binding_arrives",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_fast_completion_before_start_ack_does_not_resurrect_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_foreign_and_old_turn_requests_are_rejected",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_group_allowlist_reuses_canonical_authorization",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_import_covers_more_than_recent_hundred_conversations",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_import_is_idempotent_and_does_not_replay_jobs",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_major_business_rules_are_the_same_implementation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_mcp_url_requires_explicit_callback_and_unsafe_url_declines",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_network_only_request_shows_protocol_and_target",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_old_reply_keeps_original_thread_after_selection_changes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_old_turn_completion_cannot_clear_new_turn",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_permission_request_never_grants_unknown_decision_or_expands_scope",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_plain_text_never_uses_historical_selection_or_creates_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_quiet_blocks_old_button_and_text_but_keeps_queries",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_running_reply_shows_choice_without_steering_or_interrupting",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_stale_question_cannot_submit_after_turn_changes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_upgrade_old_new_task_button_is_read_only",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_shared_controller.SharedControllerTests.test_windows_callback_protocol_is_accepted_by_mac_profile",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.BundleTests.test_install_upgrade_retire_and_preserve_unrelated_plugin",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.BundleTests.test_modified_plugin_preserved_and_new_package_not_overwriting",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.CreditTests.test_credit_balance_separate_from_reset_cards_and_limits",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.CreditTests.test_missing_invalid_zero_unlimited_and_other_bucket",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_ambiguous_submission_and_old_completion_do_not_leak_to_main",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_callback_branch_consumes_choice_without_interrupt_or_steer",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_closed_and_other_chat_routes_are_not_reused",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_duplicate_click_submits_only_once_and_busy_side_rejects_steering",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_expired_idle_sessions_release_only_their_original_backend",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_fork_boundary_readonly_and_only_child_receives_question",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_quiet_interval_suppresses_late_answer_without_interrupting_task",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_reply_continues_same_side_without_forking_or_touching_parent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_reply_router_prefers_side_route_and_command_resolves_reply_target",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_restart_expiry_never_redirects_to_parent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_side_chat.SideTests.test_sending_failure_keeps_non_ok_and_does_not_retry_model",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_account_changed_and_card_gone_fail_closed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_activity_reset_same_deadline_then_depletion_does_not_trigger",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_cancel_duration_selection_allows_return_without_arming",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_cancel_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_command_cannot_reset",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_completed_reset_allows_new_explicit_authorization_after_recovery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_duplicate_immediate_does_not_replace_confirmation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_duplicate_reservation_does_not_extend_expiry",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_durable_before_consume_and_concurrent_ticks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_duration_requires_same_actor_message_and_valid_choice",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_duration_selection_expires_and_reset_invalidates",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_event_worker_does_not_hide_recovery_from_executor",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_expiration_and_old_button_do_not_rearm",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_expired_confirmation_actor_chat_message_spoof",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_expiry_during_last_read_blocks_consume",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_expiry_is_capped_at_natural_reset",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_five_hour_cannot_authorize_reset",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_five_hour_has_no_alert",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_immediate_cancels_active_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_immediate_requires_confirmation_and_rechecks_five",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_immediate_reset_confirmation_has_distinct_heading_and_no_consumption",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_immediate_success_duplicate_click_and_old_alert_locked",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_missing_data_cancels_and_never_rearms",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_missing_snapshot_cannot_unlock_second_credit",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_natural_new_cycle_old_button_never_works",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_no_credit_and_unknown_outcome_stop",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_partial_recovery_invalidates_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_pinned_card_not_replaced",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_queue_overflow_cancels_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_quota_card_and_credit_notice_have_readable_paragraphs",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_quota_countdown_handles_short_elapsed_and_missing_reset_times",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_quota_query_allows_advance_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_read_failure_cancels_reservation_without_consume",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_real_callback_immediate_confirmation_same_card_is_single_use",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_real_callback_scope_updates_reservation_card_without_rearming",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_recovery_event_during_final_read_cancels",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_reservation_picker_and_card_keep_paragraphs_and_current_duration_hint",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_reserve_exact_three_not_triggered_then_single_use",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_restart_cancels_reservation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_rpc_event_never_waits_for_reset_lock",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_six_hour_duration",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_threshold_buttons_weekly_only",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_timeout_never_retries_even_restart",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_twelve_hour_duration",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_twenty_four_hour_duration",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_quota.QuotaTests.test_unavailable_card_result_never_uses_second_card",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_desktop_client_and_input_array_are_required",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_existing_user_or_unknown_stored_thread_overrides_copied_request",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_generation_purpose_does_not_depend_on_reply_json",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_generation_request_filtered_before_credentials_send_and_completion",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_history_generation_marker_never_labels_later_user_input",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_missing_different_or_extended_schema_does_not_prove_generation",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_quoted_partial_or_body_only_marker_is_preserved",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_unreadable_profile_or_explicit_conflict_does_not_use_input_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.PredictionRequestTests.test_whitespace_and_crlf_do_not_hide_observed_request",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_both_completion_paths_mark_ok_only_after_fallback_delivery",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_code_and_escaped_pipes",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_conflicting_or_invalid_explicit_source_preserves_reply",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_display_expansion_creates_cache_but_keeps_original",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_empty_cells_breaks_and_html_safe",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_empty_suggestions_literal_does_not_normalize_or_search_content",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_empty_suggestions_literal_skips_delivery_and_completion_in_both_paths",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_enormous_row_preserves_content",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_exact_suggestion_json_without_purpose_is_preserved",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_fallback_transport_failure_is_not_retried_or_bound",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_fenced_and_indented_code_not_transformed",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_fenced_table_not_reinterpreted",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_followup_suggestion_envelope_recognized_for_both_payload_styles",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_followup_suggestion_never_sends_or_completes_task_in_either_path",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_generic_origins_and_ephemeral_status_do_not_prove_internal_purpose",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_internal_suggestions_filtered_in_both_notification_paths",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_invalid_rich_media_and_html_rejection_reach_plain_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_invalid_rich_media_falls_back_with_reply_route",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_known_internal_source_is_independent_of_message_text",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_long_table_pagination_preserves_all_fields",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_malformed_row_preserved",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_missing_or_unsupported_state_schema_preserves_json",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_multiple_backticks",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_edit_and_unchanged",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_reply_dispatch_and_unknown_reply_does_not_fall_through",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_reply_full_reply_pages",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_reply_persists_and_isolates_chat_and_bot",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_reply_rejects_lists_and_quota_buttons",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_send_preserves_markdown_and_buttons",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_native_send_records_only_successful_messages",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_nested_thread_source_can_prove_internal_purpose",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_newer_record_without_purpose_does_not_inherit_stale_source",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_no_downgrade_or_resend_on_ambiguous_or_unrelated_errors",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_no_false_positive_without_valid_separator",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_optional_outer_pipes_and_alignment",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_plain_fallback_uses_readable_cards",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_preview_does_not_cut_a_table_row",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_recorded_thread_source_is_read_only_and_profile_scoped",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_redundant_reply_button_hidden_but_route_preserved",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_regular_answer_with_suggestion_content_still_delivered_in_both_paths",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_regular_json_and_suggestion_examples_retained",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_screenshot_shape_and_formatting",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_suggestion_examples_and_other_json_do_not_match_internal_envelope",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_transform_idempotent",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_ui_sections_survive_rich_send_edit_and_html_fallback",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_telegram_tables.TableTests.test_unsupported_edit_fallback_preserves_id_and_keyboard",
+      "outcome": "passed"
+    }
+  ],
+  "source_sha256": {
+    ".gitattributes": "d70d7dbb000b96ae1ed8185a75c55abf70f950b01b194befe0806472e4068f5c",
+    ".github/workflows/tests.yml": "9290acf8742ac9a2d120d049fa522773d5525f0e6ce312a05a68d1536e0621d5",
+    ".gitignore": "6b8bf638c6e49f128c57f9a1fdf92e5c3817f5192fbf76ab7d85ea1db97e0e29",
+    "CHANGELOG.md": "3300bae5d058fddd1f34805edc9d1aa9ab720a4fab6ebf48ad889dcafd3261c7",
+    "LICENSE": "5b8c2c43a9acc98f40b6c4e9ebb88a0324bd2fd44f3b7606c9174caf3d578ee2",
+    "MANIFEST.in": "d5eb2249e3fc97cb27f2c3a3a7c6d503959c016f72917d6aa18cb51b1bbf6bd2",
+    "README.en.md": "2084dfc02d76fbcaffa0ed373f92463ab8174ee304bac07cb686933594d8405a",
+    "README.md": "a795301a0031710c59188fea7a67c9bc6be4392b2d45cb557e9402bf3de91ddf",
+    "SECURITY.md": "829c5a80edeaa5303f01ddf52ca65e2cbb3bb74f7c658e4074c8aa983880b2c3",
+    "docs/README.en.md": "336d751c254fd30fc1bc0ae85aa0362a4eb4a680cb8f4017f16120472e0619a3",
+    "docs/README.md": "0603eaee145668410c555ce9fb76638eff60fc93b0a4f252b8f49dbeebcadb6e",
+    "docs/app-server.md": "94703b1384b46dc96db610b5b1442f3618d322056b3882d819dc006750773b2e",
+    "docs/architecture.en.md": "3667cf02a480547c2bc4902057b207067ed8b453c9baebc247b330d57ab0df0a",
+    "docs/architecture.zh-CN.md": "836274a7940df2e8369c5914488b31787ab1da7ad687cf752861678b0d05adb7",
+    "docs/notifications.en.md": "d76d6719b77c98b5da5f538d6b9a6ea07b91aa67938869db580b861e1d71daca",
+    "docs/notifications.zh-CN.md": "352c4b1f98d1a7ab4df5baf3fdadd77f44994486d594a554ad2523d1c9f0120f",
+    "docs/parity-audit.md": "c98c062d02981a3bf64e9c7c0f370ce0f3185b7aed331dbca62d7f2f9a4b88f9",
+    "docs/parity.json": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448",
+    "docs/plugins.en.md": "1a9ff3c17a25c462b36f18acf4e4e6f95c2dd4a528b70142dd16dc571c1294bf",
+    "docs/plugins.zh-CN.md": "faece0660d9e9d35882f8783a8b656e8efe6546bf437b3e39f766756ce05758b",
+    "docs/setup.en.md": "33c80e681bab597539444394c971d9414c50c059f71266976ba21468f32bde79",
+    "docs/setup.zh-CN.md": "49976b8b545db52b967c641cd801dc4635c87d03b8a9e068d4b651afeec7f471",
+    "docs/test-migration.json": "1220c89cfd71620413e01179ec8fc4be6102626e02a19bad271fc446d8fb4fd4",
+    "docs/testing.en.md": "83d5f5cc126a45c7467b5635a2acc6f52ac2d19302a1f38398d85fa568546bbc",
+    "docs/testing.zh-CN.md": "630edfefab56b8ca1506951a64bb1377061495803943344a0c711d4a8960f498",
+    "docs/usage.en.md": "6084667b8b82d0d60ddb211c3569ed6a37b38e7c8a6dd6e7d420b092a4269777",
+    "docs/usage.zh-CN.md": "0c5ce1d89fcca92b0f57988f62fea61b3dfd2fd8891c4c00db89221cd33a300f",
+    "install.py": "2ec02341dba47a97269352e671c86a3efd7e8fb76b49ef2c2dfccefc2daf3a22",
+    "pyproject.toml": "9130cf8ef0e0b317c89d50c87ba3e378aade14fc585b207f681f8a5cf2bdbf70",
+    "src/app_codex_telegram_bridge.egg-info/PKG-INFO": "9e141dfd124dfdda3afa664b1ce760cbfc2aebda4e290e3baaf78a340d82738c",
+    "src/app_codex_telegram_bridge.egg-info/SOURCES.txt": "1de801a67e7e1d7e079830da671375cee522e2cec6f47cc2e021e2b97412e917",
+    "src/app_codex_telegram_bridge.egg-info/dependency_links.txt": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "src/app_codex_telegram_bridge.egg-info/entry_points.txt": "8452bf2c7daba5167b95e3cd67ca15c00b84d40689fa442a4b0fb5ad4afd29f4",
+    "src/app_codex_telegram_bridge.egg-info/requires.txt": "23a4c66b0018b35ff3f50548ad59fabe94db4d997aa67b5e625ca688c302bdfa",
+    "src/app_codex_telegram_bridge.egg-info/top_level.txt": "f6effa989af7a7eea3565ab38e256393b859cfb82da21e77a688088e83ff2b2c",
+    "src/codex_telegram_bridge/__init__.py": "937015f1ac0ba2c02376bdaa74cfc08f5b635805118fa71dce07e02dc9bddd8e",
+    "src/codex_telegram_bridge/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "src/codex_telegram_bridge/app.py": "8db653e479d727260dfe6799723e495f85a2715753f3088ec048ca034afa5ea3",
+    "src/codex_telegram_bridge/app_server_approvals.py": "ada4929b5b4b8d70ab87baccd34960d6f9816263dc029e8bce43b9eadd7a1b04",
+    "src/codex_telegram_bridge/app_server_bot.py": "d77cabb9521d024f792056711ae274e76b9b8cdd964a3db9ab0bdfd07f27b19f",
+    "src/codex_telegram_bridge/app_server_features.py": "28ddc4ee6eca3fa201a39e5613c1ee367f110e0afa35c61872a390868fbede0b",
+    "src/codex_telegram_bridge/app_server_ui.py": "a62a63e35d84b4302deed95112b97356278624c46b4cd895617fe8ddc4b4e08b",
+    "src/codex_telegram_bridge/backends/__init__.py": "f2b1f69b21774285110990838ead34199d664113a87fbc8725080fb3d15f6b55",
+    "src/codex_telegram_bridge/backends/app_server/__init__.py": "f2b1f69b21774285110990838ead34199d664113a87fbc8725080fb3d15f6b55",
+    "src/codex_telegram_bridge/backends/app_server/approvals.py": "4bc02b685241a985889ab1a2edc9aad5930eabb9415009709f7176d05f464049",
+    "src/codex_telegram_bridge/backends/app_server/bot.py": "2e21e1be8b9ae53cfd06a0bef0c266eb4ae7617e75f088da26d6896bbd3a5713",
+    "src/codex_telegram_bridge/backends/app_server/client.py": "75d3e0416cc495c00b29d7a0d81c92bc826e618b007672f7e2ca047b418a0086",
+    "src/codex_telegram_bridge/backends/app_server/commands.py": "8a72875b45227576b3a082e780110f6138c44ba75e03081ba8f4b44bae9e2f28",
+    "src/codex_telegram_bridge/backends/app_server/compatibility.py": "8e5d55fa42de8a3f939330a8a32445fa1070e9cd9204514381789212c60232cd",
+    "src/codex_telegram_bridge/backends/app_server/feedback.py": "0896c7051468d70e8c2683bdc5f47aa175ed75d0719d798694bfbeac26bfa6bb",
+    "src/codex_telegram_bridge/backends/app_server/install.py": "dc0594aa9fff4b56e73482247ca18f13f644fcb5140feff3dcef591530b6c744",
+    "src/codex_telegram_bridge/backends/app_server/runtime.py": "342a77b061b783a5e3929027e7ac8d40ae6a46028e90d31aa97ea830e1bf54b5",
+    "src/codex_telegram_bridge/backends/app_server/ui.py": "b994ab808576a994595f88642e4ec44e677b3a5b1dc72470120e04d3de0cef53",
+    "src/codex_telegram_bridge/backends/desktop/__init__.py": "f2b1f69b21774285110990838ead34199d664113a87fbc8725080fb3d15f6b55",
+    "src/codex_telegram_bridge/backends/desktop/bot.py": "ce6006adaa89e168bea23830d4ade4ec75aeb14cad7efe4755f1d28d44dd2b34",
+    "src/codex_telegram_bridge/cli.py": "0176e3dd0a232c49361274caeb95363b4b9d12bac97d5ba16f4a644ccc33ba2d",
+    "src/codex_telegram_bridge/codex/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/codex/app_server.py": "dcb22e28620bdfa9c4cfb5858f1434c42b12a1f16429497a60867e76a2855b47",
+    "src/codex_telegram_bridge/codex/app_server_state.py": "758f193b63cb2e9d1c11c2684a99f2ffa1a5de1701739152e66357eb81d66448",
+    "src/codex_telegram_bridge/codex/desktop.py": "d00c8c328a373fcc1a2b2ae06689eb478f92c65200988de94f5b3bd085358529",
+    "src/codex_telegram_bridge/codex/errors.py": "803da3b3822eaced790794f8dc4738be28280d8414c1a5d4ce0bec5c345852fc",
+    "src/codex_telegram_bridge/codex/follower.py": "a1ca634cc7ba74797a424e1064a93314f261fc15680fd6c21abc1eec0ead23d4",
+    "src/codex_telegram_bridge/codex/history.py": "cee9475e241c2ff2c3e2348eb78e88b4407790bb35d828a723791160d84f3a41",
+    "src/codex_telegram_bridge/codex/ipc.py": "48677a5641d529a00cd48e45b0a08f81c83d37610b37ab639184972535676803",
+    "src/codex_telegram_bridge/codex/receipts.py": "b9f27c8b8f3bc6b3817f6ae28314c1380953217a62c7e17e280ff3842c4ccd2f",
+    "src/codex_telegram_bridge/config.py": "eb36d7da8af9a015c52b4ec49c0bf335eacc0431072ea7f89e4719ef67f11e29",
+    "src/codex_telegram_bridge/core/__init__.py": "8d398146608bf553a8432b0bbc6fc595d5b4dd3e65479572bf2f1f6f163aa3e2",
+    "src/codex_telegram_bridge/core/bot.py": "5c3ffd9b3047350daf4c0dc738224a360afd2f5c6a0360a5ba9f33e353b7c0b3",
+    "src/codex_telegram_bridge/core/runtime_policy.py": "64e7e5c8d9ba80ab9ad24dab3447d8cf4b51fa530523624f14253ff5c18bf37a",
+    "src/codex_telegram_bridge/core/side_policy.py": "21035ef34148a0b0b6ba62845d0949fb4845678c486e1d779b461cc29d7ae845",
+    "src/codex_telegram_bridge/features/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/features/async_inputs.py": "3e1e6f4b86d7cfe404a297430d925be9d532b5bc2a9be81aff77c92220e195e2",
+    "src/codex_telegram_bridge/features/elicitation.py": "e62e64deda68e47280e645fc49a2ebd7def490c0a5769a05fd61a03c8ef89b3a",
+    "src/codex_telegram_bridge/features/quota_reset.py": "1c4358e6e767198e2795709059faa3f5d172a8d73e18ce4644b539318e951d5a",
+    "src/codex_telegram_bridge/features/quota_state.py": "d005346d5b3f6c3e8aa5d8809737c9c47943218404edb19efb1b6fdb549a7f08",
+    "src/codex_telegram_bridge/features/request_policy.py": "e68d6acfcaf4e5e258a4394dbc18a375b79ed42d432a3b9749131bce9149bc6e",
+    "src/codex_telegram_bridge/features/running_tasks.py": "ffe1944efb0651fc1ae0999870890facc4bc83b1d73394cfe94dca8af5384b5b",
+    "src/codex_telegram_bridge/features/runtime_options.py": "44131b8982083b39e08bb5b792b9f840ae2018a327dea14b7c4928a9c7c7370b",
+    "src/codex_telegram_bridge/features/side_chat.py": "71d6b96c032286cbc531feb2cc2c0800c64077e7f9067e670fcad0e684a8fa3b",
+    "src/codex_telegram_bridge/i18n.py": "c3518d82eddd1ece6d25376c9ad2bfe9483a22cf329881f38cbc3bc5045917b7",
+    "src/codex_telegram_bridge/management/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/management/connection_check.py": "16576f48623722829f75974c96f320528b38e7a00c692be2b4236880c35a43f3",
+    "src/codex_telegram_bridge/management/desktop_hook.py": "9da4e14c00a4ca7b1f325aa9cdf4266ebc9c3202b0c6ef4e3167a00fab15b205",
+    "src/codex_telegram_bridge/management/doctor.py": "882127876cef8acbdb713e8af731a38c875b33ec4b53e336c379bfc849d7e182",
+    "src/codex_telegram_bridge/management/hook_handlers.py": "98d9fa3b71711502da4194ecd3815fa018ecc61729035d6398e2e975855fbf81",
+    "src/codex_telegram_bridge/management/install.py": "b5077b6baf9318fc8fc1ee3415879ad184dbb2008d84b08bfab122d77eec2645",
+    "src/codex_telegram_bridge/management/runtime.py": "e891c8cd9496b37fc4815230ba1a89420b36c5fad029d6e0e3d231489d8f6670",
+    "src/codex_telegram_bridge/management/services.py": "4ff2720d6cdf5b35ded37a53673e9c82eb3195b79155d4ae5852e6dce0b8665d",
+    "src/codex_telegram_bridge/management/transaction.py": "1674039f178a45895f3d76f266417d88f6efa213ee5131290d3eec92893b3531",
+    "src/codex_telegram_bridge/paths.py": "8cd4739e967d91f749ab17cc87e6d145a519c31928e77b1f3e201fc4022d55da",
+    "src/codex_telegram_bridge/platforms/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/platforms/capture.py": "ca630542d546bc07cf5f2ee8de444cd9d5814c498f804da8dd95d2b865aa1a11",
+    "src/codex_telegram_bridge/platforms/desktop_access.py": "a000c40240b8d24eecee734cd70b48b82a70160333934693c5e471b8941cb6f1",
+    "src/codex_telegram_bridge/platforms/discovery.py": "6a52ac7aa027126dd3729e5ba56f41a78bd8999b93f78a00e27c6022245e011e",
+    "src/codex_telegram_bridge/platforms/interfaces.py": "6eb3754d908356c2966516ad2cff7161d12273a64d955a89dc19e002432c8d06",
+    "src/codex_telegram_bridge/platforms/linux/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/platforms/linux/capture.py": "890b3d13c2f7d8d024ab47559507134a3ce61336f3c0c759097bb8e49e4c9b48",
+    "src/codex_telegram_bridge/platforms/linux/services.py": "e7bf5f6fdfbf15c1af0c01b28b0e5dad40b6a7f5a4d70eb12b91db14d69f11eb",
+    "src/codex_telegram_bridge/platforms/locking.py": "50816151b25a595df57949d45b75422f12005ca352f4ef7c3aec2241f4c6cda0",
+    "src/codex_telegram_bridge/platforms/macos/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/platforms/macos/capture.py": "2a6d4fe33dccd229f2c3f10dbc2ee019a995cf3cc8f023254c0a7c58e75cb915",
+    "src/codex_telegram_bridge/platforms/macos/desktop_access.py": "0aa180be9bf6a6845b2a7be8ab5068e5341313110acb52b1cb2eca913e9d3590",
+    "src/codex_telegram_bridge/platforms/macos/services.py": "9dfbca290275976a0e0a55af35611bd58a4da32be48e0a7e30691ca84f5cbd2f",
+    "src/codex_telegram_bridge/platforms/posix/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/platforms/posix/capture.py": "0c93f5f87082e5bbe553e5187b07751cf570d9ecb094470beff2755fb53b7644",
+    "src/codex_telegram_bridge/platforms/posix/discovery.py": "e08716293e514c8da31bdabdc989d669b14aec424fa2cc456eda7202b46337f2",
+    "src/codex_telegram_bridge/platforms/posix/processes.py": "d22362b88285ea7c2d4031fb47d15bec674232285b36be7db547b0e0186412ec",
+    "src/codex_telegram_bridge/platforms/posix/transport.py": "bd613d27dd7e31aa54238d197589f7ce0b039d8e3b933ea4a1f995b1c03604de",
+    "src/codex_telegram_bridge/platforms/posix/watchdog.py": "37b87b6048d90acdcadc4a5323ad8e360926dfcb4ebde248c88144324af19d26",
+    "src/codex_telegram_bridge/platforms/processes.py": "73809e9f5d2ad6c54c8f971f57e28bcb18093c9289f014c6f865b381d59d0549",
+    "src/codex_telegram_bridge/platforms/service.py": "e85573f3f9058d2d51bf253cfc8ebcc88eec773d752351ee8054f889be535a4a",
+    "src/codex_telegram_bridge/platforms/transport.py": "63730902b882fea812184c29b745bf1aec3247c228fa3734255211df959f6d17",
+    "src/codex_telegram_bridge/platforms/windows/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/platforms/windows/capture.py": "f9116190097b6f580aa4bef301913d7e2e265e857ca67ccb2342a13d70c8e601",
+    "src/codex_telegram_bridge/platforms/windows/credentials.py": "ef083a30164ade59a8b57abfe32fd6fec145d353eb795c039a88c35bd9a0aed7",
+    "src/codex_telegram_bridge/platforms/windows/desktop_access.py": "a4b2aa2a46487ed1e20afe1181c340f29e9345a87e216c02e0fbd028edad63fe",
+    "src/codex_telegram_bridge/platforms/windows/discovery.py": "6875d3a03b581a9f8f6d9513f78010b2dcb6a9fbbf61c827c8eccc4597f41bf4",
+    "src/codex_telegram_bridge/platforms/windows/processes.py": "d47e261ef75477143f6a7bc3adbf66915700ed7089c539ea4221f7a9fac0d4c1",
+    "src/codex_telegram_bridge/platforms/windows/runtime.py": "d23e7dd78beaa20d8aee4aa8c27271e170aee7b35c7b9b72ddf0025f161794f9",
+    "src/codex_telegram_bridge/platforms/windows/services.py": "9ba14954529543f48344240bc62a9c3c20fd49039d68d01941263455dc365937",
+    "src/codex_telegram_bridge/platforms/windows/transport.py": "c0ed52fd56e2e6d3fbc564f08335f2b1f89bde2fa9b60d71db28d9c8b01bfa85",
+    "src/codex_telegram_bridge/plugins/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/plugins/api.py": "d64dbbc16139532687b87471fcbf202c3ffe989d459e1fce121b99ad74e73086",
+    "src/codex_telegram_bridge/plugins/bundled.py": "600876ddadac412a50b714288092549e791774cb29d9bc417dac232002aa54d9",
+    "src/codex_telegram_bridge/plugins/host.py": "5201dd0e9ac0b61fa5c1e437a566b9b5d82ab215b50bf9c8c37da94d47ef9e0d",
+    "src/codex_telegram_bridge/plugins/worker.py": "0e26d30d51b317629af9ec1628c5028b639cef90509ef0473bab64fe08d3c514",
+    "src/codex_telegram_bridge/resources/bundled_plugins.json": "1a0feebd63f6973171c747bf05109ef1af66107d90ab95e605a371591a5763dd",
+    "src/codex_telegram_bridge/resources/bundled_plugins/screenshot/main.py": "7bbb60ea8db17483073b32296d7ff6e763be2c8ee46f3b682f3b41d0e950596e",
+    "src/codex_telegram_bridge/resources/bundled_plugins/screenshot/plugin.json": "a7df048e839552d081eb05ac0303e8c886a5f4c73532c2fe9bbf9fe900b88d8d",
+    "src/codex_telegram_bridge/resources/messages.en.json": "d42917767f03eeeb6d753bb9afa7705b07caa685bf44a736231e07fd7cca3c4e",
+    "src/codex_telegram_bridge/storage/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/storage/bridge.py": "c10f42447e2415d338c6e8b95d7d510855588af7491bdcb0df190fe8b88823d6",
+    "src/codex_telegram_bridge/storage/migration.py": "bbf9611cf7de53113550d4a697ae8258466ab69e414c7608a2068ac741ece5cf",
+    "src/codex_telegram_bridge/storage/quota_schema.py": "e2aec6fe29eb3fc266443be8f0a6d18f737ae6d1989f23cd43408bcac78e7a05",
+    "src/codex_telegram_bridge/storage/state.py": "4726a3c748ff351dce0c99c5d6fcdc074ebcde15f0bedd3bb2ce22652c93ab77",
+    "src/codex_telegram_bridge/telegram/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/codex_telegram_bridge/telegram/app_server_io.py": "74bfc9d92abd56cc9b3e4f30fa0fb48531b5f51f9e2e7eb1d30cb745f2b2c0cd",
+    "src/codex_telegram_bridge/telegram/completion_routing.py": "1799996fb7ca6d6abb47b36c6d49395b7959bafa045c1a54ac646645c55d6b90",
+    "src/codex_telegram_bridge/telegram/controller_delivery.py": "b5ebaa8868609d72564ec260124d10ab3c81e37d79b22e726ff29282b8588070",
+    "src/codex_telegram_bridge/telegram/delivery.py": "4e970244e6100eb8378f7320f093b62044bd126a1a2324e9255f8c3b86b563b0",
+    "src/codex_telegram_bridge/telegram/feedback.py": "a502d4af442bb3337c8bbc6e60df6129f3df97ce467669bf3e490fe5c106f39c",
+    "src/codex_telegram_bridge/telegram/formatting.py": "b31c4fc73aa78ac32a9db74bb686bddd16f0291e8b015331028e5e20c969f902",
+    "src/codex_telegram_bridge/telegram/internal_requests.py": "031559b8e0eaa575f9058ef3496858065d845eaf1e8a08a93b0658d83ae15f91",
+    "src/codex_telegram_bridge/telegram/local_images.py": "35a4bf65138100bbeb9fc83af867c4f58ecbbd66a4c00baaa0b43021862e14d2",
+    "src/codex_telegram_bridge/telegram/notification_diagnostics.py": "2a5d02c89ac70a3ad85a212b9adeff4018365372a8483dc0f86dc904c0f2ba87",
+    "src/codex_telegram_bridge/telegram/notifications.py": "6595ef49e1c3437714a0957f154bdca7df34d20c111f49c1c50d4d12580fb02a",
+    "src/codex_telegram_bridge/telegram/pending_completions.py": "e6b1b0cf58b0b5c8bf6939f219f19b73126499034d2314a31bb6636df083ba85",
+    "tests/notification_fixtures.py": "85f145b5c4088ab5203d4d5d6987fb3665b97614aebe85a71178f14376fa83d9",
+    "tests/platforms/__init__.py": "0428142f09089a62acc78c04826516dd7031a1692e6257954e5a97efd442966a",
+    "tests/platforms/test_follower_reader.py": "c2621da538289a4b9102276e33f6f0590205136e6895e04db7eb03cd24188ae5",
+    "tests/platforms/test_macos_desktop_access.py": "a81fa384bee553588c2deae5c2b6bb48822333cc2d7654e8d1ea68b4133fd465",
+    "tests/test_app_server.py": "5ee9f4ac8f84038e07cf49f4c38ea2adf7f13f4995242c165bd13757887343e0",
+    "tests/test_app_server_gaps.py": "8e89922d3c1b8551915d9a14bfc4766386f34c23a8d64e94c6a8565d3c7b2c1d",
+    "tests/test_app_server_ui.py": "57d1a5f6f8b3c739b96ade477a3bb97d946608e4bad73ba3eb2d8182ccbc531e",
+    "tests/test_async_inputs.py": "a05b93b13d6f8ce41d7889e0e17124777c91efd51626120c8b209e2f85dd45f5",
+    "tests/test_completion_routing.py": "add3a7d2b85e5ac4a1f702a80fc5f5e70de2b4227d0a073ab67a53c32322aacc",
+    "tests/test_connection_check.py": "e10f5f27322db101150d99e8e7687918248abf40957ba31248b2be0b403f8554",
+    "tests/test_controller_delivery.py": "cc5eec2b52038c2c3c07af1b2f212d3c96132f8c458e7ee1bde4c7e80f29c6f3",
+    "tests/test_desktop_bridge.py": "1f6b0907c8ee0966fc8cea5939663fa52e20741b7bece27663537013d4c91036",
+    "tests/test_desktop_receipts.py": "55068439bd2ccc8fdbbaaaab9cdee4c1141e9b9da8c4b36cd844f080b1e5b699",
+    "tests/test_fix13_delivery_quota.py": "9014e0426a55874b4c9b1922d18c39235f40f0de900c79515878b7d53601497f",
+    "tests/test_fix13_interactions.py": "d2abe92c43e3470b7efb75a5dc98841f48fa3517ffca000991eb90f84d57dcd8",
+    "tests/test_fix13_notifications.py": "aa9879f15e2c3a71a994209be0657c806df53cdb74d5c30fc82c3c5e7efe7518",
+    "tests/test_fix13_windows_hooks.py": "8c3ac37185ea00fbe7d20d331f065681ff484659fc604f077c63ed834fcd04f1",
+    "tests/test_fix3_quota_accounts.py": "7d298dec55e4033a52106f99bf938362b49b075a1655796225f3cd789bd6156d",
+    "tests/test_fix3_side_policy.py": "bde296409c9f38660687f1c9e249eddf0a065ae06b64f321c9219399c00cd462",
+    "tests/test_fix3_versions.py": "e13c633cd2797efba2b2b385d7741b7bde25ffc2a17865a3a8767c97e887e7f2",
+    "tests/test_fix6_delivery.py": "57622453266f0f2b72a7e59e32031b6a6a03fe1d29ac4fe17a5880344b782b7a",
+    "tests/test_fix6_event_contracts.py": "bd7bde68585e74ab3579e4a9803e1ddfd8d6a367e158517960a1ade09875ed78",
+    "tests/test_fix6_ledger_contracts.py": "d34af89e5483164c2717b329451b4e5f325ac3b14538e02069505f6f0ae6fcfa",
+    "tests/test_fix6_machine_lock.py": "a7b62db94aacc5320189cff0eba3f786cae4dc1290ee743bcba33f9514651683",
+    "tests/test_fix6_management_contracts.py": "484b9898f9dcd39e37126451030bacb80fc113edbf089dba4b38b29ab596d00a",
+    "tests/test_fix6_parity.py": "eeaef6a668e06b0519c69b0bf8c92366601ecd22f06765c2dd35bc2a15339ec4",
+    "tests/test_fix6_platform_contracts.py": "272031da7100681ac2ee2c294cb5b770ae97e3c14ec54af7b1f7e34e6b33210e",
+    "tests/test_fix6_plugin_shutdown.py": "4c71092e02ec454e868644dd649e1cb1c60669b37358c4ed75dafe8f45d47a0a",
+    "tests/test_fix6_running_tasks.py": "acf25d2a2f9bdd54e4194a7305f4b589e969d2cec050fa0cc46af9394741e0b3",
+    "tests/test_hardening.py": "6c57ac43561f48ef071f3295ca1a6ed48ec0ebc45da5644b836e95bf5554c492",
+    "tests/test_i18n.py": "80e3fe9c9abe78217151414d980b86a3d06262f42e4f0bd879cde882881c1caa",
+    "tests/test_interactions.py": "5ae11440c51af5666e4bb8702126fce2ea105ecf6f64f21e28e70e6c1d243e58",
+    "tests/test_internal_requests.py": "739b27063801a227e5770d899aa62362af67477d39469cb173c5ac400eb67561",
+    "tests/test_legacy_scenario.py": "fb451b658143400fdb7b8607d928ae26e59ec59de959a9bd56657a0592071e12",
+    "tests/test_local_images.py": "949d3d7a1dbfd45191df73ac7df6e5d01ca0664ba7d1fd7989b07d7346ffe5f7",
+    "tests/test_management.py": "0d070b94fecf98fa98664bf8045c8c931c5ed961891f6bf38218374fa98f3295",
+    "tests/test_notification_diagnostics.py": "fa84b13b7ad96a99672040950281dc226690f3dc8aec1b8be4897c9070dafa77",
+    "tests/test_operation_feedback.py": "aaa76f875ac8bb537655278564c4b369a1f8bd79585d0f51157fe9fed20c0ad7",
+    "tests/test_platform_compatibility.py": "b565d5174c16615da5591405d63c349080d11f8bd407341dab56d52d23210a47",
+    "tests/test_platforms.py": "86ce72bee8310f38d873ab8d7d8ef3859efc622e9641746df6af412657ed8616",
+    "tests/test_plugins.py": "3323b58d7484ee1c3b503b82b9c6eb294fb1b5ee7cae190bfd1c8053c24085af",
+    "tests/test_protocol_adaptation.py": "083208471e68ceecbb00024f69facb0259e9d06b2f77b95a04de53b5722064e7",
+    "tests/test_quiet_mode.py": "d9e2d2148eeb06425306d80659d81273892a364d571f505e8a475be178e49337",
+    "tests/test_reaction_acknowledgements.py": "faf7b1ce384b7ba34483f27b6b0ac13c563a9f1df8540c4a48552ca42f1a5f52",
+    "tests/test_remote_tasks.py": "b416945c1e2d68f84d0d2ba6aae6a7e45ba2a75d082a8ae0dd0ba971a6b82f1c",
+    "tests/test_running_tasks.py": "455f0661e03f8ea17c032207e895d663c0cebdac4eb3447c87f396071ea3c5dd",
+    "tests/test_screen_capture.py": "02cbbb2ee7045227ad32246f8b6b1063624f99f817b7352756f0bddf8e5de272",
+    "tests/test_settings.py": "ac24461b4319399d5a2bfe2c443beeb747d1f055be0938318af6c43d07166d46",
+    "tests/test_shared_controller.py": "e661518bc20aac53552aa2e7261f202493735a1fdbca61bac5146da828ec9b1f",
+    "tests/test_side_chat.py": "9a5f38e5866c71ea8f75e03eb9ad7cdd260d09d2e529131a8c6f27a654b21a58",
+    "tests/test_telegram_quota.py": "f60f4e5ff9f59b6eeed708b4800189b83e5f9a417ff8b06526c3f73f1201ad68",
+    "tests/test_telegram_tables.py": "fba67eb64e58726465bcb63d85279f391c904110ed720d7fb12702ccca986dfc",
+    "tools/audit_parity.py": "64854004a603f725298d0946f969241fd6bb8574a28f684554092dd7b2f9c943",
+    "tools/build_release.py": "eb1f9216f286a87bb3228c1d6823e471a69dde13bf10e9c623a9c48fc3608edb",
+    "tools/check_distribution.py": "66beb7ed4428281d0525a2a7919ea66313bf03f0ae1de8500d65859c5db92883",
+    "tools/parity_evidence.py": "c1c4b429131a950abea3c3e33afed4b5a9bf8e42a287b5a1ac1f9fbc9e50113d",
+    "tools/run_tests.py": "6c71434ab18f8df362bf02789343f9615374553c658ef651080113ea495ff7b3",
+    "tools/test_report.py": "8b787450c23caa77ea8633fa10052a43251843e7c52733837578d07585d11bec",
+    "tools/verify_connection.py": "7e1fa6b1b850c0f66070d7872d2e59868c5251b8fbb171fe0a421319f31d926d"
+  }
+}

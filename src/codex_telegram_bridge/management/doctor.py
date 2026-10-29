@@ -7,7 +7,9 @@ from ..paths import codex_home, data_dir
 
 
 def doctor(*, offline=False, as_json=False):
-    report = {'version': __version__, 'os': platform.system(), 'python': platform.python_version(),
+    python_version = platform.python_version()
+    report = {'version': __version__, 'bridge_version': __version__, 'python_version': python_version,
+              'os': platform.system(), 'python': python_version,
               'codex_home': str(codex_home()), 'data_dir': str(data_dir()), 'desktop_only': True}
     dependencies = {}
     for name in ('psutil', 'keyring', 'tomlkit', 'mss'):

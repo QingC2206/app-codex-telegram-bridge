@@ -45,6 +45,8 @@ class PluginHost:
         self.plugins, self.commands, self.errors = {}, {}, {}
         self.running, self.next_run = set(), {}
         self.jobs = set()
+        self.worker = None
+        self._stopping = False
         self._menu_signature = None
 
     @contextmanager
@@ -159,7 +161,27 @@ class PluginHost:
     def start(self):
         self.seed_bundled()
         self.discover()
-        threading.Thread(target=self._watch, daemon=True, name='telegram-plugin-watch').start()
+        with self.lock:
+            if self._stopping or self.bot.stop_event.is_set() or self.worker is not None:
+                return
+            self.worker = threading.Thread(target=self._watch, daemon=True, name='telegram-plugin-watch')
+            try:
+                self.worker.start()
+            except Exception:
+                self.worker = None
+                raise
+
+    def wait_for_shutdown(self):
+        # Admission and starting a job share this lock, so the snapshot cannot
+        # omit a job accepted just before shutdown. Workers release it in _run.
+        with self.lock:
+            self._stopping = True
+            workers = list(self.jobs)
+            if self.worker is not None:
+                workers.append(self.worker)
+        for worker in workers:
+            if worker.ident is not None and worker is not threading.current_thread():
+                worker.join()
 
     def _watch(self):
         while not self.bot.stop_event.wait(10):
@@ -192,6 +214,8 @@ class PluginHost:
 
     def launch(self, plugin, request, source, panel, key, token=None):
         with self.lock:
+            if self._stopping or self.bot.stop_event.is_set():
+                raise ValueError(_t('插件服务正在停止。'))
             if plugin.id in self.running: raise ValueError(_t('该插件正在处理，请稍候。'))
             if len(self.running) >= 3: raise ValueError(_t('插件繁忙，请稍后重试。'))
             if time.monotonic() < self.next_run.get(plugin.id, 0): raise ValueError(_t('刚刚已执行，请稍等几秒再试。'))
@@ -207,13 +231,13 @@ class PluginHost:
                     # must not remain live after navigating or sending a file.
                     db.execute('UPDATE callbacks SET used=1 WHERE chat=? AND panel=?', (self.bot.chat_id,panel))
             self.running.add(plugin.id)
-        worker = threading.Thread(target=self._run, args=(plugin,request,source,panel), daemon=True, name='plugin-'+plugin.id)
-        with self.lock: self.jobs.add(worker)
-        getattr(self.bot, '_defer_feedback', lambda: None)()
-        try: worker.start()
-        except Exception:
-            with self.lock: self.running.discard(plugin.id); self.jobs.discard(worker)
-            raise
+            worker = threading.Thread(target=self._run, args=(plugin,request,source,panel), daemon=True, name='plugin-'+plugin.id)
+            self.jobs.add(worker)
+            getattr(self.bot, '_defer_feedback', lambda: None)()
+            try: worker.start()
+            except Exception:
+                self.running.discard(plugin.id); self.jobs.discard(worker)
+                raise
 
     def execute(self, plugin, request, folder):
         code, output = folder/'code', folder/'output'
@@ -228,9 +252,8 @@ class PluginHost:
         env = {key:value for key,value in os.environ.items() if key.upper() in
                {'SYSTEMROOT','WINDIR','TEMP','TMP','PATH','USERPROFILE','LOCALAPPDATA','APPDATA','PROGRAMFILES','PROGRAMFILES(X86)','HOME','DISPLAY','WAYLAND_DISPLAY','XDG_RUNTIME_DIR','DBUS_SESSION_BUS_ADDRESS','XAUTHORITY'}}
         env.update(PYTHONIOENCODING='utf-8', PYTHONDONTWRITEBYTECODE='1', CODEX_HOME=str(ROOT.resolve()))
-        flags = subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
         proc = subprocess.Popen([sys.executable, '-B', '-m', 'codex_telegram_bridge.plugins.worker'],
-            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=code, env=env, creationflags=flags, **spawn_options())
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=code, env=env, **spawn_options())
         job = ChildProcessJob()
         job.attach(proc)
         try:

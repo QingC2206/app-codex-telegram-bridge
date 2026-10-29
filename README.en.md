@@ -1,16 +1,18 @@
 # App Codex Telegram Bridge
 
+An explicitly selected [official app-server backend](docs/app-server.md) uses Codex's JSONL protocol and local login for tasks, steering, approvals, attachments, progress, diffs, quotas, screenshots and durable delivery. An independent Desktop Stop hook forwards completion notifications while preserving existing `notify` configuration. Text replies to Desktop notifications continue the original conversation through its Desktop owner, preserving its context and thread ID. Confirmed unsent messages can be manually retried on that same task. Rich completion cards, native status reactions, task navigation, live progress, reply pagination, and Markdown downloads reuse the Windows presentation path. Specific plugin extensions are excluded. The original feature list and installer below describe the default Desktop backend.
+
 [简体中文](README.md) | **English**
 
 Control Codex Desktop from Telegram — notifications, task management, and messaging.
 
-Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **0.6.12 · Python 3.10+ · Windows / macOS / Linux · MIT**.
+Receive replies, continue existing tasks, answer questions, inspect running tasks, and request screenshots from Telegram. **Python 3.10+ · Windows / macOS / Linux · MIT**.
 
 Documentation and the Telegram interface support Chinese and English, with Chinese as the default. Open `/settings` → **Language** to choose with buttons, or `/language en` / `/language zh` to switch directly. The choice survives restarts and upgrades. Task content, model replies, and user input are not automatically translated.
 
 [Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Changelog](CHANGELOG.md) · [Documentation index](docs/README.en.md)
 
-The bridge connects only to **Codex Desktop** and its bundled backend. It never falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
+The default **Desktop backend** connects only to Codex Desktop and its bundled backend. It never automatically falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
 
 Local tasks **started from iOS before their desktop window loads** are supported: queries remain read-only; sending, answering, and stopping load the original window on demand and verify the task/turn. See the [usage guide](docs/usage.en.md#tasks-started-from-ios-before-their-desktop-window-loads) for details and dual-instance limitations.
 
@@ -96,6 +98,8 @@ git pull --ff-only
 Then rerun `install.py` with the command for your platform. If exactly one legacy credential directory is found, the bridge keeps using its credentials, state, reply associations, and attachments. If multiple legacy directories are found, specify `--data-dir` explicitly. Do not copy Windows DPAPI credentials to another operating system; run the setup wizard on the new computer.
 
 Use a separate Telegram bot on each computer when testing multiple machines. Do not give the same bot token to multiple running long-polling services. This also prevents Mac test messages from reaching Windows tasks.
+
+Only one bot controller may run on a computer, across OS accounts, Codex profiles, data directories, and bot identities. Notification hooks run independently. Stop older controllers before starting an upgraded version. The machine reservation binds `127.0.0.1:27321` without listening for or accepting connections. If another program occupies that endpoint, startup fails explicitly rather than selecting another port.
 
 Run management commands with the Python executable created by the installer. Examples for macOS and Linux:
 
@@ -194,6 +198,8 @@ Tests use temporary environments and synthetic credentials. They do not connect 
 
 `python -m build` creates development wheel and source distributions; it does not certify real communication. Building a release ZIP uses a separate gate that submits one test input to an explicitly selected active task, verifies the corresponding user-message receipt, and checks Telegram delivery:
 
+Maintain the version only in `__version__` in `src/codex_telegram_bridge/__init__.py`. Wheel and source distributions read this constant directly. The release ZIP name and compatibility `VERSION` file are generated; ordinary builds and source installations do not require a pre-generated file.
+
 ```text
 python tools/build_release.py --thread-id <full-active-task-id-authorized-for-testing>
 ```
@@ -205,7 +211,10 @@ Pass `--credentials` if credential selection is ambiguous, and `--codex-home` fo
 ```text
 README.md / README.en.md    Chinese and English entry points
 src/codex_telegram_bridge/
-  app.py / cli.py           Service orchestration and unified entry point
+  cli.py / app.py           Unified entry point / compatibility import
+  core/                    Shared task and interaction controller
+  backends/desktop/        Default compatibility entry
+  backends/app_server/     Explicitly selected app-server backend
   config.py / paths.py      Credential configuration and data paths
   telegram/                Messaging, formatting, and notifications
   codex/                   Desktop protocol, history, and receipts

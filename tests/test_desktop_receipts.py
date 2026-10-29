@@ -11,6 +11,16 @@ import codex_telegram_bridge.telegram.notifications as n
 from notification_fixtures import verified_completion
 import codex_telegram_bridge.app as b
 class ReceiptTests(unittest.TestCase):
+    def test_receipt_intent_is_persisted_before_desktop_write(self):
+        observed=[]
+        def accept(*args, **kwargs):
+            observed.append(n.desktop_submission_turn(self.token,self.chat,self.message,self.thread))
+            return {'mode':'steer','turn_id':'turn-new','route':'desktop-user-input'}
+        self.bot.desktop.send_follow_up.side_effect=accept
+        self.bot._desktop_follow_up(self.thread,'hello','')
+        self.assertEqual(observed,[''])  # Pending exists before input; None means absent.
+        self.bot.desktop.send_follow_up.assert_called_once()
+
     def test_digest_matches_desktop_xml_text_escaping(self):
         import hashlib
         expected = ('<codex_delegation>\n  <source_thread_id>task-123456</source_thread_id>\n'

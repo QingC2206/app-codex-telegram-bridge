@@ -66,6 +66,14 @@ class RunningQueryTests(unittest.TestCase):
         self.assertEqual([t['id'] for t in result.threads], ['current'])
         self.native.read_thread.assert_called_once()
 
+    def test_follower_without_sidebar_checks_live_state_even_before_history_flush(self):
+        self.native.has_sidebar_catalogue = False
+        self.persisted.return_value = False
+        result = self.query()
+        self.assertEqual([t['id'] for t in result.threads], ['current'])
+        self.native.list_threads.assert_not_called()
+        self.native.read_thread.assert_called_once()
+
     def test_remote_other_source_and_idle_tasks_are_not_running_local_codex(self):
         self.sidebar['threads'] += [
             {'id': 'remote', 'kind': 'codex', 'hostId': 'other', 'status': 'active'},

@@ -21,7 +21,7 @@ class InstallTests(unittest.TestCase):
         env=patch.dict(os.environ,CODEX_HOME=str(self.profile),CODEX_TELEGRAM_DATA_DIR=str(self.data));env.start();self.addCleanup(env.stop)
         from codex_telegram_bridge.codex import desktop
         desktop_patch=patch.object(desktop,'discover_desktop',return_value=Mock());desktop_patch.start();self.addCleanup(desktop_patch.stop)
-        service=patch.object(services,'manage');self.service=service.start();self.addCleanup(service.stop)
+        service=patch.object(services,'manage',return_value=0);self.service=service.start();self.addCleanup(service.stop)
         snapshot=patch.object(services,'snapshot',return_value={'original':'service'});snapshot.start();self.addCleanup(snapshot.stop)
         restore=patch.object(services,'restore');self.restore=restore.start();self.addCleanup(restore.stop)
 

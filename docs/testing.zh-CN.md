@@ -80,3 +80,24 @@ python tools/build_release.py --thread-id <允许验收的活动任务完整ID>
 ## 静默模式验收
 
 开启静默后确认 `/quota`、`/tasks`、`/running` 和设置仍可用，任务消息、附件和旧操作按钮均不提交。产生完成回复及提问时应无自动推送；关闭后不补发。重启后模式保留，原通知偏好不变；跟踪与额度预约不会自行恢复。
+
+## 分层重构兼容回归
+
+```text
+python tools/run_tests.py --suite Compatibility
+python tools/run_tests.py --suite Full
+```
+
+`Compatibility` 在当前主机用显式平台策略和模拟系统命令验证：Windows 默认后端不变、损坏配置不阻断恢复命令、两种安装器在启动失败时完整回滚、Windows 隐藏窗口/Job Object 调用、原生任务校验与 macOS 独立策略。macOS 测试使用临时目录和显式访问适配器，避免通过修改平台名称假装原生文件系统。
+
+本轮 Windows 验收限定为兼容回归；Windows 实机另行验收，未把 Mac 上通过的测试当作 Windows Task Scheduler、Named Pipe 或用户会话实测。后续 Windows 验收须在保留 Desktop 默认后端的条件下确认安装后自动运行、重启恢复、原任务引用回复、同 Turn 追加、停止及审批；结果未知不得重发。只有单独批准迁移后端时才执行 `configure-app-server`。
+
+app-server 的菜单、卡片、审批和错误使用同一语言偏好；测试同时核验模型正文、中文任务标题、回调值和原始用户输入不会被翻译。完整测试保持临时 profile 和数据目录，不读取真实 Token。
+
+表情回归使用 `python tools/run_tests.py --suite Feedback`，同时覆盖原 Desktop 与 app-server 后端。验收时观察用户原消息下的 👀 → 🤔 → 🎉；失败为 😢。原 Desktop 引用回复、机器人任务、追加指令、审批回答和查询按钮分别验证；结果尚未送达、限流、静默通知和未知提交不能提前标为完成。
+
+## 本轮 Windows 对齐门禁
+
+`docs/parity.json` 是 Windows 基线与已批准新增行为的逐规则清单。每条逻辑有稳定 ID，分别关联经人工审读的具体测试断言或实机场景；数量由审计输出计算。`docs/test-migration.json` 逐项解释退役独立控制器的 98 个测试场景去向。自动队列等与 Windows 不一致的旧行为标记为有意对齐，不能静默删除测试。
+
+完整回归可用 `--report docs/parity-tests.json` 输出每项结果和完整源文件集合的指纹。`python tools/audit_parity.py --require-reviewed` 要求逐规则映射、具体测试定义、本轮回归与最终公共层复检都一致；新增、删除或修改实现、测试、工具、清单或安装文档都会使旧证据失效。`--require-complete` 还要求对应版本的 macOS Telegram 界面场景记录。历史通过字样、API 回执和模拟控制器测试都不能代替本轮界面验收。更新步骤和证据格式见 [逐规则验收](parity-audit.md)。

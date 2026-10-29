@@ -200,6 +200,7 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory(prefix="codex-quota-monitor-test-") as temporary_dir:
         monitor_bot = TelegramCodexBot("test-token", {"chat_id": "1"})
         monitor_bot.state = StateStore(Path(temporary_dir) / "state.json")
+        monitor_bot.quota_state.activate("fixture-account", monitor_bot.quota_state.connection())
         monitor_alerts: list[str] = []
         monitor_bot.enqueue = lambda text, *_args, **_kwargs: monitor_alerts.append(text)  # type: ignore[method-assign]
         monitor_bot._observe_weekly_quota({
@@ -272,7 +273,7 @@ def self_test() -> int:
         assert "本次新增：** 1 张" in monitor_alerts[1]
         quota_messages: list[str] = []
         quota_edits: list[str] = []
-        monitor_bot.app.request = lambda *_args, **_kwargs: {  # type: ignore[method-assign]
+        monitor_bot.app.request = lambda method, *_args, **_kwargs: ({"account": {"type":"chatgpt", "email":"fixture@example.invalid"}} if method == "account/read" else {  # type: ignore[method-assign]
             "rateLimits": {
                 "limitId": "codex",
                 "primary": {"usedPercent": 32, "windowDurationMins": 300, "resetsAt": quota_reset},
@@ -287,7 +288,7 @@ def self_test() -> int:
                     "expiresAt": quota_reset,
                 }],
             },
-        }
+        })
         monitor_bot.send = lambda text, *_args, **_kwargs: (  # type: ignore[method-assign]
             quota_messages.append(text) or {"message_id": 42}
         )
@@ -326,7 +327,8 @@ def self_test() -> int:
 
         catch_up_bot = TelegramCodexBot("test-token", {"chat_id": "1"})
         catch_up_bot.state = StateStore(Path(temporary_dir) / "catch-up-state.json")
-        catch_up_bot.state.update(quota_reset_credits_observation={
+        catch_up_bot.quota_state.activate("fixture-account", catch_up_bot.quota_state.connection())
+        catch_up_bot.quota_state.update(quota_reset_credits_observation={
             "available_count": 1,
             "credits": [{
                 "id": "existing-card",
@@ -345,10 +347,11 @@ def self_test() -> int:
         catch_up_bot._send_unreported_credit_baseline()
         assert len(catch_up_messages) == 1
         assert "补发提醒" in catch_up_messages[0]
-        assert catch_up_bot.state.snapshot()["quota_reset_credit_baseline_alerted"] is True
+        assert catch_up_bot.quota_state.snapshot()["quota_reset_credit_baseline_alerted"] is True
 
         baseline_bot = TelegramCodexBot("test-token", {"chat_id": "1"})
         baseline_bot.state = StateStore(Path(temporary_dir) / "baseline-state.json")
+        baseline_bot.quota_state.activate("fixture-account", baseline_bot.quota_state.connection())
         baseline_alerts: list[str] = []
         baseline_bot.enqueue = lambda text, *_args, **_kwargs: baseline_alerts.append(text)  # type: ignore[method-assign]
         baseline_bot._observe_reset_credits({
@@ -387,7 +390,7 @@ def self_test() -> int:
 
     test_bot = TelegramCodexBot("test-token", {"chat_id": "1"})
     captured_edits: list[tuple[int, str]] = []
-    test_bot.enqueue_edit = lambda message_id, text, *_args: captured_edits.append((message_id, text))  # type: ignore[method-assign]
+    test_bot.enqueue_edit = lambda message_id, text, *_args, **_options: captured_edits.append((message_id, text))  # type: ignore[method-assign]
     test_bot.watches["thread-test"] = {
         "message_id": 9,
         "chat_id": "1",
@@ -769,12 +772,12 @@ def self_test() -> int:
         f"directchoice|{pending_sequence}:side",
         f"directchoice|{pending_sequence}:back",
     ]
-    steered_direct: list[tuple[str, str]] = []
+    steered_direct: list[tuple[str, str, str]] = []
     direct_bot.steer_turn = (  # type: ignore[method-assign]
-        lambda thread_id, prompt: steered_direct.append((thread_id, prompt))
+        lambda thread_id, prompt, expected_turn_id='': steered_direct.append((thread_id, prompt, expected_turn_id))
     )
     direct_bot._handle_direct_reply_choice(f"{pending_sequence}:steer")
-    assert steered_direct == [("desktop-test", "运行中追加")]
+    assert steered_direct == [("desktop-test", "运行中追加", "turn-running")]
     assert pending_sequence not in direct_bot.pending_direct_replies
 
     direct_bot.submit_direct_reply("desktop-test", "改为中断后发送")

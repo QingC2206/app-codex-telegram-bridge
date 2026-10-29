@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call
 
 import codex_telegram_bridge.app as b
 import codex_telegram_bridge.telegram.notifications as n
@@ -38,9 +38,16 @@ class OperationFeedbackTests(unittest.TestCase):
         self.bot._observe_quota = Mock()
         self.bot.quota_resets.buttons = Mock(return_value={'inline_keyboard': []})
         self.bot._answer_callback = Mock()
-        self.bot.app.request.return_value = {'rateLimits': {
+        quota = {'rateLimits': {
             'primary': {'usedPercent': 20, 'windowDurationMins': 300, 'resetsAt': time.time() + 3600},
             'secondary': {'usedPercent': 30, 'windowDurationMins': 10080, 'resetsAt': time.time() + 86400}}}
+        def request(method, params=None, **kwargs):
+            if method == 'account/read':
+                return {'account': {'type': 'chatgpt', 'email': 'feedback@example.invalid'}}
+            if method == 'account/rateLimits/read':
+                return quota
+            raise AssertionError(method)
+        self.bot.app.request.side_effect = request
 
     def update(self, text, *, message_id=42, **extra):
         self.bot.handle_update({'message': dict({'message_id': message_id, 'text': text,
@@ -52,7 +59,11 @@ class OperationFeedbackTests(unittest.TestCase):
     def test_quota_query_has_received_processing_success(self):
         self.update('/quota')
         self.assertEqual(self.emojis(), ['👀', '🤔', '🎉'])
-        self.bot.app.request.assert_called_once_with('account/rateLimits/read', {}, timeout=45)
+        self.assertEqual(self.bot.app.request.call_args_list, [
+            call('account/read', {'refreshToken': False}, timeout=30),
+            call('account/rateLimits/read', {}, timeout=45),
+            call('account/read', {'refreshToken': False}, timeout=30),
+        ])
         self.assertIn('剩余额度', self.edit_markdown_message.call_args.args[1]['text'])
         self.assertTrue(all(c.args[2] == 42 and c.args[4] == b.BOT_OPERATION_THREAD for c in self.react.call_args_list))
         self.assertIsNone(self.bot._ui_local.source_message_id)
@@ -131,6 +142,50 @@ class OperationFeedbackTests(unittest.TestCase):
         self.assertTrue(any(text.startswith('⚠️') for text in texts))
         self.assertNotIn('😢', self.emojis())
         self.assertNotIn('🎉', self.emojis())
+
+    def test_rejected_running_choice_marks_original_input_failed_and_retires_feedback(self):
+        from types import SimpleNamespace
+        from codex_telegram_bridge.storage.bridge import BridgeState
+        from codex_telegram_bridge.telegram.feedback import Feedback
+        state = BridgeState(self.root / 'choice-feedback.sqlite3')
+        self.addCleanup(state.close)
+        feedback = Feedback(state, self.bot.token, self.bot.chat_id, Mock(),
+                            lambda binding: ('👀', False, 'task-a', ''))
+        for durable in (False, True):
+            with self.subTest(durable=durable):
+                self.bot.delivery = SimpleNamespace(feedback=feedback) if durable else None
+                if durable:
+                    state.start_feedback('update:41', 42)
+                    state.update_feedback('update:41', ready=True,
+                        binding={'thread_id': 'task-a', 'source': 42})
+                self.bot.pending_direct_replies['1'] = {'thread_id': 'task-a', 'turn_id': 'old-turn',
+                    'text': 'only when still active', 'source_message_id': 42}
+                self.bot.steer_turn = Mock(side_effect=ValueError('original turn ended'))
+                self.bot._ui_local.source_message_id = 99
+                self.react.reset_mock()
+                with self.assertRaisesRegex(ValueError, 'original turn ended'):
+                    self.bot._handle_direct_reply_choice('1:steer')
+                self.assertEqual(self.emojis()[-1], '😢')
+                self.assertTrue(all(c.args[2] == 42 for c in self.react.call_args_list))
+                self.assertEqual(self.bot._ui_local.source_message_id, 99)
+                self.assertEqual(state.feedback_records(), [])
+                before = self.react.call_count
+                feedback.reconcile()
+                self.assertEqual(self.react.call_count, before)
+
+    def test_uncertain_running_choice_keeps_original_feedback_unresolved(self):
+        from types import SimpleNamespace
+        feedback = Mock()
+        self.bot.delivery = SimpleNamespace(feedback=feedback)
+        self.bot.pending_direct_replies['1'] = {'thread_id': 'task-a', 'turn_id': 'old-turn',
+            'text': 'continue', 'source_message_id': 42}
+        self.bot.steer_turn = Mock(side_effect=b.DesktopSubmissionUnknown('not confirmed'))
+        self.bot._ui_local.source_message_id = 99
+        with self.assertRaises(b.DesktopSubmissionUnknown):
+            self.bot._handle_direct_reply_choice('1:steer')
+        feedback.fail_source.assert_not_called()
+        self.react.assert_not_called()
+        self.assertEqual(self.bot._ui_local.source_message_id, 99)
 
     def test_error_reply_is_detected_even_when_handler_returns_normally(self):
         with patch.object(self.bot, 'command_tasks', side_effect=lambda _: self.bot.send('🥲 查询失败')):

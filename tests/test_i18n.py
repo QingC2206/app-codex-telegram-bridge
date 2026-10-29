@@ -81,7 +81,7 @@ class LanguageTests(unittest.TestCase):
             self.assertTrue(en)
             self.assertEqual(fields(zh), fields(en), zh)
             self.assertFalse(any('\u4e00' <= c <= '\u9fff' for c in en), zh)
-        for path in Path(b.__file__).parent.rglob('*.py'):
+        for path in Path(__import__("codex_telegram_bridge").__file__).parent.rglob('*.py'):
             tree = ast.parse(path.read_text(encoding='utf-8'))
             for call in ast.walk(tree):
                 if isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == '_t':

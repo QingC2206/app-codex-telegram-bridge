@@ -61,12 +61,17 @@ class PathAndCredentialsTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'locked'):
                 config.load_token({'token_keyring':'a'*64})
 
-    def test_profile_lock_excludes_another_instance_and_releases(self):
-        a,b=SingleInstance('same'),SingleInstance('same')
-        try:
-            self.assertTrue(a.acquire());self.assertFalse(b.acquire())
-            a.close();self.assertTrue(b.acquire())
-        finally:a.close();b.close()
+    def test_machine_lock_excludes_another_instance_and_releases(self):
+        import socket
+        from codex_telegram_bridge.platforms import locking
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1',0));endpoint=probe.getsockname()
+        with patch.object(locking,'_MACHINE_ENDPOINT',endpoint):
+            a,b=SingleInstance('same'),SingleInstance('different')
+            try:
+                self.assertTrue(a.acquire());self.assertFalse(b.acquire())
+                a.close();self.assertTrue(b.acquire())
+            finally:a.close();b.close()
 
 
 class PosixDiscoveryTests(unittest.TestCase):

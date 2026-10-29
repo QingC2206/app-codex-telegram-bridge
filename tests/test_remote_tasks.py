@@ -121,6 +121,8 @@ class UnloadedBotTests(unittest.TestCase):
                              for r in self.transport.requests))
 
     def test_direct_reply_to_unloaded_active_task_prompts_then_appends_once(self):
+        # A successful steer must acknowledge the existing turn, not a new one.
+        self.owner.result_turn_id = 'old-turn'
         with patch.object(b, 'lookup_task_message', return_value='task'):
             self.bot.handle_text('继续工作', reply_to_message_id=7)
         seq, pending = next(iter(self.bot.pending_direct_replies.items()))
@@ -128,6 +130,16 @@ class UnloadedBotTests(unittest.TestCase):
         self.assertIn(':interrupt', str(self.bot.send.call_args))
         self.assertFalse(self.inputs())
         self.bot._direct_reply_choice_inner(seq + ':steer')
+        self.assertEqual(len(self.inputs()), 1)
+        self.assert_no_takeover()
+
+    def test_unloaded_steer_mismatched_ack_is_unknown_and_not_replayed(self):
+        with patch.object(b, 'lookup_task_message', return_value='task'):
+            self.bot.handle_text('继续工作', reply_to_message_id=7)
+        seq = next(iter(self.bot.pending_direct_replies))
+        self.owner.result_turn_id = 'different-turn'
+        with self.assertRaises(d.DesktopSubmissionUnknown):
+            self.bot._direct_reply_choice_inner(seq + ':steer')
         self.assertEqual(len(self.inputs()), 1)
         self.assert_no_takeover()
 

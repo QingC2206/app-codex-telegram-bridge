@@ -1,0 +1,816 @@
+{
+  "reason": "Retire the divergent app-server controller; preserve scenarios against the production shared controller. Prior files remain in the verified backup.",
+  "scenarios": [
+    {
+      "old_test": "test_app_server.py:BotTests.test_duplicate_updates_submit_once",
+      "replacement": [
+        "tests/test_shared_controller.py:PollingRecoveryTests.test_polling_commits_offset_before_action_and_never_replays_duplicates"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_restart_between_receipt_and_handling_keeps_input",
+      "replacement": [
+        "tests/test_shared_controller.py:PollingRecoveryTests.test_polling_commits_offset_before_action_and_never_replays_duplicates"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_restart_after_enqueuing_does_not_repeat_task",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_import_is_idempotent_and_does_not_replay_jobs"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_foreign_chats_senders_groups_and_old_messages_rejected",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_group_allowlist_reuses_canonical_authorization",
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_old_messages_do_not_react_or_submit_after_migration"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_queued_prompts_remain_bound_to_original_conversation",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_running_reply_shows_choice_without_steering_or_interrupting",
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_reply_keeps_original_thread_after_selection_changes"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_use_cannot_resume_arbitrary_desktop_thread",
+      "replacement": [
+        "tests/test_hardening.py:OwnershipAndAuthTests.test_external_idle_task_is_not_resumed_without_desktop_owner"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_recovery_never_resubmits_dispatching_or_running_jobs",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_import_is_idempotent_and_does_not_replay_jobs"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_completion_before_response_and_commentary_filter",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_fast_completion_before_start_ack_does_not_resurrect_turn",
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_turn_completion_cannot_clear_new_turn"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_failed_turn_is_reported_as_failed",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_failed_completion_carries_failure_reaction"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_ambiguous_turn_start_is_not_retried_and_stops_worker",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_unknown_task_submission_stays_unknown_and_never_replays"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_approval_requires_owner_and_nonce_is_single_use",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_foreign_and_old_turn_requests_are_rejected",
+        "tests/test_protocol_adaptation.py:ProtocolTests.test_restart_nonce_does_not_reuse_old_callback_sequence"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_unowned_server_request_cannot_be_approved",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_foreign_and_old_turn_requests_are_rejected"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_permissions_approval_does_not_expand_requested_scope",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_permission_request_never_grants_unknown_decision_or_expands_scope"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_file_change_without_reviewable_diff_is_declined",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_command_requires_action_and_file_change_requires_reviewable_diff"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_user_input_and_resolved_request",
+      "replacement": [
+        "tests/test_protocol_adaptation.py:ProtocolTests.test_resolved_request_only_removes_matching_thread_and_request",
+        "tests/test_shared_controller.py:SharedControllerTests.test_stale_question_cannot_submit_after_turn_changes"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_ambiguous_telegram_delivery_not_retried",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_unknown_query_delivery_is_not_retried_or_celebrated"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:BotTests.test_utf16_chunks_preserve_text",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_shared_markdown_pagination_bounds_non_bmp_text_without_loss"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:ClientTests.test_jsonl_initialize_responses_notifications_and_error",
+      "replacement": [
+        "tests/test_app_server.py:ClientTests.test_jsonl_initialize_responses_notifications_and_error"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server.py:ClientTests.test_safe_thread_options_override_global_unrestricted_policy",
+      "replacement": [
+        "tests/test_app_server.py:ClientTests.test_safe_thread_options_override_global_unrestricted_policy"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_permanent_callback_ack_error_cannot_poison_inbox",
+      "replacement": [
+        "tests/test_shared_controller.py:PollingRecoveryTests.test_polling_commits_offset_before_action_and_never_replays_duplicates",
+        "tests/test_interactions.py:InteractionTests.test_callback_navigation_edits_same_card_and_acknowledges"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_reply_routes_to_original_conversation_after_selection_changes",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_reply_keeps_original_thread_after_selection_changes"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_unknown_reply_is_rejected_instead_of_using_current",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_unknown_quoted_message_gets_error_without_task_submission"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_network_only_approval_shows_target_protocol",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_network_only_request_shows_protocol_and_target"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_approval_without_action_is_declined",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_command_requires_action_and_file_change_requires_reviewable_diff"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_cancel_between_take_and_execute_never_submits",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_choice_keeps_received_until_submit_and_cancel_clears"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_cancel_while_starting_thread_never_starts_turn",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_plain_text_never_uses_historical_selection_or_creates_task"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_cancel_reply_cannot_cancel_another_conversation",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_old_cancel_does_not_cancel_new_input"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_null_plan_has_clear_message",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_task_lists_selection_and_progress_have_explicit_paragraphs"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_cancel_while_turn_start_is_pending_interrupts_returned_turn",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_fast_completion_before_start_ack_does_not_resurrect_turn",
+        "tests/test_protocol_adaptation.py:ProtocolTests.test_stop_requires_the_exact_confirmed_interrupted_turn"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_429_retries_once_due_and_persists_message_route",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_429_defers_success_then_retries_only_output",
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_delayed_reply_prompt_registers_original_thread_after_delivery"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_restart_does_not_resend_ambiguous_outbox",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_restart_keeps_pending_outputs_but_never_replays_sending"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_stale_rate_limited_approval_is_not_delivered",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_expired_question_is_not_delivered_after_rate_limit",
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_delayed_confirmation_binds_only_the_same_unexpired_nonce",
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_replaced_confirmation_is_not_sent_after_rate_limit"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_mcp_form_validates_required_types_then_answers_once",
+      "replacement": [
+        "tests/test_protocol_adaptation.py:ProtocolTests.test_scalar_form_rejects_invalid_answer_before_advancing"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_form_does_not_fetch_remote_schema_or_accept_secret",
+      "replacement": [
+        "tests/test_app_server_gaps.py:HookTests.test_external_schema_and_unimplemented_root_constraints_are_rejected"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_mcp_url_requires_explicit_callback_and_preserves_null_turn",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_mcp_url_requires_explicit_callback_and_unsafe_url_declines"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_mcp_unsafe_url_declined",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_mcp_url_requires_explicit_callback_and_unsafe_url_declines"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_progress_plan_diff_and_usage_ignore_foreign_turn",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_turn_completion_cannot_clear_new_turn"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_steer_checks_target_turn_and_is_not_a_queued_new_turn",
+      "replacement": [
+        "tests/test_remote_tasks.py:UnloadedBotTests.test_direct_reply_to_unloaded_active_task_prompts_then_appends_once"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_file_escape_and_symlink_are_rejected",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_file_download_rejects_escape_and_symlink_and_keeps_workspace_file"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_attachment_size_and_name_bounded",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_download_is_bounded_and_does_not_trust_filename",
+        "tests/test_interactions.py:InteractionTests.test_download_rejects_oversize_and_hides_token_on_failure"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_photo_download_becomes_local_image",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_photo_reply_passes_local_file_and_caption_to_selected_task"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_desktop_hook_replay_sends_once_and_keeps_selection",
+      "replacement": [
+        "tests/test_app_server_gaps.py:SharedHookDeliveryTests.test_raw_hook_reaches_shared_classifier_without_rewriting_sources",
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_reply_keeps_original_thread_after_selection_changes"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:GapTests.test_desktop_failure_never_resumes_thread_in_app_server",
+      "replacement": [
+        "tests/test_hardening.py:OwnershipAndAuthTests.test_external_recovery_failure_never_resumes_in_bot_backend"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:HookTests.test_install_is_idempotent_preserves_notify_and_other_handlers",
+      "replacement": [
+        "tests/test_app_server_gaps.py:HookTests.test_install_is_idempotent_preserves_notify_and_other_handlers"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:HookTests.test_only_verified_desktop_header_is_accepted",
+      "replacement": [
+        "tests/test_app_server_gaps.py:HookTests.test_hook_preserves_full_provenance_for_shared_classifier",
+        "tests/test_app_server_gaps.py:HookTests.test_no_transcript_path_escape_or_invalid_turn"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_gaps.py:HookTests.test_no_transcript_path_escape",
+      "replacement": [
+        "tests/test_app_server_gaps.py:HookTests.test_no_transcript_path_escape_or_invalid_turn"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:LanguageTests.test_language_switch_translates_menus_and_panels_but_keeps_user_text",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_settings_and_model_labels_follow_language_without_changing_task_text",
+        "tests/test_i18n.py:LanguageTests.test_command_switch_and_pending_input_keep_original_payload"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:LanguageTests.test_authorized_language_callback_only_changes_ui_preference",
+      "replacement": [
+        "tests/test_i18n.py:LanguageTests.test_language_callback_and_unauthorized_sender"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:LanguageTests.test_english_settings_does_not_change_approval_values",
+      "replacement": [
+        "tests/test_i18n.py:LanguageTests.test_callback_payloads_stay_identical_after_switch"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_completion_uses_shared_rich_card_and_preserves_markdown",
+      "replacement": [
+        "tests/test_telegram_tables.py:TableTests.test_native_send_preserves_markdown_and_buttons",
+        "tests/test_interactions.py:InteractionTests.test_hook_and_desktop_results_reply_to_original_message"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_desktop_card_uses_real_title_and_no_internal_heading",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_notification_uses_current_display_name_and_exact_task"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_multiline_request_uses_short_first_line_as_title",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_notification_uses_current_display_name_and_exact_task"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_menu_is_available_in_default_and_private_chat_scopes",
+      "replacement": [
+        "tests/test_i18n.py:LanguageTests.test_menus_default_chinese_with_selected_chat_override"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_rich_format_rejection_falls_back_to_html",
+      "replacement": [
+        "tests/test_telegram_tables.py:TableTests.test_invalid_rich_media_falls_back_with_reply_route"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_timeout_never_downgrades_or_resends",
+      "replacement": [
+        "tests/test_telegram_tables.py:TableTests.test_no_downgrade_or_resend_on_ambiguous_or_unrelated_errors"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_details_opens_new_panel_and_pagination_edits_only_panel",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_navigation_preserves_original_and_reuses_panel_across_pages_and_restart"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_download_keeps_complete_original_markdown",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_legacy_page_and_download_resolve_same_original_markdown"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_diff_view_cannot_replace_last_answer",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_navigation_preserves_original_and_reuses_panel_across_pages_and_restart",
+        "tests/test_app_server_ui.py:RuntimeUITests.test_legacy_page_and_download_resolve_same_original_markdown"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_task_list_filters_and_navigation_are_read_only",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_task_filters_and_exact_completed_status"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_new_queued_turn_takes_precedence_over_old_completed_status",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_turn_completion_cannot_clear_new_turn",
+        "tests/test_shared_controller.py:SharedControllerTests.test_running_reply_shows_choice_without_steering_or_interrupting"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_preferences_do_not_change_when_only_opening_settings",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_opening_settings_never_changes_selection_or_defaults"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_desktop_failure_preserves_input_without_technical_error",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_failed_draft_download_never_submits_and_retains_text",
+        "tests/test_app_server_ui.py:RuntimeUITests.test_unknown_draft_is_not_retryable"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_retry_is_explicit_idempotent_and_keeps_original_thread",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_failed_attachment_retry_retains_original_attachment_path"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_old_new_task_button_neither_forks_nor_sends_original_input",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_upgrade_old_new_task_button_is_read_only"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_desktop_hook_completes_only_matching_reply",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_native_reply_source_isolated_by_bot_chat_task_and_turn"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_fast_desktop_completion_before_submission_ack_is_reconciled",
+      "replacement": [
+        "tests/test_desktop_receipts.py:ReceiptTests.test_completion_before_ack_cannot_revert_ok_to_thinking"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_ambiguous_desktop_submission_has_no_continue_button",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_unknown_draft_is_not_retryable"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_desktop_document_is_preserved_and_not_silently_dropped_on_retry",
+      "replacement": [
+        "tests/test_app_server_ui.py:RuntimeUITests.test_failed_attachment_retry_retains_original_attachment_path"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_question_choices_advance_in_place_and_submit_once",
+      "replacement": [
+        "tests/test_protocol_adaptation.py:ProtocolTests.test_scalar_form_rejects_invalid_answer_before_advancing",
+        "tests/test_async_inputs.py:AsyncInputTests.test_direct_reply_is_bound_to_the_original_question_and_sent_once"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_form_question_casts_typed_answer_and_keeps_invalid_input_pending",
+      "replacement": [
+        "tests/test_protocol_adaptation.py:ProtocolTests.test_scalar_form_rejects_invalid_answer_before_advancing"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_watching_stops_on_panel_navigation",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_progress_subpage_has_back_and_close_and_leaving_cancels_watch"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_edit_not_modified_is_successful_and_keeps_routing",
+      "replacement": [
+        "tests/test_telegram_tables.py:TableTests.test_native_edit_and_unchanged"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_ui.py:UITests.test_upgrade_recent_legacy_cards_is_in_place_without_execution",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_reply_keeps_original_thread_after_selection_changes",
+        "tests/test_app_server_ui.py:RuntimeUITests.test_legacy_page_and_download_resolve_same_original_markdown"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_query_has_received_processing_then_confirmed_delivery_success",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_query_received_processing_delivered_success"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_unknown_command_and_bad_reply_fail_without_submitting",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_unknown_command_gets_error",
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_unknown_quoted_message_gets_error_without_task_submission"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_unauthorized_old_and_duplicate_updates_do_not_react",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_old_messages_do_not_react_or_submit_after_migration",
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_foreign_user_cannot_create_delivery_or_feedback",
+        "tests/test_shared_controller.py:PollingRecoveryTests.test_polling_commits_offset_before_action_and_never_replays_duplicates"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_queued_task_uses_original_message_then_waits_for_completion",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_new_task_submission_does_not_finish_on_acceptance",
+        "tests/test_shared_controller.py:SharedControllerTests.test_running_reply_shows_choice_without_steering_or_interrupting"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_failed_task_is_not_celebrated",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_completed_failure_is_not_success_after_delivery"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_unknown_task_submission_is_not_misreported_as_success_or_failure",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_unknown_task_submission_stays_unknown_and_never_replays"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_query_delivery_failure_does_not_claim_success",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_unknown_query_delivery_is_not_retried_or_celebrated"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_task_delivery_unknown_does_not_claim_success_or_retry_task",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_unknown_completion_stays_received_and_does_not_replay_task"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_rate_limited_completion_reacts_only_after_later_delivery",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_background_completion_persists_before_worker_and_waits_for_delivery"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_reaction_network_failure_is_retried_without_replaying_query",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_reaction_retry_does_not_repeat_query_output"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_unsupported_reactions_keep_text_fallback_and_task_execution",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_unsupported_reactions_fall_back_without_blocking_submission"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_desktop_reply_reacts_on_user_message_and_finishes_from_hook",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_desktop_and_stop_hooks_only_clear_after_delivery"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_desktop_fast_completion_does_not_regress_to_thinking",
+      "replacement": [
+        "tests/test_desktop_receipts.py:ReceiptTests.test_completion_before_ack_cannot_revert_ok_to_thinking"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_desktop_unknown_and_rejected_have_distinct_reactions",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_unknown_submission_neither_claims_failure_nor_success",
+        "tests/test_desktop_receipts.py:ReceiptTests.test_known_rejection_removes_pending_receipt"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_callback_query_success_and_caught_failure_use_clicked_card",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_quota_refresh_button_reacts_on_clicked_card",
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_failed_quota_refresh_button_ends_in_error"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_cancelled_queue_gets_failure_without_running_it",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_choice_keeps_received_until_submit_and_cancel_clears"
+      ],
+      "status": "baseline-aligned-change",
+      "reason": "按 Windows 显式目标和运行中选择流程替换 macOS 自动队列；旧数据保留、不重放。旧卡片按协议转换，无需批量重写。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_restart_recovers_task_feedback_without_resubmission",
+      "replacement": [
+        "tests/test_desktop_receipts.py:ReceiptTests.test_restart_reconciles_saved_receipt_without_resending"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_restart_marks_abandoned_query_failed_without_replaying_it",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_restart_marks_old_operation_error_without_replaying_query"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_old_turn_completion_cannot_finish_new_input",
+      "replacement": [
+        "tests/test_shared_controller.py:SharedControllerTests.test_old_turn_completion_cannot_clear_new_turn",
+        "tests/test_interactions.py:InteractionTests.test_latest_same_turn_message_wins_and_late_old_binding_cannot_regress"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_question_answer_waits_for_original_turn_completion",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_question_answer_uses_reaction_and_suppresses_sent_text"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_disabled_completion_notification_does_not_claim_delivery",
+      "replacement": [
+        "tests/test_interactions.py:InteractionTests.test_muted_completion_without_delivery_keeps_reactions"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_steer_acceptance_waits_for_turn_result",
+      "replacement": [
+        "tests/test_operation_feedback.py:OperationFeedbackTests.test_task_submission_does_not_finish_on_acceptance"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_retried_desktop_draft_updates_original_user_message",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_retried_draft_feedback_stays_on_original_input_not_clicked_card"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_new_card_action_supersedes_an_older_pending_reaction",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_new_operation_on_same_card_supersedes_old_pending_reaction"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    },
+    {
+      "old_test": "test_app_server_feedback.py:FeedbackTests.test_upgrade_restores_in_flight_desktop_feedback_without_resubmitting",
+      "replacement": [
+        "tests/test_controller_delivery.py:ControllerDeliveryTests.test_migration_recovers_in_flight_feedback_without_job_replay"
+      ],
+      "status": "replaced",
+      "reason": "覆盖迁到当前实际运行的公共实现；测试选择器在最终报告中逐项核验。"
+    }
+  ]
+}

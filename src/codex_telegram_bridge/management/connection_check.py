@@ -84,11 +84,7 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
                 raise desktop.DesktopBridgeSafetyError('Desktop 在验收期间已重启，停止本次检查。')
             return current
         client.native.discover = verified_endpoint
-        transport, handle = client.native._connect()
-        try:
-            client.native._catalog(transport, handle, {"read_thread"})
-        finally:
-            transport._close(handle)
+        client.native.probe()
         report["desktop_pid"] = endpoint.pid
         report["checks"][stage] = "passed"
 

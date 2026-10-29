@@ -12,6 +12,10 @@ def form_questions(params: dict[str, Any]) -> list[dict[str, Any]] | None:
     schema = params.get('requestedSchema')
     if not isinstance(schema, dict) or schema.get('type') != 'object':
         return None
+    if set(schema) - {'type', 'properties', 'required', 'additionalProperties', 'title', 'description', '$schema'}:
+        return None
+    if 'additionalProperties' in schema and not isinstance(schema['additionalProperties'], bool):
+        return None
     properties = schema.get('properties')
     required = schema.get('required', [])
     if (not isinstance(properties, dict) or not 1 <= len(properties) <= 8
@@ -36,7 +40,7 @@ def form_questions(params: dict[str, Any]) -> list[dict[str, Any]] | None:
                    if choices is not None else None)
         questions.append({'id': key, 'header': str(field.get('title') or key),
                           'question': str(field.get('description') or params.get('message') or key),
-                          'options': options})
+                          'options': options, 'required': key in required})
     return questions
 
 
@@ -44,6 +48,12 @@ def form_content(params: dict[str, Any], answers: dict[str, Any]) -> dict[str, A
     properties = params['requestedSchema']['properties']
     result = {}
     for key, field in properties.items():
+        if key not in answers:
+            if key in params['requestedSchema'].get('required', []):
+                raise ValueError(_t('字段 {p0} 必须填写。', p0=format(key, '')))
+            # JSON Schema defaults are annotations, not authorization to invent
+            # an answer. Skipping leaves optional fields absent from content.
+            continue
         answer = str(answers[key]['answers'][0])
         kind = field['type']
         try:

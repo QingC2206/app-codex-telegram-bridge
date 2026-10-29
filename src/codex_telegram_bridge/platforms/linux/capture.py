@@ -88,3 +88,8 @@ def capture(target):
     if target['rect'] not in [x['rect'] for x in monitors()]:
         raise RuntimeError('Display layout changed; refresh screenshots.')
     return capture_rect(target['rect'])
+
+
+def failure_hint():
+    from ...i18n import tr as _t
+    return _t('截图失败。请检查当前桌面会话的屏幕共享权限和截图服务。')

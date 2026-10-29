@@ -1,10 +1,8 @@
 """Cycle-bound, single-use quota reset buttons. No network calls on the RPC reader."""
 from codex_telegram_bridge.i18n import tr as _t
-import hashlib
-import json
-import threading
 import time
 import uuid
+from .quota_state import QuotaSnapshot, quota_operation
 
 
 class QuotaResetController:
@@ -13,10 +11,10 @@ class QuotaResetController:
         self.weekly_snapshot = weekly_snapshot
         self.credit_snapshot = credit_snapshot
         self.gate = gate
-        self.lock = threading.RLock()
+        self.lock = bot.quota_state.lock
 
     def state(self):
-        return self.bot.state.snapshot()
+        return self.bot.quota_state.snapshot()
 
     def render_reservation(self, reservation=None):
         reservation = reservation or self.state().get("quota_reset_reservation") or {}
@@ -41,18 +39,17 @@ class QuotaResetController:
         reservation = self.state().get("quota_reset_reservation") or {}
         if reservation.get("status") == "armed":
             reservation.update(status="cancelled", reason=reason)
-            self.bot.state.update(quota_reset_reservation=reservation)
+            self.bot.quota_state.update(quota_reset_reservation=reservation)
             self.update_reservation_card(reservation)
             if not reservation.get("message_id"):
                 self.bot.enqueue(_t('**预约重置已取消**\n\n') + reason)
 
     def startup(self):
-        with self.lock:
-            self.cancel_reservation(_t('机器人已重启，无法确认离线期间额度变化；原预约不再执行。'))
-            # Confirmations from an older process/version cannot authorize redemption.
-            self.bot.state.update(quota_reset_confirmation={}, quota_reset_selection={})
+        self.bot.quota_state.startup()
 
     def observe(self, result):
+        if not isinstance(result, QuotaSnapshot) or not self.bot.quota_state.valid(result.scope):
+            raise ValueError(_t('额度快照未确认账户归属，未更新历史。'))
         with self.lock:
             now = time.time()
             state = self.state()
@@ -63,7 +60,7 @@ class QuotaResetController:
             previous = state.get("quota_reset_cycle") or {}
             if current is None or current["resets_at"] <= now:
                 self.cancel_reservation(_t('无法确认当前周额度周期，原预约已失效。'))
-                self.bot.state.update(quota_reset_cycle={}, quota_reset_buttons={}, quota_reset_confirmation={}, quota_reset_selection={})
+                self.bot.quota_state.update(quota_reset_cycle={}, quota_reset_buttons={}, quota_reset_confirmation={}, quota_reset_selection={})
                 return None
             attempt = state.get("quota_reset_attempt") or {}
             if attempt.get("request_sent") and not attempt.get("recovery_observed"):
@@ -73,16 +70,16 @@ class QuotaResetController:
                      (current["used_percent"] < 90 and
                       current["used_percent"] < attempt.get("used_percent", 0)))):
                     attempt["recovery_observed"] = True
-                    self.bot.state.update(quota_reset_attempt=attempt)
+                    self.bot.quota_state.update(quota_reset_attempt=attempt)
             changed = (not previous or previous["resets_at"] != current["resets_at"]
                        or current["used_percent"] < previous["used_percent"])
             if changed:
                 self.cancel_reservation(_t('检测到周额度恢复或重置时间变化，原预约不能用于新的额度周期。'))
                 current = {**current, "id": uuid.uuid4().hex}
-                self.bot.state.update(quota_reset_buttons={}, quota_reset_confirmation={}, quota_reset_selection={})
+                self.bot.quota_state.update(quota_reset_buttons={}, quota_reset_confirmation={}, quota_reset_selection={})
             else:
                 current = {**current, "id": previous["id"]}
-            self.bot.state.update(quota_reset_cycle=current)
+            self.bot.quota_state.update(quota_reset_cycle=current)
             return current
 
     def buttons(self, current, tier):
@@ -92,38 +89,51 @@ class QuotaResetController:
                 return None
             token = uuid.uuid4().hex
             records = self.state().get("quota_reset_buttons") or {}
-            records[token] = {"cycle": cycle["id"], "immediate": tier <= 5}
-            self.bot.state.update(quota_reset_buttons=records)
+            records[token] = {"cycle": cycle["id"], "immediate": tier <= 5, "scope": self.bot.quota_state.scope()}
+            self.bot.quota_state.update(quota_reset_buttons=records)
             row = [{"text": _t('预约重置'), "callback_data": "reservequota|" + token}]
             if tier <= 5:
                 row.append({"text": _t('立即重置'), "callback_data": "resetnow|" + token})
             return {"inline_keyboard": [row]}
 
     def _identity(self):
-        account = self.bot.app.request("account/read", {"refreshToken": False}, timeout=30).get("account")
-        if not isinstance(account, dict) or account.get("type") != "chatgpt" or not account.get("email"):
-            raise ValueError(_t('无法确认当前账户，未执行重置。'))
-        return hashlib.sha256(json.dumps(account, sort_keys=True).encode()).hexdigest()
+        return self.bot.quota_state.identity()
 
     def _fresh(self):
         self._drain_events()
-        result = self.bot.app.request("account/rateLimits/read", {}, timeout=45)
+        result = self.bot.quota_state.fetch()
         self._drain_events()
         cycle = self.observe(result)
         if cycle is None:
             raise ValueError(_t('无法取得有效的周额度，未执行重置。'))
         return result, cycle
 
+    @quota_operation
     def _drain_events(self):
         import queue
+        dirty = False
         while True:
             try:
                 event = self.bot.quota_events.get_nowait()
             except queue.Empty:
-                return
-            self.observe(event)
+                return dirty
+            if event.get('connection') != self.bot.quota_state.connection():
+                continue
+            dirty = True
+            # A push has no verified account identity. It may invalidate an
+            # authorization conservatively, but must never restore quota or
+            # mark a redemption recovered for the current account.
+            current = self.weekly_snapshot(event.get('params') or {})
+            previous = self.state().get('quota_reset_cycle') or {}
+            if (current is None or not previous or current['resets_at'] != previous.get('resets_at')
+                    or current['used_percent'] < previous.get('used_percent', 0)):
+                self.bot.quota_state.retire_authorizations(
+                    _t('收到尚未确认归属的额度变化，原预约已失效，请刷新额度。'))
+                self.update_reservation_card(self.state().get('quota_reset_reservation') or {})
 
     def _check_unused(self, cycle):
+        if self.bot.quota_state.legacy_blocked():
+            raise ValueError(_t('旧兑换记录的账户归属尚未确认，已保留防重复保护；请核对后再使用重置卡。'))
         attempt = self.state().get("quota_reset_attempt") or {}
         if attempt.get("request_sent"):
             if attempt.get("status") in {"uncertain", "consuming"}:
@@ -135,12 +145,15 @@ class QuotaResetController:
         credits = self.credit_snapshot(result)
         if not credits or credits["available_count"] <= 0:
             raise ValueError(_t('当前没有可用重置卡，未执行重置。'))
+        if not credits['details_complete']:
+            raise ValueError(_t('未返回有效的重置卡明细，暂不允许预约或兑换。'))
         eligible = [c for c in credits["credits"] if c.get("id")
                     and (c.get("expires_at") is None or c["expires_at"] > time.time())]
         if not eligible:
             raise ValueError(_t('未返回有效的重置卡明细，暂不允许预约或兑换。'))
         return min(eligible, key=lambda c: c.get("expires_at") or float("inf"))["id"]
 
+    @quota_operation
     def handle(self, callback):
         with self.lock:
             message = callback.get("message") or {}
@@ -154,7 +167,7 @@ class QuotaResetController:
                         or not selection.get("message_id")
                         or selection.get("message_id") != message.get("message_id")):
                     raise ValueError(_t('时长选择已关闭或不属于你。'))
-                self.bot.state.update(quota_reset_selection={})
+                self.bot.quota_state.update(quota_reset_selection={})
                 self.bot.send(_t('已退出时长选择，没有建立预约，也没有使用重置卡。'),
                               {"inline_keyboard": [[{"text": _t('返回额度'), "callback_data": "quotaview|refresh"}]]})
                 return
@@ -190,7 +203,7 @@ class QuotaResetController:
             if not record:
                 raise ValueError(_t('旧额度提醒的按钮已失效，请使用当前周期的新提醒。'))
             result, cycle = self._fresh()
-            if record["cycle"] != cycle["id"]:
+            if record["cycle"] != cycle["id"] or not self.bot.quota_state.valid(record.get("scope")):
                 raise ValueError(_t('额度周期已变化，旧提醒按钮不能用于本周期。'))
             self._check_unused(cycle["id"])
             remaining = 100 - cycle["used_percent"]
@@ -218,7 +231,10 @@ class QuotaResetController:
                                                               [{"text": _t('返回'), "callback_data": "backhours|" + token},
                                                                {"text": _t('取消'), "callback_data": "cancelhours|" + token}]]})
                     selection["message_id"] = sent.get("message_id") if isinstance(sent, dict) else None
-                    self.bot.state.update(quota_reset_selection=selection)
+                    self.bot.quota_state.update(quota_reset_selection=selection)
+                    if isinstance(sent, dict) and sent.get('_pending_outbox'):
+                        self.bot.delivery.after_delivery(sent['_pending_outbox'], 'state',
+                            {'key': 'quota_reset_selection', 'identity_key': 'token', 'identity': token})
                     return
                 credit = self._select_credit(result)
                 identity = self._identity()
@@ -229,8 +245,8 @@ class QuotaResetController:
                 reservation = {"id": uuid.uuid4().hex, "cycle": cycle["id"], "actor": actor,
                                "status": "armed", "hours": hours, "created_at": time.time(),
                                "expires_at": min(time.time() + hours * 3600, cycle["resets_at"]),
-                               "identity": identity, "credit_id": credit, "message_id": message.get("message_id")}
-                self.bot.state.update(quota_reset_reservation=reservation, quota_reset_selection={})
+                               "identity": identity, "scope": self.bot.quota_state.scope(), "credit_id": credit, "message_id": message.get("message_id")}
+                self.bot.quota_state.update(quota_reset_reservation=reservation, quota_reset_selection={})
                 self.bot.send(*self.render_reservation(reservation))
                 self.bot._schedule_quota_monitor_poll(1)
                 return
@@ -244,15 +260,20 @@ class QuotaResetController:
             credit = self._select_credit(result)
             identity = self._identity()
             confirmation = {"nonce": uuid.uuid4().hex, "cycle": cycle["id"], "actor": actor,
-                            "expires_at": time.time() + 120, "credit_id": credit, "identity": identity}
+                            "expires_at": time.time() + 120, "credit_id": credit, "identity": identity, "scope": self.bot.quota_state.scope()}
             self.cancel_reservation(_t('已选择立即重置，自动预约已取消，避免两种方式同时执行。'))
-            self.bot.state.update(quota_reset_confirmation=confirmation)
+            self.bot.quota_state.update(quota_reset_confirmation=confirmation)
+
             sent = self.bot.send(_t('**确认立即重置**\n\n周剩余 {p0}%，确认后使用 1 张卡。确认两分钟内有效，执行前再次检查周剩余 ≤5%。', p0=format(remaining, f'g')),
                                  {"inline_keyboard": [[
                                      {"text": _t('确认使用 1 张重置卡'), "callback_data": "confirmquota|" + confirmation["nonce"]},
                                      {"text": _t('取消'), "callback_data": "cancelquota|" + confirmation["nonce"]}]]})
             confirmation["message_id"] = sent.get("message_id") if isinstance(sent, dict) else None
-            self.bot.state.update(quota_reset_confirmation=confirmation)
+            self.bot.quota_state.update(quota_reset_confirmation=confirmation)
+            if isinstance(sent, dict) and sent.get('_pending_outbox'):
+                self.bot.delivery.after_delivery(sent['_pending_outbox'], 'state',
+                    {'key': 'quota_reset_confirmation', 'identity_key': 'nonce', 'identity': confirmation['nonce']})
+
 
     def _confirm(self, callback, action, nonce, actor):
         confirmation = self.state().get("quota_reset_confirmation") or {}
@@ -260,7 +281,7 @@ class QuotaResetController:
                 or not confirmation.get("message_id")
                 or (callback.get("message") or {}).get("message_id") != confirmation["message_id"]):
             raise ValueError(_t('确认已失效、已处理或不属于你。'))
-        self.bot.state.update(quota_reset_confirmation={}, quota_reset_selection={})
+        self.bot.quota_state.update(quota_reset_confirmation={}, quota_reset_selection={})
         if action == "cancelquota":
             self.bot.send(_t('已取消立即重置。'))
             return
@@ -268,6 +289,7 @@ class QuotaResetController:
             raise ValueError(_t('确认已超过两分钟，未执行重置。'))
         self._execute(confirmation, automatic=False)
 
+    @quota_operation
     def maybe_execute(self):
         with self.lock:
             reservation = self.state().get("quota_reset_reservation") or {}
@@ -292,7 +314,7 @@ class QuotaResetController:
         # Caller holds the one lock shared by immediate and automatic execution.
         identity = self._identity()
         result, cycle = self._fresh()
-        if authorization["identity"] != identity:
+        if authorization["identity"] != identity or not self.bot.quota_state.valid(authorization.get("scope")):
             raise ValueError(_t('账户已变化，原授权失效。'))
         if cycle["id"] != authorization["cycle"] or time.time() >= authorization["expires_at"]:
             raise ValueError(_t('额度周期已变化或授权已过期，未执行重置。'))
@@ -312,7 +334,10 @@ class QuotaResetController:
         live_cycle = self.state().get("quota_reset_cycle") or {}
         if live_cycle.get("id") != authorization["cycle"] or time.time() >= authorization["expires_at"]:
             raise ValueError(_t('执行前额度发生变化或授权过期，未执行重置。'))
-        attempt = {"cycle": cycle["id"], "idempotency_key": str(uuid.uuid4()),
+        if self._identity() != identity or not self.bot.quota_state.valid(authorization.get('scope')):
+            self.bot.quota_state.invalidate()
+            raise ValueError(_t('账户已变化，原授权失效。'))
+        attempt = {"account": identity, "scope": self.bot.quota_state.scope(), "cycle": cycle["id"], "idempotency_key": str(uuid.uuid4()),
                    "credit_id": authorization["credit_id"], "status": "consuming", "request_sent": True,
                    "resets_at": cycle["resets_at"], "used_percent": cycle["used_percent"],
                    "recovery_observed": False}
@@ -320,7 +345,7 @@ class QuotaResetController:
         if reservation.get("status") == "armed":
             reservation["status"] = "triggered"
         # One atomic save before the API call: a crash/restart cannot re-arm this request.
-        self.bot.state.update(quota_reset_attempt=attempt, quota_reset_reservation=reservation,
+        self.bot.quota_state.update(quota_reset_attempt=attempt, quota_reset_reservation=reservation,
                                quota_reset_confirmation={}, quota_reset_buttons={})
         self.update_reservation_card(reservation)
         try:
@@ -332,26 +357,26 @@ class QuotaResetController:
                 raise ValueError(_t('未知兑换结果'))
         except Exception:
             attempt["status"] = "uncertain"
-            self.bot.state.update(quota_reset_attempt=attempt)
+            self.bot.quota_state.update(quota_reset_attempt=attempt)
             if not automatic:
                 self.bot.send(_t('**重置结果暂时无法确认**\n\n已锁定新的兑换，请先核对额度。'),
                               {"inline_keyboard": [[{"text": _t('查看额度'), "callback_data": "quotaview|refresh"}]]})
             self.bot.enqueue(_t('**重置结果暂时无法确认**\n\n已停止自动重试并锁定新的兑换，避免重复扣卡。请先通过 `/quota` 核对。'))
             return
         attempt["status"] = outcome
-        self.bot.state.update(quota_reset_attempt=attempt)
+        self.bot.quota_state.update(quota_reset_attempt=attempt)
         labels = {"reset": _t('已使用 1 张重置卡'), "alreadyRedeemed": _t('本次兑换此前已完成，未再次扣卡'),
                   "noCredit": _t('没有可用重置卡，未执行重置'), "nothingToReset": _t('没有可重置窗口，未执行重置')}
         if automatic:
             reservation["reason"] = labels[outcome]
-            self.bot.state.update(quota_reset_reservation=reservation)
+            self.bot.quota_state.update(quota_reset_reservation=reservation)
             self.update_reservation_card(reservation)
         else:
             self.bot.send("**" + labels[outcome] + _t('**\n\n本次授权已结束。'),
                           {"inline_keyboard": [[{"text": _t('返回额度'), "callback_data": "quotaview|refresh"}]]})
         self.bot.enqueue("**" + (_t('预约重置：') if automatic else _t('立即重置：')) + labels[outcome] + _t('**\n\n本次授权已结束，不会继续使用其他卡。'))
         try:
-            refreshed = self.bot.app.request("account/rateLimits/read", {}, timeout=45)
+            refreshed = self.bot.quota_state.fetch()
             self.bot._observe_quota(refreshed)
         except Exception:
             self.bot.enqueue(_t('重置后额度查询失败，请稍后用 `/quota` 查看。'))

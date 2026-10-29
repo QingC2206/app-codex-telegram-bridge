@@ -59,9 +59,11 @@ def _reaction_db(*, timeout=30):
     db = sqlite3.connect(REACTION_DB, timeout=timeout)
     db.execute("CREATE TABLE IF NOT EXISTS reactions (bot TEXT, chat TEXT, message INTEGER, thread TEXT, turn TEXT, emoji TEXT, updated REAL, PRIMARY KEY(bot, chat, message))")
     db.execute("CREATE TABLE IF NOT EXISTS reaction_delivered (bot TEXT, thread TEXT, turn TEXT, updated REAL, PRIMARY KEY(bot, thread, turn))")
+    db.execute("CREATE TABLE IF NOT EXISTS reaction_outcomes (bot TEXT, thread TEXT, turn TEXT, emoji TEXT, PRIMARY KEY(bot, thread, turn))")
     db.execute("CREATE TABLE IF NOT EXISTS task_reply_sources (bot TEXT, chat TEXT, thread TEXT, turn TEXT, message INTEGER, updated REAL, PRIMARY KEY(bot,chat,thread,turn))")
     db.execute("CREATE TABLE IF NOT EXISTS desktop_submissions (bot TEXT,chat TEXT,message INTEGER,thread TEXT,path TEXT,offset INTEGER,digest TEXT,created REAL,turn TEXT,item TEXT, PRIMARY KEY(bot,chat,message))")
     db.execute("CREATE TABLE IF NOT EXISTS reaction_retries (bot TEXT,chat TEXT,message INTEGER, PRIMARY KEY(bot,chat,message))")
+    db.execute("CREATE TABLE IF NOT EXISTS reaction_results (bot TEXT,chat TEXT,message INTEGER,applied INTEGER NOT NULL, PRIMARY KEY(bot,chat,message))")
     db.execute("CREATE TABLE IF NOT EXISTS navigation_roots (bot TEXT, chat TEXT, origin INTEGER, panel INTEGER, status TEXT, PRIMARY KEY(bot,chat,origin))")
     db.execute("CREATE TABLE IF NOT EXISTS navigation_views (bot TEXT, chat TEXT, panel INTEGER, origin INTEGER, status TEXT, revision INTEGER, PRIMARY KEY(bot,chat,panel))")
     db.execute("CREATE TABLE IF NOT EXISTS navigation_list_returns (bot TEXT, chat TEXT, panel INTEGER, target TEXT, PRIMARY KEY(bot,chat,panel))")
@@ -190,7 +192,7 @@ def attach_task_reply(token, request, thread_id, turn_id):
         log_error(f"could not associate completion reply: {type(exc).__name__}")
 
 
-def set_task_reaction(token, chat_id, message_id, emoji, thread_id="", turn_id="", *, _retry=False):
+def set_task_reaction(token, chat_id, message_id, emoji, thread_id="", turn_id="", *, _retry=False, api=None):
     """Serialize desired state and Telegram writes across bot and hook processes."""
     emoji = {"👌": "🎉", "👎": "😢"}.get(emoji, emoji)
     if not message_id:
@@ -207,32 +209,43 @@ def set_task_reaction(token, chat_id, message_id, emoji, thread_id="", turn_id="
             # A hook may have completed the message since the retry was queued.
             return False
         if emoji in {"👀", "🤔"} and turn_id and db.execute("SELECT 1 FROM reaction_delivered WHERE bot=? AND thread=? AND turn=?", (bot, thread_id, turn_id)).fetchone():
-            emoji = "🎉"
+            outcome = db.execute('SELECT emoji FROM reaction_outcomes WHERE bot=? AND thread=? AND turn=?', (bot, thread_id, turn_id)).fetchone()
+            emoji = outcome[0] if outcome else '🎉'
         if previous and previous[:3] == (thread_id, turn_id, emoji) and not db.execute(
                 "SELECT 1 FROM reaction_retries WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id)).fetchone():
-            return True
+            # Desired state alone is not an acknowledgement. In particular,
+            # a definitive 400 must not suppress the text submission receipt.
+            result = db.execute("SELECT applied FROM reaction_results WHERE bot=? AND chat=? AND message=?",
+                                (bot, str(chat_id), message_id)).fetchone()
+            if result is not None:
+                return bool(result[0])
         updated = previous[3] if previous and previous[:3] == (thread_id, turn_id, emoji) else time.time()
         db.execute("INSERT OR REPLACE INTO reactions VALUES (?,?,?,?,?,?,?)", (bot, str(chat_id), message_id, thread_id, turn_id, emoji, updated))
+        db.execute("DELETE FROM reaction_results WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
         try:
-            telegram_call(token, "setMessageReaction", {
+            (api or telegram_call)(token, "setMessageReaction", {
                 "chat_id": str(chat_id), "message_id": message_id,
                 "reaction": [{"type": "emoji", "emoji": emoji}] if emoji else [],
                 "is_big": False,
             }, timeout=8)
         except Exception as exc:
             log_error(f"reaction update failed: {exc}", token)
+            db.execute("INSERT OR REPLACE INTO reaction_results VALUES (?,?,?,0)", (bot, str(chat_id), message_id))
             if 'Telegram API 400:' not in str(exc):
                 db.execute("INSERT OR IGNORE INTO reaction_retries VALUES (?,?,?)", (bot, str(chat_id), message_id))
             else:
                 db.execute("DELETE FROM reaction_retries WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
                 if emoji in {"", "🎉", "😢"}:
                     db.execute("DELETE FROM reactions WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
+                    db.execute("DELETE FROM reaction_results WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
             db.commit()
             return False
         db.execute("DELETE FROM reaction_retries WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
+        db.execute("INSERT OR REPLACE INTO reaction_results VALUES (?,?,?,1)", (bot, str(chat_id), message_id))
         if not emoji or emoji in {"🎉", "😢"}:
             # Forget local work after success; Telegram keeps the OK reaction.
             db.execute("DELETE FROM reactions WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
+            db.execute("DELETE FROM reaction_results WHERE bot=? AND chat=? AND message=?", (bot, str(chat_id), message_id))
         db.commit()
         return True
     finally:
@@ -247,7 +260,7 @@ def task_reactions(token):
         db.close()
 
 
-def retry_task_reactions(token):
+def retry_task_reactions(token, *, api=None):
     db = _reaction_db()
     try:
         rows = db.execute("SELECT r.chat,r.message,r.thread,r.turn,r.emoji FROM reactions r JOIN reaction_retries q "
@@ -256,7 +269,8 @@ def retry_task_reactions(token):
     finally:
         db.close()
     for chat, message, thread, turn, emoji in rows:
-        set_task_reaction(token, chat, message, emoji, thread, turn, _retry=True)
+        set_task_reaction(token, chat, message, emoji, thread, turn, _retry=True,
+                          **({'api': api} if api else {}))
 
 
 def remember_desktop_submission(token, chat, message, thread, text):
@@ -407,7 +421,7 @@ def payload_turn_id(payload):
     return desktop_receipts.completion_turn(thread, final, SESSION_ROOT)
 
 
-def complete_task_reactions(token, thread_id, turn_id):
+def complete_task_reactions(token, thread_id, turn_id, *, outcome=None):
     # A thread alone cannot distinguish an old completion from a newer reply.
     if not thread_id or not turn_id:
         return
@@ -415,13 +429,19 @@ def complete_task_reactions(token, thread_id, turn_id):
     db = _reaction_db()
     try:
         with db:
+            previous = db.execute('SELECT emoji FROM reaction_outcomes WHERE bot=? AND thread=? AND turn=?', (bot, thread_id, turn_id)).fetchone()
+            outcome = outcome or (previous[0] if previous else '🎉')
+            if outcome not in {'🎉', '😢'}:
+                raise ValueError('Invalid task outcome')
+            db.execute('INSERT OR REPLACE INTO reaction_outcomes VALUES (?,?,?,?)', (bot, thread_id, turn_id, outcome))
             db.execute("INSERT OR REPLACE INTO reaction_delivered VALUES (?,?,?,?)", (bot, thread_id, turn_id, time.time()))
             db.execute("DELETE FROM reaction_delivered WHERE updated<?", (time.time()-7*86400,))
+            db.execute('DELETE FROM reaction_outcomes WHERE NOT EXISTS (SELECT 1 FROM reaction_delivered d WHERE d.bot=reaction_outcomes.bot AND d.thread=reaction_outcomes.thread AND d.turn=reaction_outcomes.turn)')
     finally:
         db.close()
     for chat, message, thread, turn, emoji, updated in task_reactions(token):
         if thread == thread_id and turn == turn_id:
-            set_task_reaction(token, chat, message, "🎉", thread, turn)
+            set_task_reaction(token, chat, message, outcome, thread, turn)
 
 
 def reaction_delivery_confirmed(token, thread_id, turn_id):
@@ -449,9 +469,11 @@ def complete_payload_reactions(payload):
 
 class TelegramApiError(RuntimeError):
     """A definite Telegram rejection, distinct from ambiguous transport failures."""
-    def __init__(self, code: int, description: str):
+    def __init__(self, code: int, description: str, parameters=None):
         self.code = code
         self.description = description
+        self.parameters = parameters or {}
+        self.retry_after = self.parameters.get('retry_after')
         super().__init__(f"Telegram API {code}: {description}")
 
 
@@ -488,12 +510,12 @@ def telegram_call(
             raise RuntimeError(f"Telegram HTTP {exc.code}") from exc
         if not isinstance(rejection, dict) or rejection.get("ok") is not False:
             raise RuntimeError(f"Telegram HTTP {exc.code}") from exc
-        raise TelegramApiError(exc.code, str(rejection.get("description", ""))) from exc
+        raise TelegramApiError(exc.code, str(rejection.get("description", "")), rejection.get('parameters')) from exc
     except URLError as exc:
         raise RuntimeError(_t('无法连接 Telegram API: {p0}', p0=format(exc.reason, ''))) from exc
 
     if not result.get("ok"):
-        raise TelegramApiError(int(result.get("error_code", 0)), str(result.get("description", "unknown error")))
+        raise TelegramApiError(int(result.get("error_code", 0)), str(result.get("description", "unknown error")), result.get('parameters'))
     return result.get("result")
 
 
@@ -568,7 +590,10 @@ def telegram_multipart_call(
     )
     try:
         with urlopen(request, timeout=timeout) as response:
-            result = json.loads(response.read().decode("utf-8"))
+            try:
+                result = json.loads(response.read().decode("utf-8"))
+            except (ValueError, UnicodeError) as exc:
+                raise RuntimeError('Telegram upload response could not be verified') from exc
     except HTTPError as exc:
         try:
             detail = exc.read().decode("utf-8", errors="replace")
@@ -582,11 +607,17 @@ def telegram_multipart_call(
             raise RuntimeError(f"Telegram HTTP {exc.code}") from exc
         if not isinstance(rejection, dict) or rejection.get("ok") is not False:
             raise RuntimeError(f"Telegram HTTP {exc.code}") from exc
-        raise TelegramApiError(exc.code, str(rejection.get("description", ""))) from exc
+        raise TelegramApiError(exc.code, str(rejection.get("description", "")), rejection.get('parameters')) from exc
     except URLError as exc:
         raise RuntimeError(_t('无法连接 Telegram API: {p0}', p0=format(exc.reason, ''))) from exc
-    if not result.get("ok"):
-        raise TelegramApiError(int(result.get("error_code", 0)), str(result.get("description", "unknown error")))
+    if not isinstance(result, dict) or type(result.get('ok')) is not bool:
+        raise RuntimeError('Telegram upload response could not be verified')
+    if result.get('ok') is False:
+        try:
+            code = int(result.get('error_code', 0))
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise RuntimeError('Telegram upload response could not be verified') from exc
+        raise TelegramApiError(code, str(result.get("description", "unknown error")), result.get('parameters'))
     return result.get("result")
 
 
@@ -626,17 +657,19 @@ def send_document(
     caption: str = "",
     silent: bool = False,
 ) -> Any:
-    last_error: Exception | None = None
+    from .delivery import TelegramDeliveryUnknown, delivery_error, verified_message, validate_document
+    validate_document(content)
     fields: dict[str, Any] = {
         "chat_id": chat_id,
         "caption": caption,
         "disable_notification": silent,
     }
-    for delay in (0, 2, 5):
-        if delay:
-            time.sleep(delay)
+    # The Windows default path shares the transport rules without adopting
+    # the app-server queue. Bound both attempts and cumulative rate-limit wait.
+    remaining_wait = 30.0
+    for attempt in range(3):
         try:
-            return telegram_multipart_call(
+            return verified_message(telegram_multipart_call(
                 token,
                 "sendDocument",
                 fields,
@@ -644,11 +677,17 @@ def send_document(
                 filename=filename,
                 content=content,
                 content_type="text/markdown; charset=utf-8",
-            )
+            ))
         except Exception as exc:
-            last_error = exc
-    assert last_error is not None
-    raise last_error
+            status, delay = delivery_error(exc)
+            if status == 'unknown':
+                raise TelegramDeliveryUnknown(_t('Telegram 未确认文件是否送达；请先检查聊天，不会自动重发。')) from exc
+            if status != 'retry' or attempt == 2:
+                raise
+            if delay > remaining_wait:
+                raise TelegramApiError(429, _t('Telegram 暂时限制文件发送，请稍后再试。'), {'retry_after': delay}) from exc
+            time.sleep(delay)
+            remaining_wait -= delay
 
 
 _INLINE_MARKDOWN = re.compile(
@@ -832,21 +871,28 @@ def markdown_to_telegram_html(text: str) -> str:
     return "\n".join(rendered)
 
 
+def _telegram_units(text: str) -> int:
+    return len(text.encode('utf-16-le')) // 2
+
+
 def _split_long_line(line: str, limit: int) -> list[str]:
-    if len(line) <= limit:
+    if _telegram_units(line) <= limit:
         return [line]
-    parts: list[str] = []
+    parts = []
     remaining = line
-    while len(remaining) > limit:
-        cut = max(
-            remaining.rfind(" ", 0, limit + 1),
-            remaining.rfind("，", 0, limit + 1),
-            remaining.rfind("。", 0, limit + 1),
-            remaining.rfind(",", 0, limit + 1),
-        )
-        if cut < limit // 2:
-            cut = limit
-        elif remaining[cut] == " ":
+    while _telegram_units(remaining) > limit:
+        units = 0
+        boundary = 0
+        for char in remaining:
+            width = 2 if ord(char) > 0xffff else 1
+            if units + width > limit:
+                break
+            units += width
+            boundary += 1
+        cut = max(remaining.rfind(mark, 0, boundary + 1) for mark in (' ', '，', '。', ','))
+        if cut < boundary // 2:
+            cut = boundary
+        elif remaining[cut] == ' ' and cut < boundary:
             cut += 1
         parts.append(remaining[:cut].rstrip())
         remaining = remaining[cut:].lstrip()
@@ -862,7 +908,7 @@ def _split_markdown_text_pages(text: str, limit: int = REPLY_PAGE_LIMIT) -> list
         return []
     if limit < 256:
         raise ValueError("reply page limit is too small")
-    if len(value) <= limit:
+    if _telegram_units(value) <= limit:
         return [value]
 
     expanded_lines: list[str] = []
@@ -889,20 +935,20 @@ def _split_markdown_text_pages(text: str, limit: int = REPLY_PAGE_LIMIT) -> list
         if page:
             pages.append(page)
         current = [fence_opener] if in_fence else []
-        current_length = len(fence_opener) if in_fence else 0
+        current_length = _telegram_units(fence_opener) if in_fence else 0
 
     for line in expanded_lines:
         stripped = line.lstrip()
         is_fence = stripped.startswith("```")
         next_in_fence = not in_fence if is_fence else in_fence
         separator = 1 if current else 0
-        projected = current_length + separator + len(line)
+        projected = current_length + separator + _telegram_units(line)
         closing_reserve = 4 if next_in_fence else 0
         if current and projected + closing_reserve > limit:
             flush()
             separator = 1 if current else 0
         current.append(line)
-        current_length += separator + len(line)
+        current_length += separator + _telegram_units(line)
         if is_fence:
             if in_fence:
                 in_fence = False
@@ -958,14 +1004,14 @@ def split_markdown_pages(text: str, limit: int = REPLY_PAGE_LIMIT) -> list[str]:
         heading = "\n".join(lines[i:i + 2])
         part = heading
         for row in lines[i + 2:end]:
-            if len(heading) + 1 + len(row) > limit:
+            if _telegram_units(heading) + 1 + _telegram_units(row) > limit:
                 if part != heading:
                     chunks.append(part)
                     part = heading
                 # An individual enormous row cannot fit; preserve every field.
                 chunks.extend(_split_markdown_text_pages(format_markdown_tables(heading + "\n" + row), limit))
             else:
-                if len(part) + 1 + len(row) > limit:
+                if _telegram_units(part) + 1 + _telegram_units(row) > limit:
                     chunks.append(part)
                     part = heading
                 part += "\n" + row
@@ -975,16 +1021,21 @@ def split_markdown_pages(text: str, limit: int = REPLY_PAGE_LIMIT) -> list[str]:
     flush_prose()
     pages: list[str] = []
     for chunk in chunks:
-        if pages and len(pages[-1]) + 2 + len(chunk) <= limit:
+        if pages and _telegram_units(pages[-1]) + 2 + _telegram_units(chunk) <= limit:
             pages[-1] += "\n\n" + chunk
         else:
             pages.append(chunk)
     return pages
 
 
+def _preview_exceeds_limit(text: str, limit: int) -> bool:
+    """Use Telegram's UTF-16 budget for both preview and cache decisions."""
+    return _telegram_units(str(text or "").strip()) > limit
+
+
 def markdown_preview(text: str, limit: int) -> str:
     value = str(text or "").strip()
-    if len(value) <= limit:
+    if not _preview_exceeds_limit(value, limit):
         return value
     pages = split_markdown_pages(value, limit - 32)
     return (pages[0] if pages else "") + _t('\n\n…（查看完整回复）')
@@ -1008,8 +1059,11 @@ def cache_full_reply(payload: dict[str, Any], thread_id: str = "", *, force: boo
     value = payload.get("last_assistant_message")
     if not isinstance(value, str):
         return None
-    text = value.strip()
-    if not force and max(len(text), len(format_markdown_tables(text))) <= REPLY_PREVIEW_LIMIT:
+    # Display previews may trim surrounding whitespace; downloads retain the
+    # original answer byte-for-byte, including code indentation/newlines.
+    text = value
+    if not force and not any(_preview_exceeds_limit(value, REPLY_PREVIEW_LIMIT)
+                             for value in (text, format_markdown_tables(text))):
         return None
     encoded = text.encode("utf-8")
     if len(encoded) > MAX_CACHED_REPLY_BYTES:
@@ -1195,7 +1249,8 @@ def prepare_local_image_reply(token: str, payload: dict[str, Any], *, upload: bo
     return prepared
 
 
-def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool) -> Any:
+def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool, api=None) -> Any:
+    call = api or (lambda method, request: telegram_call(token, method, request, timeout=30))
     original = str(payload.get("text") or "")
     base = dict(payload)
     if "reply_markup" in base:
@@ -1205,7 +1260,7 @@ def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool) -> Any
     method = "editMessageText" if edit else "sendRichMessage"
     rich_payload = dict(base, rich_message={"markdown": original})
     try:
-        return telegram_call(token, method, rich_payload, timeout=30)
+        return call(method, rich_payload)
     except Exception as exc:
         if not _format_rejected(exc, rich=True):
             raise
@@ -1218,11 +1273,11 @@ def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool) -> Any
     method = "editMessageText" if edit else "sendMessage"
     legacy = dict(base, text=markdown_to_telegram_html(fallback), parse_mode="HTML")
     try:
-        return telegram_call(token, method, legacy, timeout=30)
+        return call(method, legacy)
     except Exception as exc:
         if not _format_rejected(exc):
             raise
-    return telegram_call(token, method, dict(base, text=fallback), timeout=30)
+    return call(method, dict(base, text=fallback))
 
 
 NATIVE_REPLY_DIR = HOOK_DIR / "telegram_message_routes"
@@ -1433,6 +1488,53 @@ def choose_chat_id(token: str) -> str:
         print(_t('选择无效，请重试。\n'))
 
 
+def _allowed_user_ids(value) -> list[int]:
+    """Normalize an explicitly supplied allowlist, never a chat membership list."""
+    if not isinstance(value, list) or not value:
+        raise ValueError(_t('群聊必须配置至少一个获准使用机器人的用户 ID。'))
+    users = []
+    for item in value:
+        if isinstance(item, bool) or not re.fullmatch(r'[1-9][0-9]*', str(item)):
+            raise ValueError(_t('用户 ID 必须是正整数，多个 ID 请用逗号或空格分隔。'))
+        identifier = int(item)
+        if identifier not in users:
+            users.append(identifier)
+    return users
+
+
+def _previous_bot_id(config) -> str | None:
+    identifier = config.get('bot_id')
+    if isinstance(identifier, int) and not isinstance(identifier, bool) and identifier > 0:
+        return str(identifier)
+    try:
+        # Older configurations predate bot_id. Reading the existing protected
+        # token preserves their allowlist without saving a plaintext secret.
+        identifier = load_token(config).partition(':')[0]
+        return identifier if re.fullmatch(r'[1-9][0-9]*', identifier) else None
+    except Exception:
+        return None
+
+
+def _setup_group_allowlist(bot_id: int, chat_id: str) -> list[int]:
+    previous = json.loads(CONFIG_PATH.read_text(encoding='utf-8')) if CONFIG_PATH.exists() else {}
+    if not isinstance(previous, dict):
+        raise ValueError(_t('Telegram 通知配置无效。'))
+    saved = None
+    if str(previous.get('chat_id')) == chat_id and _previous_bot_id(previous) == str(bot_id):
+        try:
+            saved = _allowed_user_ids(previous.get('allowed_user_ids'))
+        except ValueError:
+            pass
+    if saved:
+        print(_t('当前群聊授权用户：{p0}', p0=', '.join(map(str, saved))))
+        answer = input(_t('授权用户 ID（回车保留；输入新列表替换，逗号或空格分隔）: ')).strip()
+        if not answer:
+            return saved
+    else:
+        answer = input(_t('请输入获准使用机器人的用户 ID（必填，逗号或空格分隔）: ')).strip()
+    return _allowed_user_ids(re.split(r'[,，\s]+', answer) if answer else [])
+
+
 def setup() -> int:
     print(_t('Codex → Telegram 通知配置\n'))
     print(_t('1. 在 Telegram 找 @BotFather 创建机器人并取得 Bot Token。'))
@@ -1446,9 +1548,15 @@ def setup() -> int:
 
     try:
         bot = telegram_call(token, "getMe")
+        bot_id = bot.get('id') if isinstance(bot, dict) else None
+        if not isinstance(bot_id, int) or isinstance(bot_id, bool) or bot_id <= 0:
+            raise ValueError(_t('机器人验证未返回有效的机器人 ID。'))
         username = bot.get("username", "unknown") if isinstance(bot, dict) else "unknown"
         print(_t('机器人验证成功：@{p0}', p0=format(username, '')))
         chat_id = choose_chat_id(token)
+        if not re.fullmatch(r'-?[1-9][0-9]*', chat_id):
+            raise ValueError(_t('Chat ID 必须是非零整数。'))
+        allowed_users = _setup_group_allowlist(bot_id, chat_id) if int(chat_id) < 0 else None
         preview_answer = input(_t('通知中包含 Codex 最后回复的预览？[y/N]: ')).strip().lower()
         include_preview = preview_answer in {"y", "yes", "是"}
         subagent_answer = input(_t('接收 Codex 子代理任务的完成通知？[y/N]: ')).strip().lower()
@@ -1459,11 +1567,14 @@ def setup() -> int:
         config = {
             "version": 1,
             **store_token(token, CONFIG_PATH),
+            "bot_id": bot_id,
             "chat_id": chat_id,
             "include_message_preview": include_preview,
             "include_subagent_notifications": include_subagents,
             "silent": silent,
         }
+        if allowed_users is not None:
+            config['allowed_user_ids'] = allowed_users
         temporary = CONFIG_PATH.with_suffix(".tmp")
         temporary.write_text(
             json.dumps(config, ensure_ascii=False, indent=2) + "\n",
@@ -1908,18 +2019,25 @@ def send_user_input_request_notification(payload: dict[str, Any]) -> int:
     if notifications_muted():
         return 0
 
+    from .completion_routing import classify_question
+    decision = classify_question(payload, SOURCE_STATE_ROOT)
+    if not decision.deliver:
+        log_error('skipped user-input notification; source='+decision.kind+'; reason='+decision.reason)
+        return 0
+
     loaded = load_config()
     if loaded is None:
         return 0
     config, token = loaded
     try:
-        subagent = subagent_completion_context(payload)
+        subagent = {'agent_id': decision.thread_id} if decision.kind == 'subagent' else subagent_completion_context(payload)
         if subagent is not None and not subagent_notifications_enabled(config):
             return 0
-        session_id = str(payload.get("session_id") or payload.get("thread_id") or "")
+        session_id = decision.thread_id
+        display_payload = {**payload, 'session_id': session_id, 'thread_id': session_id}
         request: dict[str, Any] = {
             "chat_id": str(config["chat_id"]),
-            "text": build_user_input_request_message(payload),
+            "text": build_user_input_request_message(display_payload),
             "disable_notification": bool(config.get("silent")),
         }
         if session_id:
@@ -1984,12 +2102,12 @@ def notification_heading(thread_id: str, icon: str = "🥳") -> str:
     return f"**{icon} {title}**"
 
 
-def build_message(payload: dict[str, Any], include_preview: bool) -> str:
+def build_message(payload: dict[str, Any], include_preview: bool, *, display_title: str | None = None, completed_at: str | None = None) -> str:
     cwd = str(payload.get("cwd") or "")
     workspace = workspace_name(cwd)
-    completed_at = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
+    completed_at = completed_at or datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
     thread_id = str(payload.get("thread_id") or payload.get("thread-id") or payload.get("session_id") or payload.get("agent_id") or "")
-    title = notification_heading(thread_id)
+    title = notification_heading(thread_id) if display_title is None else "**🥳 "+re.sub(r"([\\`*_{}\[\]()<>#+.!|~-])", r"\\\1", display_title)+"**"
     lines = [
         title,
         _t('**工作区：** {p0}', p0=format(workspace, '')),

@@ -28,3 +28,8 @@ def capture(target):
         subprocess.run(['/usr/sbin/screencapture','-x','-l',str(target['id']),str(output)],
                        check=True, timeout=18, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         return image_result(output.read_bytes())
+
+
+def failure_hint():
+    from ...i18n import tr as _t
+    return _t('截图失败。请在 macOS 系统设置中检查机器人 Python 的屏幕录制权限，并重启机器人服务。')

@@ -268,6 +268,29 @@ def turn_evidence(profile, record, thread_id, turn_id):
     return attribution, final if isinstance(final, str) else None
 
 
+def classify_question(payload, profile: Path):
+    """Apply the provenance gate to a question without completion side effects.
+
+    Subagent tool hooks may carry the parent's session ID and a distinct agent
+    ID. As with SubagentStop, only the child's own provenance can authorize it.
+    No pending-completion or completion-deduplication state is consumed here.
+    """
+    if payload.get('hook_event_name') != 'PreToolUse' or payload.get('tool_name') != 'request_user_input':
+        return Decision('unknown', 'unsupported-question-event')
+    transcript = payload.get('transcript_path')
+    if transcript:
+        try:
+            if not isinstance(transcript, str) or not _resolved(transcript).is_relative_to(_resolved(profile)):
+                return Decision('unknown', 'foreign-transcript')
+        except (OSError, RuntimeError, ValueError):
+            return Decision('unknown', 'invalid-transcript')
+    if payload.get('agent_id'):
+        # identity() already implements the parent/child distinction for this
+        # event shape; reuse it instead of introducing another ID parser.
+        payload = {**payload, 'hook_event_name': 'SubagentStop'}
+    return classify(payload, profile)
+
+
 def classify(payload, profile: Path):
     tid, turn_id, valid = identity(payload)
     result = Decision('unknown', 'missing-identity', tid, turn_id)

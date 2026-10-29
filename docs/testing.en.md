@@ -78,3 +78,24 @@ Check that `/quota` is always first, followed by `/tasks` and `/running` and plu
 ## Quiet mode acceptance
 
 Enable quiet mode and confirm `/quota`, `/tasks`, `/running`, and settings remain usable. Task messages, attachments, and old action buttons must not submit work. Completion replies and questions must not be pushed or replayed after disabling the mode. Restarting preserves the mode and original notification preferences; tracking and quota reservations must not resume automatically.
+
+## Layering compatibility regression
+
+```text
+python tools/run_tests.py --suite Compatibility
+python tools/run_tests.py --suite Full
+```
+
+`Compatibility` uses explicit platform policies and mocked OS commands on the current host. It checks the unchanged Windows default backend, recovery with damaged settings, rollback after either installer's startup failure, hidden Windows process launch/Job Object attachment, native Desktop validation and the separate macOS policy. macOS fixtures use temporary paths and an explicit adapter instead of pretending the host filesystem is another OS.
+
+This round covers Windows compatibility regression only; native Windows acceptance is deferred. Passing on a Mac does not prove Task Scheduler, Named Pipe or Windows session behavior. Later Windows acceptance must retain the default Desktop backend and verify automatic startup, restart recovery, replies to original tasks, same-turn steering, stopping and approvals. Never resend an unknown outcome. Run `configure-app-server` only after a separate backend migration approval.
+
+app-server menus, cards, approvals and errors use the shared language preference. Tests also preserve model text, Chinese task titles, callback values and raw user input. The full suite uses temporary profiles and data directories and does not read real tokens.
+
+Run `python tools/run_tests.py --suite Feedback` for both Desktop and app-server reaction contracts. On real devices, inspect the original input message for 👀 → 🤔 → 🎉, with 😢 for confirmed failure. Check Desktop replies, bot-owned tasks, steering, answers and query buttons separately. Pending delivery, rate limits, disabled completion notifications and unknown submission outcomes must not claim completion.
+
+## Windows parity gates
+
+`docs/parity.json` inventories Windows baseline behavior and approved additions. Each rule has a stable ID and explicit links to reviewed test assertions or native scenarios; the audit computes the current counts. `docs/test-migration.json` maps all 98 scenarios from the retired controller; deliberate changes to match Windows are recorded explicitly.
+
+Use `--report docs/parity-tests.json` with the full regression suite. `python tools/audit_parity.py --require-reviewed` checks each rule's reviewed assertions, test definition, current regression results and final sharing review against the full source-file set. Added, removed or changed implementation, test, tool, ledger or installation-document files invalidate prior evidence. `--require-complete` also checks version-bound macOS Telegram UI observations. Historical success labels and simulated/API tests cannot establish current UI acceptance. See the [rule-level audit procedure](parity-audit.md) for the record format and update order.

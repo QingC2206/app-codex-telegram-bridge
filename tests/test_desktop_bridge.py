@@ -1,12 +1,14 @@
 """Offline Desktop routing regressions. No Telegram/model/task writes."""
 import json
 import os
+import sqlite3
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
 import codex_telegram_bridge.codex.desktop as d
+from codex_telegram_bridge.platforms.windows.desktop_access import WindowsDesktopAccess
 import codex_telegram_bridge.app as b
 import codex_telegram_bridge.telegram.notifications as n
 class FakeTransport(b.CodexDesktopIpc):
@@ -85,7 +87,7 @@ class BridgeTests(unittest.TestCase):
         self.owner = FakeTransport()
         self.discover = Mock(return_value=d.DesktopEndpoint(44, r"\\.\pipe\codex-app-tools-test"))
         self.native = d.DesktopAppTools(lambda **kw: self.transport, discover=self.discover)
-        self.control = d.DesktopControl(FakeTransport)
+        self.control = d.DesktopControl(FakeTransport, access=WindowsDesktopAccess())
         self.control.native = self.native
         self.control.transport_factory = lambda **kw: self.owner
         verify = patch.object(d, 'validate_pipe_server')
@@ -95,8 +97,14 @@ class BridgeTests(unittest.TestCase):
         return [r for r in self.owner.requests if r['method'] in
                 ('thread-follower-steer-turn', 'thread-follower-start-turn')]
 
+
+
+
+
+
+
     def test_default_desktop_timeout_is_ten_seconds_in_follower_frame(self):
-        self.assertEqual(d.DesktopControl(FakeTransport).native.timeout, 10)
+        self.assertEqual(d.DesktopControl(FakeTransport, access=WindowsDesktopAccess()).native.timeout, 10)
         def factory(**kwargs):
             self.owner.timeout = kwargs['timeout']
             return self.owner
@@ -199,6 +207,18 @@ class BridgeTests(unittest.TestCase):
         self.control.send_follow_up('task', 'hello', '', recover_owner=True)
         self.assertFalse(self.navigations())
         self.assertEqual(len(self.mutations()), 1)
+
+    def test_windows_unanswered_discovery_keeps_baseline_failure_without_navigation(self):
+        receive = self.owner._next_message
+        def next_message(*args):
+            if self.owner.requests[-1]['method'] == 'thread-owner-discovery':
+                raise TimeoutError('unanswered discovery')
+            return receive(*args)
+        with patch.object(self.owner, '_next_message', side_effect=next_message):
+            with self.assertRaises(d.DesktopIpcUnavailable):
+                self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertFalse(self.mutations())
+        self.assertEqual(self.transport.requests, [])
 
     def test_missing_navigation_capability_stops_before_input(self):
         self.enable_recovery()
@@ -558,7 +578,7 @@ class BotEntryTests(unittest.TestCase):
         self.bot._reaction = Mock(return_value=True)
         self.transport = FakeTransport()
         self.owner = FakeTransport()
-        self.bot.desktop = d.DesktopControl(lambda **kw: self.transport)
+        self.bot.desktop = d.DesktopControl(lambda **kw: self.transport, access=WindowsDesktopAccess())
         self.bot.desktop.transport_factory = lambda **kw: self.owner
         self.bot.desktop.native.discover = Mock(return_value=d.DesktopEndpoint(44, r"\\.\pipe\codex-browser-use-test"))
         self.bot._thread_activity = Mock(return_value=(False, ""))
@@ -643,6 +663,10 @@ class BotEntryTests(unittest.TestCase):
         with self.assertRaises(d.DesktopIpcError):
             self.bot.handle_text("继续工作", reply_to_message_id=7)
         self.assertEqual(self.bot.awaiting_direct_reply[7], "task")
+        self.bot.start_turn.side_effect = None
+        self.bot.handle_text("继续工作", reply_to_message_id=7)
+        self.assertEqual(self.bot.start_turn.call_count, 2)
+        self.assertNotIn(7, self.bot.awaiting_direct_reply)
 
     def test_explicit_missing_desktop_retains_send_selection(self):
         self.bot.start_turn = Mock(side_effect=d.DesktopIpcUnavailable("Desktop not running"))
@@ -658,7 +682,7 @@ class BotEntryTests(unittest.TestCase):
         self.bot._send_unreported_credit_baseline = Mock()
         self.bot.shutdown = Mock()
         with patch.object(b.threading, "Thread"), patch.object(b, "telegram_call", side_effect=poll), patch.object(b, "log"):
-            self.bot.run(quiet_start=True)
+            self.bot._run_service(quiet_start=True)
 
     def test_service_crash_after_dispatch_cannot_replay_consumed_message(self):
         self.bot.state.update(update_offset=100)
@@ -689,6 +713,8 @@ class BotEntryTests(unittest.TestCase):
         with patch.object(b.time, "sleep", side_effect=lambda seconds: self.bot.stop_event.set()):
             self._run_poll_fixture(lambda *a, **kw: [{"update_id": 100}])
         self.bot.handle_update.assert_not_called()
+
+
 
 
 if __name__ == "__main__":

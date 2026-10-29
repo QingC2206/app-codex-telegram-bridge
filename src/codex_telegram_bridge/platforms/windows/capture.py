@@ -262,3 +262,8 @@ if __name__ == '__main__':
     except Exception as exc:
         print(str(exc))
         sys.exit(1)
+
+
+def failure_hint():
+    from ...i18n import tr as _t
+    return _t('截图失败。请确认机器人运行在已解锁的 Windows 桌面会话中。')

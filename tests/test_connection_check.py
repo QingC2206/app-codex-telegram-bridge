@@ -67,6 +67,7 @@ class AcceptanceGateTests(unittest.TestCase):
         self.assertEqual(report['checks']['desktop_delivery'], 'not_run')
         self.assertEqual(report['telegram_inbound'], 'not_exercised')
         self.client.send_follow_up.assert_not_called()
+        self.client.native.probe.assert_called_once_with()
         self.assertEqual([c.args[1] for c in self.api.call_args_list], ['getMe'])
 
     def test_no_explicit_task_stops_before_any_io(self):

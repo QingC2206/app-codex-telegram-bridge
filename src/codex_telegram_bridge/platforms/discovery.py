@@ -9,19 +9,8 @@ def desktop_roots():
     if os.name != 'nt':
         from .posix.discovery import desktop_roots as roots
         return roots()
-    import psutil
-    records = []
-    for process in psutil.process_iter(['pid', 'exe', 'cmdline']):
-        info = process.info
-        if not info['exe']:
-            continue
-        path = Path(info['exe']).resolve()
-        if (path.name.lower() == 'chatgpt.exe' and path.parent.name.lower() == 'app'
-                and path.parent.parent.name.lower().startswith('openai.codex_')
-                and path.parent.parent.parent.name.lower() == 'windowsapps'
-                and not any(arg.startswith('--type=') for arg in (info['cmdline'] or []))):
-            records.append({'ProcessId': info['pid'], 'ExecutablePath': str(path)})
-    return records
+    from .windows.discovery import desktop_roots as roots
+    return roots()
 
 
 def process_environment(pid):

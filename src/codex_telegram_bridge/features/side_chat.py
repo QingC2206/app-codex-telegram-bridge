@@ -55,7 +55,11 @@ class SideChats:
         try:
             sent=self.bot.send(_t('**💬 新建侧边聊天**\n\n主任务：')+n.conversation_title(parent)+
                 _t('\n\n请使用 Telegram 的“回复”回复此消息，发送你的问题。主任务会继续运行；侧边聊天用于问答和只读查看。'))
-            self.remember(sent.get('message_id'),'parent',parent,parent)
+            if isinstance(sent, dict) and sent.get('_pending_outbox'):
+                self.bot.delivery.after_delivery(sent['_pending_outbox'], 'side',
+                    {'kind': 'parent', 'target': parent, 'parent': parent})
+            else:
+                self.remember(sent.get('message_id'),'parent',parent,parent)
         finally:self.bot._ui_local.message_id=previous
 
     def command(self, argument, reply_to=None):
@@ -80,7 +84,8 @@ class SideChats:
         with self.lock:
             if self.closing:raise ValueError(_t('侧边聊天服务正在停止。'))
             session=self.sessions.get(session_id) if session_id else None
-            if session_id and (not session or session['expires']<time.time() or session['process'] is not self.app.process or self.app.process.poll() is not None):
+            if session_id and (not session or session['expires']<time.time() or session['process'] is not self.app.process or self.app.process.poll() is not None
+                               or not session.get('policy') or session['policy'] != getattr(self.app, 'side_policy_identity', None)):
                 getattr(self.bot, '_feedback_error', lambda: None)()
                 self.bot.send(_t('这段侧边聊天已过期或服务已重启。旧答复仍可阅读；问题没有转交主任务。'),
                     {'inline_keyboard':[[{'text':_t('新建侧边聊天'),'callback_data':'side|'+route['parent']}]]})
@@ -97,8 +102,11 @@ class SideChats:
             if session:session['busy']=True
             worker=threading.Thread(target=self._run,args=(route,question,source),daemon=True,name='telegram-side-chat')
             self.jobs.add(worker)
-        getattr(self.bot, '_defer_feedback', lambda: None)()
-        try:worker.start()
+        try:
+            getattr(self.bot, '_defer_feedback', lambda: None)()
+            with self.lock:
+                if self.closing:raise ValueError(_t('侧边聊天服务正在停止。'))
+                worker.start()
         except Exception:
             with self.lock:
                 self.jobs.discard(worker)
@@ -151,18 +159,26 @@ class SideChats:
                     'sandbox':'read-only','approvalPolicy':'never','developerInstructions':SIDE_INSTRUCTIONS},timeout=45)
                 tid=(response.get('thread') or {}).get('id')
                 if not tid or tid==parent:raise ValueError(_t('未取得独立的侧边会话 ID'))
+                from ..core.side_policy import SidePolicyError
+                policy = getattr(self.app, 'side_policy_identity', None)
+                if not isinstance(policy, tuple) or len(policy) != 2:
+                    raise SidePolicyError('side-client-policy-unverified')
                 session={'parent':parent,'process':self.app.process,'expires':time.time()+self.TTL,'busy':True,
-                         'turn':'','waiting':False,'event':threading.Event()}
+                         'policy':policy, 'turn':'','waiting':False,'event':threading.Event()}
                 with self.lock:self.sessions[tid]=session
                 self.app.request('thread/inject_items',{'threadId':tid,'items':[{'type':'message','role':'user',
-                    'content':[{'type':'input_text','text':BOUNDARY}]}]},timeout=15)
-            else:session=self.sessions[tid]
+                    'content':[{'type':'input_text','text':BOUNDARY}]}]},timeout=15, expected_process=session['process'])
+            else:
+                session=self.sessions[tid]
+                if not session.get('policy') or session['policy'] != getattr(self.app, 'side_policy_identity', None):
+                    from ..core.side_policy import SidePolicyError
+                    raise SidePolicyError('side-session-policy-changed')
             with self.lock:
                 session.update(previous_turn=session.get('turn'),turn='',text='',status='',waiting=True)
                 session['event'].clear()
             self.bot._require_task_actions()
             started=self.app.request('turn/start',{'threadId':tid,'input':[{'type':'text','text':question}],
-                'approvalPolicy':'never','sandboxPolicy':{'type':'readOnly'}},timeout=45)
+                'approvalPolicy':'never','sandboxPolicy':{'type':'readOnly'}},timeout=45, expected_process=session['process'])
             turn_id=(started.get('turn') or {}).get('id')
             if not turn_id:raise ValueError(_t('未确认侧边问题提交成功，请先等待，不要重复发送。'))
             with self.lock:session['turn']=turn_id
@@ -170,7 +186,7 @@ class SideChats:
             while not session['event'].wait(0.5):
                 if self.closing or self.app.process.poll() is not None:raise RuntimeError(_t('侧边会话进程已结束，请重新创建侧边聊天。'))
                 if time.monotonic()>deadline:
-                    try:self.app.request('turn/interrupt',{'threadId':tid,'turnId':turn_id},timeout=10)
+                    try:self.app.request('turn/interrupt',{'threadId':tid,'turnId':turn_id},timeout=10, expected_process=session['process'])
                     except Exception:pass
                     raise TimeoutError(_t('侧边聊天等待超时；已尝试中止本次侧边回答，未操作主任务。'))
             status=session['status'];text=session['text']
@@ -180,18 +196,38 @@ class SideChats:
             import re
             title=re.sub(r'([\\`*_{}\[\]()<>#+.!|~-])',r'\\\1',title)
             pages=n.split_markdown_pages(text,limit=2800)
+            deliveries = []
+            pending_delivery = False
             for index,page in enumerate(pages,1):
                 if self.bot._background_allowed(generation) is False:
                     return
                 sent=self.bot.send(_t('**💬 侧边聊天 · {p0}**\n\n主任务：`{p1}` · 侧边：`{p2}` · {p3}/{p4}\n\n', p0=format(title, ''), p1=format(parent[:8], ''), p2=format(tid[:8], ''), p3=format(index, ''), p4=format(len(pages), ''))+page,
                     {'inline_keyboard':[[{'text':_t('关闭侧边聊天'),'callback_data':'sideclose|'+tid}]]},reply_to=source)
-                self.remember(sent.get('message_id'),'session',tid,parent)
-            self.bot._reaction('🎉')
+                if isinstance(sent, dict) and sent.get('_pending_outbox'):
+                    pending_delivery = True
+                    deliveries.append(sent['_pending_outbox'])
+                    self.bot.delivery.after_delivery(sent['_pending_outbox'], 'side',
+                        {'kind': 'session', 'target': tid, 'parent': parent})
+                else:
+                    self.remember(sent.get('message_id'),'session',tid,parent)
+                    if isinstance(sent, dict) and sent.get('_outbox_id'):
+                        deliveries.append(sent['_outbox_id'])
+            if pending_delivery:
+                self.bot.delivery.defer_reaction(deliveries, source, generation)
+            else:
+                self.bot._reaction('🎉')
             session['expires']=time.time()+self.TTL
         except Exception as exc:
-            self.bot._reaction('😢')
+            from ..telegram.delivery import TelegramDeliveryUnknown
+            from ..codex.errors import DesktopSubmissionUnknown
+            delivery_uncertain = isinstance(exc, TelegramDeliveryUnknown)
+            submission_uncertain = isinstance(exc, DesktopSubmissionUnknown)
+            uncertain = delivery_uncertain or submission_uncertain
+            self.bot._reaction('👀' if uncertain else '😢')
             if not self.closing and self.bot._background_allowed(generation) is not False:
-                try:self.bot.send(_t('🥲 侧边聊天：')+str(exc).replace(self.bot.token,'[redacted]')[:600]+
+                prefix = (_t('侧边答复投递结果未确认：') if delivery_uncertain else
+                          _t('侧边问题提交结果未确认：') if submission_uncertain else _t('🥲 侧边聊天：'))
+                try:self.bot.send(prefix+str(exc).replace(self.bot.token,'[redacted]')[:600]+
                     _t('\n\n未自动重试，也未把问题发送给主任务。'),reply_to=source)
                 except Exception:pass
             # Unknown turn state must not accept follow-ups that may steer it.
@@ -226,5 +262,12 @@ class SideChats:
         for tid,session in expired.items():self._release(tid,session)
 
     def stop(self):
-        self.closing=True
-        self.app.stop()
+        with self.lock:
+            self.closing=True
+            workers=list(self.jobs)
+        try:
+            self.app.stop()
+        finally:
+            for worker in workers:
+                if worker.ident is not None and worker is not threading.current_thread():
+                    worker.join()
