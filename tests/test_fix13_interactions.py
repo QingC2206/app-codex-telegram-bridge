@@ -175,13 +175,15 @@ class InteractionFixTests(unittest.TestCase):
         self.bot.handle_text('second answer',reply_to_message_id=102)
         self.bot.app.answer.assert_called_once_with(1,{'answers':{'q1':{'answers':['A1']},'q2':{'answers':['second answer']}}})
 
-    def test_single_question_force_reply_is_new_message_and_requires_quote(self):
+    def test_single_question_text_prompt_is_new_message_without_force_reply_and_requires_quote(self):
         self.bot.on_server_request({'id':3,'method':'item/tool/requestUserInput','params':{
             'threadId':'task','questions':[{'id':'only','question':'Your answer?'}]}})
         seq=next(iter(self.bot.pending_questions));self.bot._ui_local.message_id=77
         self.bot.send.side_effect=[{'message_id':77},{'message_id':101}]
         self.bot._handle_question_callback(seq+':0:other')
-        self.assertEqual(self.bot.send.call_args.args[1],{'force_reply':True})
+        markup=self.bot.send.call_args.args[1]
+        self.assertNotIn('force_reply',markup)
+        self.assertEqual(markup['inline_keyboard'][0][0]['callback_data'],f'canceltext|{seq}:0')
         self.assertEqual(self.bot._ui_local.message_id,77)
         self.bot.send.side_effect=None
         self.bot._ui_local.message_id=None
@@ -238,14 +240,43 @@ class QuestionTextDeliveryTests(unittest.TestCase):
         self.bot.delivery.tick()
         return next(iter(self.bot.pending_questions))
 
-    def test_question_callback_sends_force_reply_as_new_message(self):
+    def test_question_callback_sends_text_prompt_without_force_reply_as_new_message(self):
         seq=self.question()
         self.bot._handle_callback_scoped({'id':'question-text','data':f'question|{seq}:0:other',
             'message':{'message_id':100,'chat':{'id':42,'type':'private'}}})
-        force=[(method,payload) for method,payload in self.calls if payload.get('reply_markup',{}).get('force_reply')]
-        self.assertEqual(len(force),1)
-        self.assertEqual(force[0][0],'sendRichMessage')
-        self.assertNotEqual(self.bot.pending_questions[seq]['free_text_prompt']['message_id'],100)
+        self.assertFalse(any(payload.get('reply_markup',{}).get('force_reply') for _,payload in self.calls))
+        message=self.bot.pending_questions[seq]['free_text_prompt']['message_id']
+        self.assertNotEqual(message,100)
+        prompts=[payload for method,payload in self.calls if method=='sendRichMessage']
+        self.assertEqual(prompts[-1]['reply_markup']['inline_keyboard'][0][0]['callback_data'],f'canceltext|{seq}:0')
+        self.bot.handle_text('explicit answer',reply_to_message_id=message)
+        self.assertEqual(self.bot.pending_questions[seq]['answers'],{'q1':{'answers':['explicit answer']}})
+
+    def test_help_clears_legacy_keyboard_with_both_delivery_paths(self):
+        delivery=self.bot.delivery
+        for transport in (delivery,None):
+            with self.subTest(durable=transport is not None):
+                self.calls.clear()
+                self.bot.delivery=transport
+                self.bot.command_help()
+                messages=[payload for method,payload in self.calls if method=='sendRichMessage']
+                self.assertEqual(len(messages),1)
+                self.assertEqual(messages[0]['reply_markup'],{'remove_keyboard':True})
+                self.assertNotIn('message_id',messages[0])
+                self.rpc.request.assert_not_called()
+
+    def test_legacy_transport_text_prompt_never_forces_reply(self):
+        seq=self.question()
+        self.bot.delivery=None
+        self.calls.clear()
+        self.bot._handle_question_callback(seq+':0:other')
+        messages=[payload for method,payload in self.calls if method=='sendRichMessage']
+        self.assertEqual(len(messages),1)
+        self.assertNotIn('force_reply',messages[0]['reply_markup'])
+        self.assertEqual(messages[0]['reply_markup']['inline_keyboard'][0][0]['callback_data'],f'canceltext|{seq}:0')
+        message=self.bot.pending_questions[seq]['free_text_prompt']['message_id']
+        self.bot.handle_text('legacy answer',reply_to_message_id=message)
+        self.assertEqual(self.bot.pending_questions[seq]['answers'],{'q1':{'answers':['legacy answer']}})
 
     def test_delayed_explicit_prompt_clears_only_matching_cancelled_message(self):
         self.bot.awaiting_direct_reply.update({101:'original-thread',102:'original-thread'})
@@ -284,6 +315,7 @@ class QuestionTextDeliveryTests(unittest.TestCase):
         self.rpc.answer.assert_not_called()
         self.bot.handle_text('second',reply_to_message_id=second)
         self.rpc.answer.assert_called_once_with(80,{'answers':{'q1':{'answers':['first']},'q2':{'answers':['second']}}})
+        self.assertFalse(any(payload.get('reply_markup',{}).get('force_reply') for _,payload in self.calls))
 
     def test_queued_text_prompt_expires_when_question_advances(self):
         seq=self.question()

@@ -3589,15 +3589,18 @@
       "logic": [
         {
           "id": "A52.R01",
-          "text": "选项与自由文字绑定原问题和题号；自由文字须引用对应输入提示",
+          "text": "选项与自由文字绑定原问题和题号；自由文字须引用对应输入提示；提示不使用强制回复，重进聊天不恢复旧提示",
           "review_state": "mapped",
           "scenarios": [
             "REG-A19-R02",
-            "MAC-TELEGRAM-QUESTIONS"
+            "MAC-TELEGRAM-QUESTIONS",
+            "REG-TEXT-PROMPT-RESET",
+            "MAC-TELEGRAM-REPLY-RESET",
+            "WINDOWS-DESKTOP-NATIVE"
           ],
-          "review_note": "已核对具体调用及断言：R04：旧题按钮及无引用/旧引用迟到文字都不能回答新题；新ForceReply按消息ID答当前题。",
-          "reviewer": "Codex rule assertion review 2026-10-28",
-          "reviewed_at": "2026-10-29T03:36:27.793877+00:00"
+          "review_note": "修复复发：问题提示沿用 Windows 直接回复入口的普通消息策略，保留消息 ID/题号/nonce 校验；清除旧 Telegram 状态的 /help 已覆盖两条传输。客户端重进与重启另列原生验收，不以一次取消输入框代替。",
+          "reviewer": "Codex forced-reply regression review",
+          "reviewed_at": "2026-10-29T13:47:11.691473+00:00"
         },
         {
           "id": "A52.R02",
@@ -7960,17 +7963,17 @@
   "native_evidence": {
     "current": [
       {
-        "path": "docs/parity-native-mac-final.json",
-        "sha256": "cd8742c688f1e33fb0cc20309eaab4b0bd90cd8596926e7312a9e116eca42348"
+        "path": "docs/parity-native-reply-fix.json",
+        "sha256": "723be4980de6ff41e81176e30860f5aa5927c1b588773986ec8cf27a27733131"
       }
     ]
   },
   "final_review": {
-    "id": "BRANCH-20261029-WINDOWS-HANDOFF",
-    "reviewer": "Codex publication review: unchanged runtime AST and Windows handoff",
-    "reviewed_at": "2026-10-29T09:39:06.855677+00:00",
-    "source_digest": "f3bb08dc98bbf7d829caa95645a3c55a222ca660cac122fb3b4ef2ad369b2486",
-    "mapping_sha256": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448"
+    "id": "REPLY-RESET-20261029",
+    "reviewer": "Codex shared reply-prompt review; native reopen verification pending",
+    "reviewed_at": "2026-10-29T13:51:32.013156+00:00",
+    "source_digest": "0666190d22c5ce3604df30223f4fae1834fd50dcda6ba7866b9f88590361cc68",
+    "mapping_sha256": "0c3b8a30b8d824eb52315047c7e7f23b6b2e5fd72eeb3c831172cfb0ee53dccb"
   },
   "scenarios": {
     "REG-A01-R01": {
@@ -8220,12 +8223,12 @@
         "A19.R02",
         "A52.R01"
       ],
-      "assertion": "R04：旧题按钮及无引用/旧引用迟到文字都不能回答新题；新ForceReply按消息ID答当前题。",
+      "assertion": "旧题按钮及无引用/旧引用迟到文字都不能回答新题；普通提示按消息 ID 答当前题，不发送 ForceReply。",
       "reviewer": "Codex rule assertion review 2026-10-28",
       "tests": {
         "test_fix13_interactions.InteractionFixTests.test_old_question_button_does_not_answer_next_question": "d044108758dc21d48c74b7fca3ea3e2a293fccf66f0fa056049d5075f172b5e2",
         "test_fix13_interactions.InteractionFixTests.test_late_unquoted_first_answer_cannot_fill_armed_second_question": "da7cd6486decabd29659e2362db4976592087e458a53ea73904db6c68ad65cb3",
-        "test_fix13_interactions.InteractionFixTests.test_single_question_force_reply_is_new_message_and_requires_quote": "570a33237687a99d488d0103207ee0f102e5a31b362521fb994191e63d98a354"
+        "test_fix13_interactions.InteractionFixTests.test_single_question_text_prompt_is_new_message_without_force_reply_and_requires_quote": "b36479c4c87502057998dc8f6787558662abfaed342a180c5080cd19892c9d4b"
       }
     },
     "REG-A19-R04": {
@@ -12098,7 +12101,7 @@
         "A52.R05",
         "B07.R02"
       ],
-      "assertion": "实际命令审批一次/会话/拒绝分别验证；多题选项与ForceReply引用对应题，迟到旧题输入拒绝；异步问题引用只回答原题，原文保留。",
+      "assertion": "实际命令审批一次/会话/拒绝分别验证；多题选项与文字提示引用对应题，迟到旧题输入拒绝；异步问题引用只回答原题，原文保留。",
       "reviewer": "Codex final scenario review 2026-10-28",
       "platform": "darwin",
       "method": "telegram-ui"
@@ -12167,9 +12170,10 @@
         "C02.R01",
         "C03.R01",
         "C04.R01",
-        "E01.R01"
+        "E01.R01",
+        "A52.R01"
       ],
-      "assertion": "Windows默认Desktop后端实际启动；核对当前profile与Named Pipe server PID，原任务引用续聊/追加/中止回执真实匹配；主进程退出后子后台被Job Object清理。",
+      "assertion": "Windows默认Desktop后端实际启动；核对当前profile与Named Pipe server PID，原任务引用续聊/追加/中止回执真实匹配；主进程退出后子后台被Job Object清理。 文字回答提示不强制选中；旧状态用 /help 清除后，退出/重进和重启 Telegram 均不复发。",
       "reviewer": "Codex final scenario review 2026-10-28",
       "platform": "windows",
       "method": "windows-desktop"
@@ -12604,6 +12608,31 @@
         "test_controller_delivery.ControllerDeliveryTests.test_background_navigation_refresh_keeps_return_and_close_controls": "a5ebd09c80a61aa61f94df8b24df80307fbe2a18a6c65bdf5e9f7bf850321190",
         "test_controller_delivery.ControllerDeliveryTests.test_legacy_background_navigation_adds_controls_once": "05378c95d35c4327a0d58c1cf6f534bd4bed52ed2f34f22867afa0b280d8662e"
       }
+    },
+    "REG-TEXT-PROMPT-RESET": {
+      "kind": "regression",
+      "rule_ids": [
+        "A52.R01"
+      ],
+      "assertion": "共享问题入口在持久投递和旧传输中都发送普通带取消按钮的新提示，无 force_reply；引用仍绑定当前题，429 重试不恢复强制回复；/help 在两种传输都新发 remove_keyboard 清理旧客户端状态。",
+      "reviewer": "Codex forced-reply regression review 2026-10-29",
+      "tests": {
+        "test_fix13_interactions.InteractionFixTests.test_single_question_text_prompt_is_new_message_without_force_reply_and_requires_quote": "b36479c4c87502057998dc8f6787558662abfaed342a180c5080cd19892c9d4b",
+        "test_fix13_interactions.QuestionTextDeliveryTests.test_question_callback_sends_text_prompt_without_force_reply_as_new_message": "a569a6a1409b3acd2fe6372df4e01af3a9353daefec0d8aa8a393583ee6e0ae2",
+        "test_fix13_interactions.QuestionTextDeliveryTests.test_legacy_transport_text_prompt_never_forces_reply": "3925c1a06f295be6b6be858e590fe30c2b989305007448cd60f46c29cbdc9d5a",
+        "test_fix13_interactions.QuestionTextDeliveryTests.test_help_clears_legacy_keyboard_with_both_delivery_paths": "47c7f06d32830ecb5d2c3475e3ee634f52ea36ffd1a4e681f5b58b62a522813a",
+        "test_fix13_interactions.QuestionTextDeliveryTests.test_429_prompt_binds_only_after_delivery_and_quote_answers_correct_question": "0600c09b30ce60f4dcd4dfc1afa23244833c4c064c53b198fca0afa1bdf645f8"
+      }
+    },
+    "MAC-TELEGRAM-REPLY-RESET": {
+      "kind": "manual",
+      "rule_ids": [
+        "A52.R01"
+      ],
+      "platform": "darwin",
+      "method": "telegram-ui",
+      "assertion": "清除旧强制回复状态后反复离开/重进机器人聊天并重新启动 Telegram，不自动引用旧题；新文字提示不自动选中，手动引用正确回答，完成和取消后不恢复待回复。",
+      "reviewer": "Codex forced-reply regression review 2026-10-29"
     }
   },
   "rule_review_scope": "Each rule is individually mapped only after checking the cited assertions; pending explicitly means no adequate current evidence mapping.",

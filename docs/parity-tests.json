@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "created_utc": "2026-10-29T09:39:03.237988+00:00",
+  "created_utc": "2026-10-29T13:49:54.646244+00:00",
   "platform": "darwin",
   "python": "3.14.9",
   "live_windows_desktop": false,
   "live_telegram": false,
   "successful": true,
-  "tests_run": 989,
+  "tests_run": 991,
   "source_changed_during_run": false,
-  "mapping_sha256": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448",
-  "source_digest": "f3bb08dc98bbf7d829caa95645a3c55a222ca660cac122fb3b4ef2ad369b2486",
+  "mapping_sha256": "0c3b8a30b8d824eb52315047c7e7f23b6b2e5fd72eeb3c831172cfb0ee53dccb",
+  "source_digest": "0666190d22c5ce3604df30223f4fae1834fd50dcda6ba7866b9f88590361cc68",
   "records": [
     {
       "id": "platforms.test_follower_reader.FollowerTransportTests.test_discovery_request_does_not_claim_task_ownership",
@@ -1198,7 +1198,7 @@
       "outcome": "passed"
     },
     {
-      "id": "test_fix13_interactions.InteractionFixTests.test_single_question_force_reply_is_new_message_and_requires_quote",
+      "id": "test_fix13_interactions.InteractionFixTests.test_single_question_text_prompt_is_new_message_without_force_reply_and_requires_quote",
       "outcome": "passed"
     },
     {
@@ -1222,7 +1222,15 @@
       "outcome": "passed"
     },
     {
-      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_question_callback_sends_force_reply_as_new_message",
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_help_clears_legacy_keyboard_with_both_delivery_paths",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_legacy_transport_text_prompt_never_forces_reply",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_fix13_interactions.QuestionTextDeliveryTests.test_question_callback_sends_text_prompt_without_force_reply_as_new_message",
       "outcome": "passed"
     },
     {
@@ -3997,7 +4005,7 @@
     "docs/notifications.en.md": "d76d6719b77c98b5da5f538d6b9a6ea07b91aa67938869db580b861e1d71daca",
     "docs/notifications.zh-CN.md": "352c4b1f98d1a7ab4df5baf3fdadd77f44994486d594a554ad2523d1c9f0120f",
     "docs/parity-audit.md": "c98c062d02981a3bf64e9c7c0f370ce0f3185b7aed331dbca62d7f2f9a4b88f9",
-    "docs/parity.json": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448",
+    "docs/parity.json": "0c3b8a30b8d824eb52315047c7e7f23b6b2e5fd72eeb3c831172cfb0ee53dccb",
     "docs/plugins.en.md": "1a9ff3c17a25c462b36f18acf4e4e6f95c2dd4a528b70142dd16dc571c1294bf",
     "docs/plugins.zh-CN.md": "faece0660d9e9d35882f8783a8b656e8efe6546bf437b3e39f766756ce05758b",
     "docs/setup.en.md": "33c80e681bab597539444394c971d9414c50c059f71266976ba21468f32bde79",
@@ -4005,14 +4013,14 @@
     "docs/test-migration.json": "1220c89cfd71620413e01179ec8fc4be6102626e02a19bad271fc446d8fb4fd4",
     "docs/testing.en.md": "742486269ec6c6bb89030e9e40a379186c73f30f014b7782f118f196c786e691",
     "docs/testing.zh-CN.md": "2e2864155a8ab8649c366804090d20aa1bd08c17eb57d50512a36e8ab6508e32",
-    "docs/usage.en.md": "6084667b8b82d0d60ddb211c3569ed6a37b38e7c8a6dd6e7d420b092a4269777",
-    "docs/usage.zh-CN.md": "0c5ce1d89fcca92b0f57988f62fea61b3dfd2fd8891c4c00db89221cd33a300f",
-    "docs/windows/README.md": "28554dcef997f81e6bf9e7f0b5d4471963740ecf2780d676ac25e5dca56df1f6",
-    "docs/windows/native-evidence.template.json": "02fb6402cc697988348f8cb6195478ecb4e1d79a351e177236ac6afcb39955dd",
+    "docs/usage.en.md": "bb070560aee12df7d2e6f06681def3a0180018e199693997d35d1661956705e4",
+    "docs/usage.zh-CN.md": "6c3519ae6eefce84dcdf4db85ab3f7c17d5ec30039e83a8683c06849e21696f2",
+    "docs/windows/README.md": "f1a70be50c031f20ad04d7e331258b59c56bb90394841f517489b1bd7d175a2b",
+    "docs/windows/native-evidence.template.json": "adc9011599a75135796e7e53af15006e5ef5bc8e57d1c5aeff4ff9890ee50319",
     "install.py": "2ec02341dba47a97269352e671c86a3efd7e8fb76b49ef2c2dfccefc2daf3a22",
     "pyproject.toml": "9130cf8ef0e0b317c89d50c87ba3e378aade14fc585b207f681f8a5cf2bdbf70",
     "src/app_codex_telegram_bridge.egg-info/PKG-INFO": "9e141dfd124dfdda3afa664b1ce760cbfc2aebda4e290e3baaf78a340d82738c",
-    "src/app_codex_telegram_bridge.egg-info/SOURCES.txt": "1de801a67e7e1d7e079830da671375cee522e2cec6f47cc2e021e2b97412e917",
+    "src/app_codex_telegram_bridge.egg-info/SOURCES.txt": "3bf32c9bdd2e77d13b4e3c76b05ec47caff856c1f6c6ec2050e1a89a8a7f47a1",
     "src/app_codex_telegram_bridge.egg-info/dependency_links.txt": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     "src/app_codex_telegram_bridge.egg-info/entry_points.txt": "8452bf2c7daba5167b95e3cd67ca15c00b84d40689fa442a4b0fb5ad4afd29f4",
     "src/app_codex_telegram_bridge.egg-info/requires.txt": "23a4c66b0018b35ff3f50548ad59fabe94db4d997aa67b5e625ca688c302bdfa",
@@ -4049,7 +4057,7 @@
     "src/codex_telegram_bridge/codex/receipts.py": "b9f27c8b8f3bc6b3817f6ae28314c1380953217a62c7e17e280ff3842c4ccd2f",
     "src/codex_telegram_bridge/config.py": "eb36d7da8af9a015c52b4ec49c0bf335eacc0431072ea7f89e4719ef67f11e29",
     "src/codex_telegram_bridge/core/__init__.py": "8d398146608bf553a8432b0bbc6fc595d5b4dd3e65479572bf2f1f6f163aa3e2",
-    "src/codex_telegram_bridge/core/bot.py": "5c3ffd9b3047350daf4c0dc738224a360afd2f5c6a0360a5ba9f33e353b7c0b3",
+    "src/codex_telegram_bridge/core/bot.py": "2e0deba673867bc0baef4a4dbfe2ff4ec086256cd987eb12e59214c4e0f83900",
     "src/codex_telegram_bridge/core/runtime_policy.py": "64e7e5c8d9ba80ab9ad24dab3447d8cf4b51fa530523624f14253ff5c18bf37a",
     "src/codex_telegram_bridge/core/side_policy.py": "21035ef34148a0b0b6ba62845d0949fb4845678c486e1d779b461cc29d7ae845",
     "src/codex_telegram_bridge/features/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -4143,7 +4151,7 @@
     "tests/test_desktop_bridge.py": "1f6b0907c8ee0966fc8cea5939663fa52e20741b7bece27663537013d4c91036",
     "tests/test_desktop_receipts.py": "55068439bd2ccc8fdbbaaaab9cdee4c1141e9b9da8c4b36cd844f080b1e5b699",
     "tests/test_fix13_delivery_quota.py": "9014e0426a55874b4c9b1922d18c39235f40f0de900c79515878b7d53601497f",
-    "tests/test_fix13_interactions.py": "d2abe92c43e3470b7efb75a5dc98841f48fa3517ffca000991eb90f84d57dcd8",
+    "tests/test_fix13_interactions.py": "76ab89cc5c64e594f578ede7095c08c4393d911e76424cfeb7a021a369ad6b3d",
     "tests/test_fix13_notifications.py": "aa9879f15e2c3a71a994209be0657c806df53cdb74d5c30fc82c3c5e7efe7518",
     "tests/test_fix13_windows_hooks.py": "8c3ac37185ea00fbe7d20d331f065681ff484659fc604f077c63ed834fcd04f1",
     "tests/test_fix3_quota_accounts.py": "7d298dec55e4033a52106f99bf938362b49b075a1655796225f3cd789bd6156d",

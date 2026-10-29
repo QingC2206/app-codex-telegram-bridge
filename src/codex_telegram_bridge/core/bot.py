@@ -975,8 +975,8 @@ class TelegramCodexBot:
         self.pending_free_text: dict[str, str] = {}
         self.awaiting_continue: dict[str, str] = {}
         self.awaiting_steer: dict[str, str] = {}
-        # Telegram message id -> Codex thread id.  Keeping every ForceReply
-        # prompt separately prevents a later notification from overwriting an
+        # Telegram message id -> Codex thread id. Keeping every reply prompt
+        # separately prevents a later notification from overwriting an
         # earlier task's pending reply target.
         self.awaiting_direct_reply: dict[int, str] = {}
         self.pending_direct_replies: dict[str, dict[str, str]] = {}
@@ -4395,12 +4395,15 @@ class TelegramCodexBot:
                           {'inline_keyboard': [[{'text': _t('返回选项／取消文字输入'),
                                                  'callback_data': f'canceltext|{sequence}:{index}'}]]})
             try:
-                # ForceReply needs a new message; Telegram cannot edit an
-                # inline question card into a ForceReply keyboard.
+                # Bind text to a new message without ForceReply. Telegram can
+                # restore ForceReply on every chat reopen even after our local
+                # question is answered; ordinary inline prompts do not leave
+                # that chat-wide state behind (same policy as direct replies).
                 self._ui_local.message_id = None
                 prompt = self.send(_t('请回复这条消息填写第 {p0} 题的答案。', p0=str(index + 1))
                                    + '\n\n' + str(question.get('question') or question.get('header') or ''),
-                                   {'force_reply': True})
+                                   {'inline_keyboard': [[{'text': _t('返回选项／取消文字输入'),
+                                                          'callback_data': f'canceltext|{sequence}:{index}'}]]})
             finally:
                 self._ui_local.message_id = previous
             if self.delivery and isinstance(prompt, dict) and prompt.get('_pending_outbox'):

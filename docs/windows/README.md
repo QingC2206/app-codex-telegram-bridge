@@ -2,12 +2,12 @@
 
 本目录是 `codex/platform-parity` 分支的 Windows 验收入口。先在 Windows 验收并记录结果，再决定是否合入 `main`；本文和模板均不表示 Windows 已通过。
 
-实现提交为 `fb81934`。macOS 已完成六组实机验收；Windows 仍有下列四组待验。规则与边界以 [parity.json](../parity.json) 为唯一事实源，证据格式和门禁见 [逐规则验收](../parity-audit.md)。本目录不另建能力清单。
+首个实现提交为 `fb81934`，验收时应安装本分支最新提交。macOS 六组原始实机证据及后续修复的补验状态以 [parity.json](../parity.json) 为准；Windows 仍有下列四组待验。证据格式和门禁见 [逐规则验收](../parity-audit.md)。本目录不另建能力清单。
 
 | 场景 ID | Windows 必验内容 | 对应规则 |
 | --- | --- | --- |
 | WINDOWS-CROSS-ACCOUNT-LOCK | 整机跨用户互斥、正常退出与崩溃接替、Hook 可用 | A53.R02、E02.R03 |
-| WINDOWS-DESKTOP-NATIVE | Desktop 后端、正确持有者与管道、原任务交互、子进程清理 | C01.R01、C01.R02、C02.R01、C03.R01、C04.R01、E01.R01 |
+| WINDOWS-DESKTOP-NATIVE | Desktop 后端、正确持有者与管道、原任务交互、文字提示不复发、子进程清理 | C01.R01、C01.R02、C02.R01、C03.R01、C04.R01、E01.R01、A52.R01 |
 | WINDOWS-OS-CREDENTIALS | DPAPI 正常读写、不同用户拒绝、无明文回退 | N10.R04 |
 | WINDOWS-SERVICE-NATIVE | 当前桌面用户的计划任务、服务归属、升级与恢复 | D04.R02、D04.R03、D04.R04 |
 
@@ -44,7 +44,7 @@ $TestPython = (Resolve-Path .venv\Scripts\python.exe).Path
 & $TestPython tools/run_tests.py --suite Full --report .validation/windows/full.json
 ```
 
-Python 需符合 `pyproject.toml` 的版本要求。逐条检查命令退出码，失败先处理再继续。Mac 的 978 通过、11 跳过不是 Windows 的预期计数：Windows 原生测试应实际执行，平台不适用的跳过须逐项解释，不能隐藏失败或任意跳过。
+Python 需符合 `pyproject.toml` 的版本要求。逐条检查命令退出码，失败先处理再继续。Mac 的通过和跳过数量不是 Windows 的预期计数：Windows 原生测试应实际执行，平台不适用的跳过须逐项解释，不能隐藏失败或任意跳过。
 
 ## 2. 验证目标安装
 
@@ -135,7 +135,7 @@ $BridgePython = Join-Path $CodexProfile 'telegram-bridge-runtime\Scripts\python.
 | 场景 | Windows 实际预期 | 主要清单入口 |
 | --- | --- | --- |
 | 查询、任务、回答的表情 | 原消息经历 👀→🤔→🎉；实际送达后才完成；明确失败为 😢 | A16、A52 |
-| 文字回答编辑器 | 打开入口不提前完成；回答绑定原题，旧题/迟到输入不产生新任务 | A51、A52、B07 |
+| 文字回答编辑器 | 打开入口不提前完成、不强制选中回复；手动引用提示可回答原题，旧题/迟到输入不产生新任务；回答或取消后反复离开/重进并重启 Telegram，输入框不恢复旧题引用。旧版本遗留状态先发送 `/help` 清除，再验证新提示不复发 | A51、A52、B07 |
 | Telegram 拒绝表情 | 在唯一测试消息上受控触发真实拒绝，仍有原任务文字回执；记录注入范围并恢复 | A16.R05 |
 | 详情、列表与进度 | 原答复不覆盖；独立面板复用；返回保留页码；刷新保留返回/关闭；关闭后旧刷新不复活 | A46 |
 | 真实审批 | 拒绝、仅一次、本会话分别有真实执行结果；多题选项/自由文字绑定正确，原文保留 | A51、A52、B07 |
