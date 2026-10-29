@@ -2,6 +2,8 @@
 
 [简体中文](testing.zh-CN.md) | **English** · [Back to README](../README.en.md)
 
+The branch's Windows native acceptance checklist is in [windows/README.md](windows/README.md) (Chinese), with four native scenarios, interaction regressions, an evidence template, and merge criteria. Merge into the main branch only after the user accepts the Windows results.
+
 ## Automated checks
 
 ```text

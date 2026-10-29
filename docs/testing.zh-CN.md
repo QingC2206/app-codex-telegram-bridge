@@ -2,6 +2,8 @@
 
 **简体中文** | [English](testing.en.md) · [返回 README](../README.md)
 
+本分支的 Windows 实机验收集中在 [windows/README.md](windows/README.md)：四组原生验收、重点交互回归、证据模板与合并条件。Windows 验收通过后再由用户决定合并主分支。
+
 ## 自动检查
 
 ```text

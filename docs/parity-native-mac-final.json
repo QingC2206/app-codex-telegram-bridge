@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "source_digest": "ed676b2e8ec8102c753196f87075726682352dddb13c27a0fb54c4d02becc69a",
+  "source_digest": "f3bb08dc98bbf7d829caa95645a3c55a222ca660cac122fb3b4ef2ad369b2486",
   "mapping_sha256": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448",
   "platform": "darwin",
   "reviewed_at": "2026-10-29T08:45:27.178961+00:00",
@@ -373,7 +373,7 @@
     }
   ],
   "publication_review": {
-    "reviewed_at": "2026-10-29T09:27:53.453990+00:00",
+    "reviewed_at": "2026-10-29T09:39:10.475508+00:00",
     "reviewer": "Codex publication review",
     "original_source_digest": "925f5cbe2134deb3680f2db9f5d6822b7db0dffbaac4035befa2aa61b7005c2e",
     "runtime_files_checked": 112,

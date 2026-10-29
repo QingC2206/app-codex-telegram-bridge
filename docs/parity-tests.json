@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "created_utc": "2026-10-29T09:27:46.433304+00:00",
+  "created_utc": "2026-10-29T09:39:03.237988+00:00",
   "platform": "darwin",
   "python": "3.14.9",
   "live_windows_desktop": false,
@@ -9,7 +9,7 @@
   "tests_run": 989,
   "source_changed_during_run": false,
   "mapping_sha256": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448",
-  "source_digest": "ed676b2e8ec8102c753196f87075726682352dddb13c27a0fb54c4d02becc69a",
+  "source_digest": "f3bb08dc98bbf7d829caa95645a3c55a222ca660cac122fb3b4ef2ad369b2486",
   "records": [
     {
       "id": "platforms.test_follower_reader.FollowerTransportTests.test_discovery_request_does_not_claim_task_ownership",
@@ -3982,7 +3982,7 @@
   "source_sha256": {
     ".gitattributes": "d70d7dbb000b96ae1ed8185a75c55abf70f950b01b194befe0806472e4068f5c",
     ".github/workflows/tests.yml": "9290acf8742ac9a2d120d049fa522773d5525f0e6ce312a05a68d1536e0621d5",
-    ".gitignore": "6b8bf638c6e49f128c57f9a1fdf92e5c3817f5192fbf76ab7d85ea1db97e0e29",
+    ".gitignore": "5a4c3c641c18b5da37278a88c2e4717279afe92e18eb707a540f131891a676cb",
     "CHANGELOG.md": "3300bae5d058fddd1f34805edc9d1aa9ab720a4fab6ebf48ad889dcafd3261c7",
     "LICENSE": "5b8c2c43a9acc98f40b6c4e9ebb88a0324bd2fd44f3b7606c9174caf3d578ee2",
     "MANIFEST.in": "d5eb2249e3fc97cb27f2c3a3a7c6d503959c016f72917d6aa18cb51b1bbf6bd2",
@@ -4003,10 +4003,12 @@
     "docs/setup.en.md": "33c80e681bab597539444394c971d9414c50c059f71266976ba21468f32bde79",
     "docs/setup.zh-CN.md": "49976b8b545db52b967c641cd801dc4635c87d03b8a9e068d4b651afeec7f471",
     "docs/test-migration.json": "1220c89cfd71620413e01179ec8fc4be6102626e02a19bad271fc446d8fb4fd4",
-    "docs/testing.en.md": "83d5f5cc126a45c7467b5635a2acc6f52ac2d19302a1f38398d85fa568546bbc",
-    "docs/testing.zh-CN.md": "630edfefab56b8ca1506951a64bb1377061495803943344a0c711d4a8960f498",
+    "docs/testing.en.md": "742486269ec6c6bb89030e9e40a379186c73f30f014b7782f118f196c786e691",
+    "docs/testing.zh-CN.md": "2e2864155a8ab8649c366804090d20aa1bd08c17eb57d50512a36e8ab6508e32",
     "docs/usage.en.md": "6084667b8b82d0d60ddb211c3569ed6a37b38e7c8a6dd6e7d420b092a4269777",
     "docs/usage.zh-CN.md": "0c5ce1d89fcca92b0f57988f62fea61b3dfd2fd8891c4c00db89221cd33a300f",
+    "docs/windows/README.md": "28554dcef997f81e6bf9e7f0b5d4471963740ecf2780d676ac25e5dca56df1f6",
+    "docs/windows/native-evidence.template.json": "02fb6402cc697988348f8cb6195478ecb4e1d79a351e177236ac6afcb39955dd",
     "install.py": "2ec02341dba47a97269352e671c86a3efd7e8fb76b49ef2c2dfccefc2daf3a22",
     "pyproject.toml": "9130cf8ef0e0b317c89d50c87ba3e378aade14fc585b207f681f8a5cf2bdbf70",
     "src/app_codex_telegram_bridge.egg-info/PKG-INFO": "9e141dfd124dfdda3afa664b1ce760cbfc2aebda4e290e3baaf78a340d82738c",

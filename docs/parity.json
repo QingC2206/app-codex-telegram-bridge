@@ -7961,15 +7961,15 @@
     "current": [
       {
         "path": "docs/parity-native-mac-final.json",
-        "sha256": "f56f33966efa2221aac77dab2adc3f64d9aa25172bbb2e12db46f18e5371edb7"
+        "sha256": "cd8742c688f1e33fb0cc20309eaab4b0bd90cd8596926e7312a9e116eca42348"
       }
     ]
   },
   "final_review": {
-    "id": "BRANCH-20261029-IMPLEMENTATION",
+    "id": "BRANCH-20261029-WINDOWS-HANDOFF",
     "reviewer": "Codex publication review: unchanged runtime AST and Windows handoff",
-    "reviewed_at": "2026-10-29T09:27:49.939881+00:00",
-    "source_digest": "ed676b2e8ec8102c753196f87075726682352dddb13c27a0fb54c4d02becc69a",
+    "reviewed_at": "2026-10-29T09:39:06.855677+00:00",
+    "source_digest": "f3bb08dc98bbf7d829caa95645a3c55a222ca660cac122fb3b4ef2ad369b2486",
     "mapping_sha256": "68e630d573daa4f55d16c0974aee5a838e80c14fb6d62660ce1ad33d22f36448"
   },
   "scenarios": {
