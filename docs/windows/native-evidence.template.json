@@ -24,7 +24,7 @@
     },
     {
       "scenario_id": "WINDOWS-DESKTOP-NATIVE",
-      "rule_ids": ["C01.R01", "C01.R02", "C02.R01", "C03.R01", "C04.R01", "E01.R01", "A52.R01"],
+      "rule_ids": ["C01.R01", "C01.R02", "C02.R01", "C03.R01", "C04.R01", "E01.R01", "A52.R01", "A29.R01"],
       "method": "windows-desktop",
       "outcome": "not_run",
       "observed_at": null,

@@ -2619,10 +2619,13 @@ class TelegramCodexBot:
                 if current is None or current["resets_at"] <= time.time():
                     continue
                 previous = observations.get(str(duration)) or {}
+                # Reset-button authorization is deliberately invalidated by any
+                # deadline/usage change or missing snapshot. Alert history must
+                # survive those changes, reconnects and restarts: only verified
+                # quota recovery or an elapsed window re-arms sent thresholds.
                 new_cycle = (
                     not previous
-                    or previous.get("cycle_id") != (self.quota_state.snapshot().get("quota_reset_cycle") or {}).get("id")
-                    or current["resets_at"] > previous.get("resets_at", 0) + QUOTA_NATURAL_RESET_GRACE_SECONDS
+                    or weekly_quota_reset_is_natural(previous, current)
                     or weekly_quota_reset_is_unexpected(previous, current)
                 )
                 alerted = set() if new_cycle else set(previous.get("alerted_thresholds") or [])
@@ -2638,7 +2641,6 @@ class TelegramCodexBot:
                     alerts.append((text, self.quota_resets.buttons(current, tier)))
                 observations[str(duration)] = {
                     **current, "alerted_thresholds": sorted(alerted | reached, reverse=True),
-                    "cycle_id": (self.quota_state.snapshot().get("quota_reset_cycle") or {}).get("id"),
                 }
             if observations != stored:
                 self.quota_state.update(quota_low_observations=observations)

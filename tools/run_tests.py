@@ -11,7 +11,7 @@ GROUPS = {
     'AppServer': ['app_server', 'app_server_gaps', 'app_server_ui', 'shared_controller', 'controller_delivery'],
     'Compatibility': ['platform_compatibility', 'desktop_bridge', 'management', 'platforms.test_macos_desktop_access'],
     'Communication': ['desktop_bridge','desktop_receipts','connection_check','protocol_adaptation','async_inputs','remote_tasks'],
-    'Notifications': ['telegram_tables','notification_diagnostics','internal_requests','completion_routing'], 'Quota': ['telegram_quota'],
+    'Notifications': ['telegram_tables','notification_diagnostics','internal_requests','completion_routing'], 'Quota': ['telegram_quota', 'quota_alert_dedup'],
     'Interactions': ['interactions','running_tasks','i18n','settings','quiet_mode'], 'Screenshots': ['screen_capture'],
     'Plugins': ['plugins'], 'SideChat': ['side_chat'], 'Security': ['hardening'],
     'Images': ['local_images'], 'Feedback': ['operation_feedback', 'controller_delivery'],

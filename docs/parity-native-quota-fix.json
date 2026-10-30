@@ -1,0 +1,612 @@
+{
+  "schema_version": 2,
+  "source_digest": "0c3c84744087d021bb816cab4e84fe130a711d0ad446a277bc56e44e416ff570",
+  "mapping_sha256": "4b6b06334c8b3c31ec7d766d32efa6fb94db224e2004c4c64085d0c1e856b044",
+  "platform": "darwin",
+  "reviewed_at": "2026-10-30T01:37:20.255157+00:00",
+  "current_wheel_sha256": "b2b4cf53a158970ff07a43119d686810348ade5c8a17de0ca9a306fa59933b08",
+  "review_scope": "Q10 real Telegram cancellation, user-entered quoted answer, app restarts and normal-mode restoration close the reply prompt gap on c54da4b. The subsequent quota-only change leaves those question/routing/platform paths unchanged. Historical approval, asynchronous-question, late-input, lock and credential observations retain their actual dates; quota native polling and restart acceptance below used the installed fixed common implementation and real service/Telegram traffic.",
+  "records": [
+    {
+      "scenario_id": "MAC-TELEGRAM-REPLY",
+      "rule_ids": [
+        "A34.R01",
+        "A35.R04",
+        "A40.R01",
+        "A41.R03"
+      ],
+      "outcome": "passed",
+      "method": "telegram-ui",
+      "observed_at": "2026-10-29T07:58:52.944346+00:00",
+      "observations": [
+        "真实 Telegram 引用原 Desktop 通知及任务详情，均继续任务 01a180de-1879-7a00-8091-994fb41eb662；session_meta 的 originator 为 Codex Desktop。未创建替代任务。",
+        "运行中选择追加：前后 Turn 同为 01a1869f-8f4e-7863-91a7-1885b024de4b，最后回复 DESKTOP_STEER_9R4。",
+        "选择中止后发送：原 Turn 于 07:49:45.766Z 中断，新 Turn 于 07:49:46.422Z 开始，最终 DESKTOP_INTERRUPT_NEW_9R4。",
+        "旧选择卡 278 在原 Turn 已结束后点击被拒绝，消息 277 为失败表情；前后完整 Turn ID 列表相同，没有迟到续聊。",
+        "最后导航修复部署后，同一 Desktop 任务实际执行 sleep 90，完成 NAV_FINAL_DONE_9R4 并回到 idle。"
+      ],
+      "evidence_files": [
+        "desktop9-running.json",
+        "desktop9-steer-after.json",
+        "desktop9-interrupt-before.json",
+        "desktop9-interrupt-after.json",
+        "desktop9-turn-order.json",
+        "desktop9-late-before.json",
+        "desktop9-late-after.json",
+        "desktop9-late-rejected.png",
+        "desktop9-navigation-after.json"
+      ]
+    },
+    {
+      "scenario_id": "MAC-TELEGRAM-FEEDBACK",
+      "rule_ids": [
+        "A16.R01",
+        "A16.R03",
+        "A16.R05",
+        "A52.R04"
+      ],
+      "outcome": "passed",
+      "method": "telegram-ui",
+      "observed_at": "2026-10-29T08:02:17.996937+00:00",
+      "observations": [
+        "查询 274 实际经历 👀→🤔→🎉；任务输入 251 的最终结果 254 先送达（07:45:26.711Z），原输入后完成（07:45:28.865Z）。",
+        "题目回答 268 实际经历 👀→🤔→🎉；结果 269 先送达，再完成原任务输入 263 及回答 268。旧问题 270、旧续聊选择 277 实际显示 😢。",
+        "异步问题的文字输入入口只打开编辑器，不提前标记完成；实际填写并回答后才完成。",
+        "对唯一标记测试输入 250 注入 Telegram 不支持的表情值，服务器真实返回 400 REACTION_INVALID；修复后仍发送文字提交回执 252（附原任务按钮），最终结果为 FALLBACK_FIXED_9R4。没有伪造成功响应。",
+        "受控故障注入及问题模式测试进程已退出，正式 LaunchAgent 恢复；生产服务没有保留测试分支。"
+      ],
+      "evidence_files": [
+        "feedback-native-timeline.json",
+        "fallback-fixed-ax.txt",
+        "fallback-fixed.png",
+        "qa2-editor-no-completion-ax.txt",
+        "qa2-editor-no-completion.png",
+        "native-branch2-restored.json"
+      ]
+    },
+    {
+      "scenario_id": "MAC-TELEGRAM-NAVIGATION",
+      "rule_ids": [
+        "A46.R01",
+        "A46.R02",
+        "A46.R03",
+        "A46.R04",
+        "A46.R05"
+      ],
+      "outcome": "passed",
+      "method": "telegram-ui",
+      "observed_at": "2026-10-29T08:30:30.995245+00:00",
+      "observations": [
+        "原完成通知 279 打开独立详情 280；重复打开复用同一面板；关闭只删除 280，原通知不变。",
+        "原任务列表 282 打开独立面板 283：第二页→任务详情→返回仍是第二页。之后在同一面板查看原 Desktop 任务及进度。",
+        "实测发现后台刷新丢失返回/关闭按钮；已提取共同按钮构建逻辑用于同步编辑和两种后台发送队列。安装后多个真实后台刷新 206、207、208 均成功送达且带 task/navclose，截图确认用户可见。",
+        "从进度返回详情后，旧进度没有覆盖新页面；最终再次进入进度并关闭面板 283，状态 closed、版本 12；超过刷新周期后无待发编辑、面板未复活，原任务列表及答复均保留。",
+        "两条新增回归分别覆盖持久队列和 Windows 原有内存队列；按钮不重复，旧版本及关闭后的刷新不发送。"
+      ],
+      "evidence_files": [
+        "navigation-original-and-panel.png",
+        "navigation-reused.json",
+        "navigation-closed.json",
+        "navigation-page-two.json",
+        "navigation-returned-page-two-ax.txt",
+        "navigation-defect.json",
+        "navigation-defect.png",
+        "navigation-fixed-progress.json",
+        "navigation-fixed-progress-full.png",
+        "navigation-fixed-return.json",
+        "navigation-fixed-return.png",
+        "navigation-fixed-closed.json",
+        "navigation-fixed-closed-ax.txt",
+        "navigation-fixed-closed.png"
+      ]
+    },
+    {
+      "scenario_id": "DARWIN-CROSS-ACCOUNT-LOCK",
+      "rule_ids": [
+        "A53.R02",
+        "E02.R03"
+      ],
+      "outcome": "passed",
+      "method": "process-cross-account",
+      "observed_at": "2026-10-29T07:11:52.831254+00:00",
+      "observations": [
+        "用户以 sudo 执行准备的隔离脚本。真实 UID 501 持有服务锁时 UID 0 被拒；正常退出后 UID 0 接替，UID 501 被拒；SIGKILL 后 UID 501 可接替。不是修改 USER 环境变量的模拟。",
+        "实际运行已安装控制器的启动流程和同一内核固定锁端点；Telegram/Codex 传输使用隔离测试实现，不读取真实 Token、不启动第二个真实 getUpdates。",
+        "持锁时 Hook CLI 仍可持久记录；另实际验证 notify/Stop 和 desktop-notify/PreToolUse 两入口均正常退出。正式服务已恢复。",
+        "保留 07:11Z 原始运行时间；之后仅改表情确认和导航按钮。最终逐文件与函数比较确认锁、启动/退出、Hook 和平台控制路径未变，未声称重新进行管理员验收。"
+      ],
+      "evidence_files": [
+        "cross-user-result.json",
+        "cross-user-check.py",
+        "native-hook-pair.json",
+        "component-applicability-final.json"
+      ]
+    },
+    {
+      "scenario_id": "DARWIN-OS-CREDENTIALS",
+      "rule_ids": [
+        "N10.R04"
+      ],
+      "outcome": "passed",
+      "method": "os-credential-store",
+      "observed_at": "2026-10-29T08:23:17.184466+00:00",
+      "observations": [
+        "最终安装后重新用真实 macOS 钥匙串写入并读取隔离测试项；配置只保存引用，输出无明文。",
+        "第二个隔离测试项只信任系统 security 工具；当前 Python 的进程级禁交互读取真实返回 KeyringError -25293，明确失败且未回退明文。",
+        "两个临时项目均已删除；真实机器人的钥匙串项目未改动，正式 Telegram 收发正常。"
+      ],
+      "evidence_files": [
+        "keychain-native-v2.json",
+        "keychain-native-v2.py",
+        "keychain-final-navigation.log"
+      ]
+    },
+    {
+      "scenario_id": "MAC-TELEGRAM-QUESTIONS",
+      "rule_ids": [
+        "A51.R01",
+        "A52.R01",
+        "A52.R05",
+        "B07.R02"
+      ],
+      "outcome": "passed",
+      "method": "telegram-ui",
+      "observed_at": "2026-10-30T01:09:23.216103+00:00",
+      "observations": [
+        "本次 Q10 在真实既有验收任务请求两题，第一题选择蓝色；第二题选择文字输入，提示 314/315 均使用普通行内按钮，不发 ForceReply。取消后回到第二题选项，重新选择后再回答。",
+        "用户在 Telegram 手动引用新提示发送 MAC_TEXT_Q10；实际 request_user_input 返回 color=[蓝色]、env=[MAC_TEXT_Q10]，模型于 01:06:42.924Z 回复 REPLY_RESET_DONE_Q10 蓝色 MAC_TEXT_Q10；结果 320 实际送达并引用输入 319。",
+        "原实机审批（拒绝/仅一次/本会话）、迟到旧题拒绝和异步多题绑定证据仍为 2026-10-29T07:55Z 的原记录，代码路径未变，未声称本次重新执行这些操作。旧 ForceReply 画面仅保留为历史，不作为新提示的通过依据。",
+        "验收任务恢复 default，真实返回 REPLY_NORMAL_Q10。临时控制器已退出，01:09:23Z 恢复正式服务；回答后重进和重启 Telegram 均未恢复引用。"
+      ],
+      "evidence_files": [
+        "approval-tool-results.json",
+        "approvals-and-qa2-final-ax.txt",
+        "approvals-and-qa2-final.png",
+        "force9-native-events.json",
+        "force9-reply-open.png",
+        "force9-complete-ax.txt",
+        "force9-complete.png",
+        "force9-late-rejected-ax.txt",
+        "native-result.json",
+        "reply-native-events.jsonl",
+        "new-text-prompt.png",
+        "cancelled-reopen.png",
+        "answered.png",
+        "answered-reopen.png",
+        "answered-restart.png",
+        "reply-native-restored.json"
+      ]
+    },
+    {
+      "scenario_id": "MAC-TELEGRAM-REPLY-RESET",
+      "rule_ids": [
+        "A52.R01"
+      ],
+      "outcome": "passed",
+      "method": "telegram-ui",
+      "observed_at": "2026-10-30T01:09:23.216103+00:00",
+      "observations": [
+        "用户确认原先反复出现“请选择环境”的客户端，退出重进两次后不再自动引用；这是用户提供的原客户端验收结果。",
+        "Mac 原生 Telegram 连续两次离开重进、完全退出重启，输入框都没有旧题引用。新 Q10 文字提示不会自动选中；取消后返回原题选项，重进仍无引用。",
+        "用户手动引用完成 Q10 第二题，Codex 的真实工具输出和最终答复确认题号与答案正确；完成后再次重进及完全退出重启 Telegram，输入框仍为空。"
+      ],
+      "evidence_files": [
+        "native-result.json",
+        "initial.png",
+        "reopen-1.png",
+        "reopen-2.png",
+        "after-restart.png",
+        "new-text-prompt.png",
+        "cancelled.png",
+        "cancelled-reopen.png",
+        "answered.png",
+        "answered-reopen.png",
+        "answered-restart.png"
+      ]
+    },
+    {
+      "scenario_id": "MAC-TELEGRAM-QUOTA-DEDUP",
+      "rule_ids": [
+        "A29.R01"
+      ],
+      "outcome": "passed",
+      "method": "telegram-ui",
+      "observed_at": "2026-10-30T01:35:17.589578+00:00",
+      "observations": [
+        "真实 Telegram 历史中存在多条完全相同的 0%／≤1% 提醒。公共逻辑回归在旧代码上复现 9 项失败，修复后均通过；相同的通知与按钮周期耦合也存在于 Windows 基线 f6abce7。",
+        "修复安装到 llm-loc 的正式服务，112 个运行文件逐字节匹配源码。仅修改公共 _observe_low_quota，保留原重置卡授权失效和消费保护。",
+        "实际定时成功读取时间为 01:23:43Z、01:28:45Z、01:33:48Z，跨越 605 秒、两个完整 5 分钟监控间隔；周已用始终为 100%，新增低额度提醒为 0。排除了安装前留存的成功时间，未把旧时间算作本次读取。",
+        "真实重启正式服务（87058→87642），账户已提醒阈值 [10,5,3,1] 保留。重启后从 Telegram 发送 /quota，结果 326 实际送达、显示剩余约 0%；无新增低额度提醒。启动阶段一次身份代际变动被保守拒绝，未关闭归属检查，随后手动读取真实成功。",
+        "本轮没有消耗真实重置卡。真正自然重置或提前恢复后重新提醒由自动回归覆盖，未假称已让真实账户恢复。Windows 运行同一公共修复，实机验收仍待用户完成。"
+      ],
+      "evidence_files": [
+        "deployment.json",
+        "doctor.json",
+        "before-fix-tests.log",
+        "quota-tests.log",
+        "live-watch-confirmed.jsonl",
+        "live-watch-result.json",
+        "observe-live-quota.py",
+        "restart-check.py",
+        "restart-result.json",
+        "after-restart-query.json",
+        "quota-query.png",
+        "quota-after-restart.png"
+      ]
+    }
+  ],
+  "historical_questions": {
+    "scenario_id": "MAC-TELEGRAM-QUESTIONS",
+    "rule_ids": [
+      "A51.R01",
+      "A52.R01",
+      "A52.R05",
+      "B07.R02"
+    ],
+    "outcome": "passed",
+    "method": "telegram-ui",
+    "observed_at": "2026-10-29T07:55:05.126Z",
+    "observations": [
+      "真实执行三次 harmless printf 审批：拒绝返回 rejected by user；仅一次和本会话允许分别执行成功，结果为 MAC_APPROVAL_ONCE_8R4、MAC_APPROVAL_SESSION_8R4。",
+      "真实 app-server request_user_input 两题：第一题蓝色；第二题 Other 打开 Telegram ForceReply，引用题目 267 回答 268 MAC_FORCE_FREE_9R4，结果 269 为 FORCE_DONE_9R4 蓝色 MAC_FORCE_FREE_9R4。",
+      "再次引用已结束题目 267 的输入 270 被拒绝并显示 😢。异步多题 QA2 也分别绑定原题，原问题和已回答内容保留，最终 MAC_Q2_8R4 蓝色 MAC_Q2_FREE_8R4。",
+      "为了实际触发阻塞提问，仅对既有验收任务和专用标记启用官方 plan 模式；随后明确恢复 default，完成 NORMAL_MODE_9R4。此为验收控制条件，未修改产品默认模式。"
+    ],
+    "evidence_files": [
+      "approval-tool-results.json",
+      "approvals-and-qa2-final-ax.txt",
+      "approvals-and-qa2-final.png",
+      "force9-native-events.json",
+      "force9-reply-open.png",
+      "force9-complete-ax.txt",
+      "force9-complete.png",
+      "force9-late-rejected-ax.txt"
+    ]
+  },
+  "pending_scenarios": [],
+  "applicability_review": {
+    "base_evidence": "docs/parity-native-reply-fix.json",
+    "base_sha256": "723be4980de6ff41e81176e30860f5aa5927c1b588773986ec8cf27a27733131",
+    "at": "2026-10-30T01:22:56.550868+00:00",
+    "base_commit": "c54da4b7a729b668cec194bab6e2fe76f4405fd1",
+    "changed_runtime_functions": [
+      "_observe_low_quota"
+    ],
+    "question_handler_unchanged": true,
+    "scope": "Only common low-quota reminder dedup changed; reset-card authorization, message routing, OS adapters, service and credentials are unchanged."
+  },
+  "supporting_files": [
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/approval-tool-results.json",
+      "sha256": "0071816a88c7e938611cf81169021143ed5a1c62649061028ebb69a2e6da7c21"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/approvals-and-qa2-final-ax.txt",
+      "sha256": "ed0e25c23da8bed560a782dd3850b1027dc4a841911cafd9bb79bb19d9dfa56e"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/approvals-and-qa2-final.png",
+      "sha256": "71926ae4d56350e4b08fc7ee5249e8867b6bf120a4f26bc45c837560b6ecb1c8"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/component-applicability-final.json",
+      "sha256": "9431f868f1dba94c15b175016574eda259fdfac899df0635af03a378e8e687bc"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/cross-user-check.py",
+      "sha256": "dfcc1e22cc69b627f539c232868559eb5eb9fcdcb55b036898f2949b356b05e5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/cross-user-result.json",
+      "sha256": "b606b8aa3360229ab426db8ef950eba34803913c0aae18b96bbfab6628b51677"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/deployment-navigation.json",
+      "sha256": "aaf78bc0bc8d0ec2ab8bc067247ab094d66c968366f802783d40af9ccd02fe35"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-interrupt-after.json",
+      "sha256": "c3492a19e8580fb1a45c2d725402e345c30f1205b29bd52598701e473b3cee3f"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-interrupt-before.json",
+      "sha256": "f806284c985c41f1ad075567a8628a102f9fd39cae9748617070f98cde3f90e4"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-late-after.json",
+      "sha256": "944a82858a6e15034a95318fbeb000db044d7dfd944424b91300622895a6c3a2"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-late-before.json",
+      "sha256": "c20659a97533bcbe38282641ff2bd0a11f1b96fce33c6209e29c1218bd2e5a4c"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-late-rejected.png",
+      "sha256": "f3aea016b29a1da1b45558b894af4e0995e691739683b3b654b6d2ba90d1575a"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-navigation-after.json",
+      "sha256": "52413837f2c398d937db92ebfcebf667e619ab19eeccf538a3e06dfa825e9d9c"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-running.json",
+      "sha256": "3c80b644915ed204884dfb18b3a8526c9bd4ca999466b3fcfa6a260e75ee2f91"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-steer-after.json",
+      "sha256": "b0f824daec6609858d99dbfa03a31578e316da25e299e840d82932da53bbdebe"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/desktop9-turn-order.json",
+      "sha256": "3a76b5f630d307271b3d466126f9968521879968f05768fdef30eeac7933b783"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/fallback-fixed-ax.txt",
+      "sha256": "65c30bbcf1e3a3bebb358b7ffa77e92f63865e4d7b5778e74c203c22b7fa02e8"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/fallback-fixed.png",
+      "sha256": "e1e08176c1fc0a89908d281ba7ee29eff3e36eb242ad308d8a54b1705d7b80a5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/feedback-native-timeline.json",
+      "sha256": "cc24e95a2d59ac971fb3b346f93c2491fa34c3315fd88423515ee24a7610b40d"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/force9-complete-ax.txt",
+      "sha256": "d42c140233ceae4d5eab1a6e086adbca2313991ad19e700b92162e8725d292f4"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/force9-complete.png",
+      "sha256": "51a21aac75f37064f166257f4e5c1ad9531832fd82bbde77e12a7c39f99bd6ff"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/force9-late-rejected-ax.txt",
+      "sha256": "688eddedd36df6d21393f9b11757ac2fb3b66893be768219803d37d3fc65bbc7"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/force9-native-events.json",
+      "sha256": "b454708c159a6726faa0b2118c00936729bf06da3aa46e33c3d5f9f719113d27"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/force9-reply-open.png",
+      "sha256": "f4461538fc53efb445c21a0e7538f956a7f32284bdab4fd182779dcf34c3d266"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/full-tests-navigation.log",
+      "sha256": "f2996cdf4f7ece5790e8c623ed16dc63e9f50828b3eb8b5138629800ee9dd42f"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/keychain-final-navigation.log",
+      "sha256": "a42d1bc20768d84d7c3052a5453667f2108bb804dac202238413de57d802f3ee"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/keychain-native-v2.json",
+      "sha256": "a42d1bc20768d84d7c3052a5453667f2108bb804dac202238413de57d802f3ee"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/keychain-native-v2.py",
+      "sha256": "790f59a8fe823b98edb2aa8e1d235d4a5173b1bf5c08d9e43cf581714fc679d7"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/native-branch2-restored.json",
+      "sha256": "973011dce4fdbcb9967d14daf2ea0a62e544658f7c780b91e2e19acf7e30732f"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/native-hook-pair.json",
+      "sha256": "86932fa29d6b8c641184367fa62bdae5d09baf197803fb9f66144b315281ea24"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-closed.json",
+      "sha256": "2c64fc759dbce0492b901ca6c699ac20f2d80dd713bbaa65eef54f1d23ddfde6"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-defect.json",
+      "sha256": "1051c71f2f79f0bc08293d4ea7850df3f04ce0ed36780593b27afa9a3cf09616"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-defect.png",
+      "sha256": "f4ceb8936075ac3c7333a015db072ceab92e77bb99cc751cc616b9cb1cf11039"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-closed-ax.txt",
+      "sha256": "29da3cf4cd8ee5b2bb9084edab5aba7da5248316e6a40be44a8a41cca5d15eb5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-closed.json",
+      "sha256": "dc445b1cbe755ff73fcc224c4a5d37361d63e86302f94e4324862959156c8fa5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-closed.png",
+      "sha256": "56486f6349edb0cedb5cb61902cc4a751e9c473c240ec9bef4576d3d665d8833"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-progress-full.png",
+      "sha256": "ef43266153bc32adbea9557b079fe388b7b3b7dd6a2fe576f6b79873856a33a6"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-progress.json",
+      "sha256": "1fd62fe3a2395c2089eaba9c5dba2441a7b7d36dc5edfe97b72d551571042188"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-return.json",
+      "sha256": "18600be285cedf478c241e12481440e967a960d76fd0d0f535c96ca5eb207ab4"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-fixed-return.png",
+      "sha256": "749f5192807620c5bc9a5c7fce981ce70b8ce85b14750bd8ad01913f8ea8cb34"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-original-and-panel.png",
+      "sha256": "40d007e2bb145fb51fad7aba9de18f268018af41e9a8b6d50b2972a181c5ffbe"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-page-two.json",
+      "sha256": "9a4900da9ff877d9109b38c3691c7c72412c434da260dda49aa8faaf780f6466"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-returned-page-two-ax.txt",
+      "sha256": "dbf0bf45e62c08430ad774f4d18a7f0ff58e1dfa274461c5f59e9693a4b874d5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/navigation-reused.json",
+      "sha256": "932138b27297830a5b4d1e912898167d46f54ef9bc4705c5721f6188affa3d37"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/production-health-final.json",
+      "sha256": "b534337da9a5ea2b75869927bc3165f047c1b64496182b531156e9d8eaf4320a"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/qa2-editor-no-completion-ax.txt",
+      "sha256": "32b0d150efb8893415e9b73a179ca338c69e1afed8a65998404bf8ddc9ab8b53"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/qa2-editor-no-completion.png",
+      "sha256": "cc5869d23897d6fdf07f887138b7237939dd0bd5e2af48282ce6cfed9b2d6ad9"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/review-navigation-fix.json",
+      "sha256": "9ba8278f948be47a20dc06e8a224c7876748277a4e04d5ced802e8f897d9cbf8"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/full-tests-final.log",
+      "sha256": "4b2de9b8fa8d472de0a04f299447b22f3252cc26bdcb2e9b6ffd766895e0df79"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/review-final.json",
+      "sha256": "a6f539b705d4b0de9d8fe93e9df45b2be7aebb4bb1ba203a17e5e1543aca3a37"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/keyboard-reset.json",
+      "sha256": "6cacd9c006067b503e96cb3878c62f0e9be5b329b324e4978f660f2a932d3e7f"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/changed-path-review.json",
+      "sha256": "887eba17cdd0af58890793a77f7c7215444b2e4d3ab27e25e0b7dca5567a914c"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/deployment.json",
+      "sha256": "b4aec445f0aefad64dd78025480f113eb4baae71f96553ffc6981823169ae836"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/cancelled-reopen.png",
+      "sha256": "b5767f0ada4c33548c8f2d4a6bea7acdeec2ab44fb1e69b856daa6b1c7b7b132"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/answered.png",
+      "sha256": "7328291dc4af157dc316c0dfce8dc59be1877194df767a5fee3a207bee125569"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/reopen-1.png",
+      "sha256": "2147d6ec72c36e08238f5235f8dec42f6830e7d6e10ad6cbb31422689112ffe2"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/reopen-2.png",
+      "sha256": "230502e84006a728898d046cebb41328bb8b336668f6f15918f836d2426eef58"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/cancelled.png",
+      "sha256": "92ec4181877040d05d706d2d8ee733b7567724a8b731163cfdc56a3f36723ed3"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/initial.png",
+      "sha256": "d4011298287160ede8f7452ea1485e21444c2d9c3ea5bbd750b6398aba627db1"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/new-text-prompt.png",
+      "sha256": "4de276d0b8804060c0340d371e591f01f75959420f19ee4e552e382646ba7d08"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/answered-reopen.png",
+      "sha256": "3775cb075e0f03f96ce60810c5bc4336d47e59f8c39e8a33a7fb17db6814d901"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/answered-restart.png",
+      "sha256": "f14310997b881996a3862af361afc679259766ec8632dc90736d0773c2971626"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/after-restart.png",
+      "sha256": "b8fcf6b6effa125a6e03eb1e11cfda850837418ae3bbdc36204e8743cf8de4d5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/native-result.json",
+      "sha256": "067c2ded8d9abdc93113ec2553135928a74d177cb889afbeae904b57589471ad"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/verification-start.json",
+      "sha256": "036ab5c586b5ac37c7d7415c3cb532e3a804b49a8f0179f0b716cf86c9243535"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/reply-native.py",
+      "sha256": "f57aa2aed6181848d7cd3d7cf70e26e903602e2df055dc533e6fb3ae7c4520d7"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/reply-native-events.jsonl",
+      "sha256": "393abdbb51690824a6bbcd2f871737bd138dc2985543598988e0de53126f36fb"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/reply-fix-20261029-094311/native-2026-10-30T00-46-59-151Z/reply-native-restored.json",
+      "sha256": "0a55fc23bd6282988c2eff2f9a7d26a9a971f8d05a41b873d8b32f8500e7a941"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/applicability-review.json",
+      "sha256": "380f18c6b36494c9a1cf09fea823ff4472b2473dee9b3263b43635000c78786e"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/deployment.json",
+      "sha256": "f2b9d0c06e28cf85ba1235c1d63825ade612bf07cdcd44a64cb50c3f98827e6c"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/before-fix-tests.log",
+      "sha256": "5b28a92a34bd8c47f156b73e5084aebc5ff86093d2b128ba739bffa7024aaa39"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/quota-tests.log",
+      "sha256": "1f470fef1c136514f3ca5a5839e05be9af203c3fdade5c5a3bbfebd667933cee"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/doctor.json",
+      "sha256": "a327ff9de4c35e2aae3f1047334e0a605ea60e90d78e4b6c9016f0d9b1b41b27"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/live-watch-confirmed.jsonl",
+      "sha256": "928ee7320936d165063b364cbfe539fdb225fdfaca8bde3b1b30ac38d00de378"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/live-watch-result.json",
+      "sha256": "62fe6c1332cc634acda7e09528af6555a38abe709a6d61025d945297b4dcdaf6"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/observe-live-quota.py",
+      "sha256": "a4f2ff3b38fa517560a0dc58b3a500f5c2f56fa7420431c610774f93b9836a1a"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/restart-check.py",
+      "sha256": "21e7db6d570d17876470eb16c511b5ddea38d9ae195eaf44a591fa68e8f31778"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/restart-result.json",
+      "sha256": "cc4c1c50a6300fa1b461a762a66e238512e8f4cb8c369d3e4dc48d3f039cea12"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/after-restart-query.json",
+      "sha256": "70e54de9c0a4b92f788921e461383c6d5cf87234fe50208d4bb1067c28635d41"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/quota-query.json",
+      "sha256": "550ef925a7b6347858c99ce3ca273cfb209e1ce074fdbf3003338eface84dab1"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/quota-query.png",
+      "sha256": "1b8a01b0fee2e9b72e25713966517ddc294f7142951f1dd2c6829f19f0c16d2e"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/quota-after-restart.png",
+      "sha256": "94cca50b8bbcbc5ddc0a08c84d6a051c0f2c4b80d5acce061bab2731753a2ea5"
+    },
+    {
+      "path": "/Users/chenxiaocong/.local/state/telegram-app-server/quota-repeat-20261029-211014/live-read-only-samples.json",
+      "sha256": "c4f6214b292e38409de67d9083f98efb3070a92b99751ed09bdcc2d44a1bb776"
+    }
+  ]
+}

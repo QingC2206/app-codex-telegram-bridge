@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "created_utc": "2026-10-29T13:49:54.646244+00:00",
+  "created_utc": "2026-10-30T01:25:01.435909+00:00",
   "platform": "darwin",
   "python": "3.14.9",
   "live_windows_desktop": false,
   "live_telegram": false,
   "successful": true,
-  "tests_run": 991,
+  "tests_run": 1000,
   "source_changed_during_run": false,
-  "mapping_sha256": "0c3b8a30b8d824eb52315047c7e7f23b6b2e5fd72eeb3c831172cfb0ee53dccb",
-  "source_digest": "0666190d22c5ce3604df30223f4fae1834fd50dcda6ba7866b9f88590361cc68",
+  "mapping_sha256": "4b6b06334c8b3c31ec7d766d32efa6fb94db224e2004c4c64085d0c1e856b044",
+  "source_digest": "0c3c84744087d021bb816cab4e84fe130a711d0ad446a277bc56e44e416ff570",
   "records": [
     {
       "id": "platforms.test_follower_reader.FollowerTransportTests.test_discovery_request_does_not_claim_task_ownership",
@@ -3175,6 +3175,42 @@
       "outcome": "passed"
     },
     {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_account_switch_back_preserves_each_accounts_alert_history",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_confirmed_early_recovery_rearms_low_alerts_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_confirmed_natural_reset_rearms_low_alerts_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_exhausted_quota_and_second_level_deadline_jitter_notify_once",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_later_deadline_without_recovery_is_not_a_new_alert_cycle",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_low_percentage_fluctuation_does_not_repeat_one_percent_alert",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_missing_snapshot_does_not_erase_low_alert_history",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_progressively_lower_thresholds_still_notify_once_each",
+      "outcome": "passed"
+    },
+    {
+      "id": "test_quota_alert_dedup.QuotaAlertDedupTests.test_restart_and_reconnect_retain_sent_thresholds",
+      "outcome": "passed"
+    },
+    {
       "id": "test_reaction_acknowledgements.ReactionAcknowledgementTests.test_definite_rejection_stays_false_and_submission_keeps_text_and_target",
       "outcome": "passed"
     },
@@ -4005,7 +4041,7 @@
     "docs/notifications.en.md": "d76d6719b77c98b5da5f538d6b9a6ea07b91aa67938869db580b861e1d71daca",
     "docs/notifications.zh-CN.md": "352c4b1f98d1a7ab4df5baf3fdadd77f44994486d594a554ad2523d1c9f0120f",
     "docs/parity-audit.md": "c98c062d02981a3bf64e9c7c0f370ce0f3185b7aed331dbca62d7f2f9a4b88f9",
-    "docs/parity.json": "0c3b8a30b8d824eb52315047c7e7f23b6b2e5fd72eeb3c831172cfb0ee53dccb",
+    "docs/parity.json": "4b6b06334c8b3c31ec7d766d32efa6fb94db224e2004c4c64085d0c1e856b044",
     "docs/plugins.en.md": "1a9ff3c17a25c462b36f18acf4e4e6f95c2dd4a528b70142dd16dc571c1294bf",
     "docs/plugins.zh-CN.md": "faece0660d9e9d35882f8783a8b656e8efe6546bf437b3e39f766756ce05758b",
     "docs/setup.en.md": "33c80e681bab597539444394c971d9414c50c059f71266976ba21468f32bde79",
@@ -4015,8 +4051,8 @@
     "docs/testing.zh-CN.md": "2e2864155a8ab8649c366804090d20aa1bd08c17eb57d50512a36e8ab6508e32",
     "docs/usage.en.md": "bb070560aee12df7d2e6f06681def3a0180018e199693997d35d1661956705e4",
     "docs/usage.zh-CN.md": "6c3519ae6eefce84dcdf4db85ab3f7c17d5ec30039e83a8683c06849e21696f2",
-    "docs/windows/README.md": "f1a70be50c031f20ad04d7e331258b59c56bb90394841f517489b1bd7d175a2b",
-    "docs/windows/native-evidence.template.json": "adc9011599a75135796e7e53af15006e5ef5bc8e57d1c5aeff4ff9890ee50319",
+    "docs/windows/README.md": "305a3d01b24d56465776a63e9859caec702e7c93db2c712ab344f15fd9421339",
+    "docs/windows/native-evidence.template.json": "07271ae372349069f7a98cb32b64ab8661c4713aff65b682c2c2ed05bbb71f7f",
     "install.py": "2ec02341dba47a97269352e671c86a3efd7e8fb76b49ef2c2dfccefc2daf3a22",
     "pyproject.toml": "9130cf8ef0e0b317c89d50c87ba3e378aade14fc585b207f681f8a5cf2bdbf70",
     "src/app_codex_telegram_bridge.egg-info/PKG-INFO": "9e141dfd124dfdda3afa664b1ce760cbfc2aebda4e290e3baaf78a340d82738c",
@@ -4057,7 +4093,7 @@
     "src/codex_telegram_bridge/codex/receipts.py": "b9f27c8b8f3bc6b3817f6ae28314c1380953217a62c7e17e280ff3842c4ccd2f",
     "src/codex_telegram_bridge/config.py": "eb36d7da8af9a015c52b4ec49c0bf335eacc0431072ea7f89e4719ef67f11e29",
     "src/codex_telegram_bridge/core/__init__.py": "8d398146608bf553a8432b0bbc6fc595d5b4dd3e65479572bf2f1f6f163aa3e2",
-    "src/codex_telegram_bridge/core/bot.py": "2e0deba673867bc0baef4a4dbfe2ff4ec086256cd987eb12e59214c4e0f83900",
+    "src/codex_telegram_bridge/core/bot.py": "ab92d3ac4e2f1a1923519326fbb4e6126892de7926873666b264f6c949b076d2",
     "src/codex_telegram_bridge/core/runtime_policy.py": "64e7e5c8d9ba80ab9ad24dab3447d8cf4b51fa530523624f14253ff5c18bf37a",
     "src/codex_telegram_bridge/core/side_policy.py": "21035ef34148a0b0b6ba62845d0949fb4845678c486e1d779b461cc29d7ae845",
     "src/codex_telegram_bridge/features/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -4180,6 +4216,7 @@
     "tests/test_plugins.py": "3323b58d7484ee1c3b503b82b9c6eb294fb1b5ee7cae190bfd1c8053c24085af",
     "tests/test_protocol_adaptation.py": "083208471e68ceecbb00024f69facb0259e9d06b2f77b95a04de53b5722064e7",
     "tests/test_quiet_mode.py": "d9e2d2148eeb06425306d80659d81273892a364d571f505e8a475be178e49337",
+    "tests/test_quota_alert_dedup.py": "784712e30a6df22011421329f6cb8eff79b78601f250074d5973f0773b655465",
     "tests/test_reaction_acknowledgements.py": "faf7b1ce384b7ba34483f27b6b0ac13c563a9f1df8540c4a48552ca42f1a5f52",
     "tests/test_remote_tasks.py": "b416945c1e2d68f84d0d2ba6aae6a7e45ba2a75d082a8ae0dd0ba971a6b82f1c",
     "tests/test_running_tasks.py": "455f0661e03f8ea17c032207e895d663c0cebdac4eb3447c87f396071ea3c5dd",
@@ -4193,7 +4230,7 @@
     "tools/build_release.py": "eb1f9216f286a87bb3228c1d6823e471a69dde13bf10e9c623a9c48fc3608edb",
     "tools/check_distribution.py": "66beb7ed4428281d0525a2a7919ea66313bf03f0ae1de8500d65859c5db92883",
     "tools/parity_evidence.py": "c1c4b429131a950abea3c3e33afed4b5a9bf8e42a287b5a1ac1f9fbc9e50113d",
-    "tools/run_tests.py": "6c71434ab18f8df362bf02789343f9615374553c658ef651080113ea495ff7b3",
+    "tools/run_tests.py": "8e703a0cfdcc3e034e05a42fb755fdf4e3b008b8138639830734cc105a278f66",
     "tools/test_report.py": "8b787450c23caa77ea8633fa10052a43251843e7c52733837578d07585d11bec",
     "tools/verify_connection.py": "7e1fa6b1b850c0f66070d7872d2e59868c5251b8fbb171fe0a421319f31d926d"
   }

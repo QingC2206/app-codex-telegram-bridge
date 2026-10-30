@@ -1954,11 +1954,13 @@
           "text": "按 10/5/3/1 阈值提醒",
           "review_state": "mapped",
           "scenarios": [
-            "REG-A29-R01-89"
+            "REG-A29-R01-89",
+            "MAC-TELEGRAM-QUOTA-DEDUP",
+            "WINDOWS-DESKTOP-NATIVE"
           ],
-          "review_note": "已核对具体调用及断言：依次10/5/3/1产生4次周提醒；0不重复，按钮等级正确。",
-          "reviewer": "Codex rule assertion review 2026-10-28",
-          "reviewed_at": "2026-10-29T03:36:27.793877+00:00"
+          "review_note": "10/5/3/1 阈值逐档提醒；0% 持续轮询、秒级重置时间变化、小幅用量波动、短暂缺数据、重连/重启及 A→B→A 不重复。只有确认自然重置或提前恢复后才重新提醒。按钮授权失效与通知去重解耦；真实卡不消费。Mac 新增实测，Windows 留待用户原生验收。",
+          "reviewer": "Codex quota duplicate-alert regression review",
+          "reviewed_at": "2026-10-30T01:17:12.836489+00:00"
         },
         {
           "id": "A29.R02",
@@ -7963,17 +7965,17 @@
   "native_evidence": {
     "current": [
       {
-        "path": "docs/parity-native-reply-fix.json",
-        "sha256": "723be4980de6ff41e81176e30860f5aa5927c1b588773986ec8cf27a27733131"
+        "path": "docs/parity-native-quota-fix.json",
+        "sha256": "ec736de98e3a1cfd07dfacb1979330527e47c9fa31d90ca2139a14b72aa54b18"
       }
     ]
   },
   "final_review": {
-    "id": "REPLY-RESET-20261029",
-    "reviewer": "Codex shared reply-prompt review; native reopen verification pending",
-    "reviewed_at": "2026-10-29T13:51:32.013156+00:00",
-    "source_digest": "0666190d22c5ce3604df30223f4fae1834fd50dcda6ba7866b9f88590361cc68",
-    "mapping_sha256": "0c3b8a30b8d824eb52315047c7e7f23b6b2e5fd72eeb3c831172cfb0ee53dccb"
+    "id": "quota-repeat-20261029-final",
+    "reviewer": "Codex quota dedup and native reply evidence review",
+    "reviewed_at": "2026-10-30T01:37:24.076792+00:00",
+    "source_digest": "0c3c84744087d021bb816cab4e84fe130a711d0ad446a277bc56e44e416ff570",
+    "mapping_sha256": "4b6b06334c8b3c31ec7d766d32efa6fb94db224e2004c4c64085d0c1e856b044"
   },
   "scenarios": {
     "REG-A01-R01": {
@@ -9085,10 +9087,19 @@
       "rule_ids": [
         "A29.R01"
       ],
-      "assertion": "依次10/5/3/1产生4次周提醒；0不重复，按钮等级正确。",
-      "reviewer": "Codex FIX3 owner and independent assertion review",
+      "assertion": "依次 10/5/3/1 各提醒一次；0% 持续轮询、秒级重置时间变化、小幅用量波动、缺快照、重启/重连及切回账户不重复；真正自然重置/提前恢复重新允许提醒，旧按钮仍拒绝且不消费卡。",
+      "reviewer": "Codex quota duplicate-alert regression review",
       "tests": {
-        "test_telegram_quota.QuotaTests.test_threshold_buttons_weekly_only": "50295f5218cda797e7145fbe815a401b8814bbe3581d0a930cb9b5ca8058f99a"
+        "test_telegram_quota.QuotaTests.test_threshold_buttons_weekly_only": "50295f5218cda797e7145fbe815a401b8814bbe3581d0a930cb9b5ca8058f99a",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_exhausted_quota_and_second_level_deadline_jitter_notify_once": "57650b18727fe26a28db054c9edbed3dd9aa7d4ee6174ee6cbb7eb91c113a4a5",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_low_percentage_fluctuation_does_not_repeat_one_percent_alert": "979af4637ee022fc348f96acd4476a09f0e93494dff59a026acbc8bf28be7a91",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_missing_snapshot_does_not_erase_low_alert_history": "840ab34b23490dbd29b1851435fabbd6b4d23fc3cfb01114178a4195311a396f",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_restart_and_reconnect_retain_sent_thresholds": "a98b99ba3a0da1952c919bf4b403eeb9a0b1c6e1e24f0844c3770db49641c1b3",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_later_deadline_without_recovery_is_not_a_new_alert_cycle": "9907c605552cc8242bb6a3f8b97b7cd28947b9b63161547ddf12fb7756430d3c",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_progressively_lower_thresholds_still_notify_once_each": "7723c3a01fbd8070e0a145c35205f34f9888f669b8161e41ec579ad8d4bf9ab5",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_confirmed_natural_reset_rearms_low_alerts_once": "2759ccd0c862cd67c6fdd48496e172b5478c5a5f4f40cff1a785f63e7bdb0ca3",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_confirmed_early_recovery_rearms_low_alerts_once": "4013ba5a8f0297ec45dd30905def702d3f01f43ea9124ea82fc002ef4dd2712d",
+        "test_quota_alert_dedup.QuotaAlertDedupTests.test_account_switch_back_preserves_each_accounts_alert_history": "26fb50431fc9c2e1ddab2c9784433af8e4627514dc03d08a46df1e4e1213adda"
       }
     },
     "REG-A29-R03-90": {
@@ -12171,9 +12182,10 @@
         "C03.R01",
         "C04.R01",
         "E01.R01",
-        "A52.R01"
+        "A52.R01",
+        "A29.R01"
       ],
-      "assertion": "Windows默认Desktop后端实际启动；核对当前profile与Named Pipe server PID，原任务引用续聊/追加/中止回执真实匹配；主进程退出后子后台被Job Object清理。 文字回答提示不强制选中；旧状态用 /help 清除后，退出/重进和重启 Telegram 均不复发。",
+      "assertion": "Windows默认Desktop后端实际启动；核对当前profile与Named Pipe server PID，原任务引用续聊/追加/中止回执真实匹配；主进程退出后子后台被Job Object清理。 文字回答提示不强制选中；旧状态用 /help 清除后，退出/重进和重启 Telegram 均不复发。；已提醒的低额度连续两个监控周期及服务重启不重复，手动额度查询仍可用。",
       "reviewer": "Codex final scenario review 2026-10-28",
       "platform": "windows",
       "method": "windows-desktop"
@@ -12633,6 +12645,16 @@
       "method": "telegram-ui",
       "assertion": "清除旧强制回复状态后反复离开/重进机器人聊天并重新启动 Telegram，不自动引用旧题；新文字提示不自动选中，手动引用正确回答，完成和取消后不恢复待回复。",
       "reviewer": "Codex forced-reply regression review 2026-10-29"
+    },
+    "MAC-TELEGRAM-QUOTA-DEDUP": {
+      "kind": "manual",
+      "platform": "darwin",
+      "method": "telegram-ui",
+      "rule_ids": [
+        "A29.R01"
+      ],
+      "assertion": "安装修复后，真实 0% 账户连续两个完整监控周期和服务重启无重复低额度通知，实际 Telegram /quota 查询仍可用；不消费真实重置卡。",
+      "reviewer": "Codex real quota polling and restart acceptance review"
     }
   },
   "rule_review_scope": "Each rule is individually mapped only after checking the cited assertions; pending explicitly means no adequate current evidence mapping.",
