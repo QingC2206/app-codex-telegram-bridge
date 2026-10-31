@@ -1,0 +1,386 @@
+{
+  "schema_version": 2,
+  "platform": "windows",
+  "source_digest": "4fb6771dc765e03f7cd5ddf842275369ca5ded568c9fd1cf34d7cf83317b3dc2",
+  "mapping_sha256": "8ebbd862fdd95a4907b8821967e8bd93d2b8d6c60a05294cd64b42f2e8a4138e",
+  "tested_commit": "e08b845e22166b0690865f5c45f47898b83c6758",
+  "reviewer": "Codex Windows acceptance, 2026-10-31",
+  "environment": {
+    "windows_version": "Windows 11 IoT Enterprise LTSC, build 26100",
+    "codex_desktop_version": "26.1027.3384.0",
+    "python_version": "3.14.9",
+    "interpreter": "%USERPROFILE%/.codex/telegram-bridge-runtime/Scripts/python.exe (user path redacted)",
+    "distinct_account_identity_evidence": "One actual interactive user only; no second test account, as confirmed by the user"
+  },
+  "records": [
+    {
+      "scenario_id": "WINDOWS-CROSS-ACCOUNT-LOCK",
+      "rule_ids": [
+        "A53.R02",
+        "E02.R03"
+      ],
+      "method": "process-cross-account",
+      "outcome": "blocked",
+      "observed_at": "2026-10-31T01:07:26.876083+00:00",
+      "observations": [
+        "通过安装后的实际控制器运行链和固定生产端点127.0.0.1:27321，验证同一账户下不同profile/data目录互斥。第二实例明确退出且未进入轮询。Telegram/Codex传输使用隔离合成数据，锁没有mock或换端口。",
+        "实际持有者正常退出和按精确PID/创建时间结束后，新实例均可接替；占锁期间desktop-notify产生真实hook_events记录，notify合成无操作入口可退出。真实完成通知另有用户回复及通知日志证明。",
+        "恢复原正式服务，只有一个逻辑主控制器；venv启动器不是第二个收消息服务。",
+        "缺少第二个真实Windows账户，跨SID拒绝和跨账户接替未做，不能据同账户测试声明整组通过。"
+      ],
+      "evidence_files": [
+        {
+          "path": ".validation/windows/native-main-lock-blocked.json",
+          "sha256": "2d2dc3bf1086c3ac84e7788a7ea0c7faa43fc13561a991f49336b8db47628b77"
+        },
+        {
+          "path": ".validation/windows/native-main-lock-lifecycle.json",
+          "sha256": "23922a736f8e06cb865b6d462b897269e626eb68d98d1ead9e108edf8a23d8c8"
+        },
+        {
+          "path": ".validation/windows/native_probe.py",
+          "sha256": "7dce1f565e817c9eb5776cc81f726e642f5f5c0c382d4db4678549e99221ae95"
+        },
+        {
+          "path": ".validation/windows/lifecycle.py",
+          "sha256": "ee7cbb0ce295075c07b441e67eee77854b70222c8f15ded6778668821d9413f4"
+        },
+        {
+          "path": ".validation/windows/runtime-final.json",
+          "sha256": "a0d1a90fbc7aafa9dcaa1f97cea4a6be50896fc4cb9ae3a06ec2169b1873ee6f"
+        }
+      ]
+    },
+    {
+      "scenario_id": "WINDOWS-DESKTOP-NATIVE",
+      "rule_ids": [
+        "C01.R01",
+        "C01.R02",
+        "C02.R01",
+        "C03.R01",
+        "C04.R01",
+        "E01.R01",
+        "A52.R01",
+        "A29.R01"
+      ],
+      "method": "windows-desktop",
+      "outcome": "blocked",
+      "observed_at": "2026-10-31T01:13:21.634164+00:00",
+      "observations": [
+        "保持Desktop后端，实际发现验证同profile Desktop进程及原生连接；读取当前列表协议得到50个recent与9个pinned项目，详情返回真实分页游标。未把旧协议或更多分页情形冒充本机实测。",
+        "用户从Telegram完成直接引用回复和/send：同一个专用验收任务分别出现一条origin=user收据，各自只有一次输入；任务正常完成。初始创建提示与这两次手机输入分开计算。",
+        "通过已安装Robot的DesktopControl接口验证同Turn追加，最终同时包含两个标记；确认旧Turn中止后才提交新Turn；旧Turn追加与中止均被拒绝，新Turn保持运行且没有收到迟到输入。此项没有替代Telegram选择按钮的客户端验收。",
+        "真实Robot主进程崩溃后，其两个后台子进程被Windows Job Object回收，独立Desktop进程存活；计划任务约35.31秒自动恢复，没有人工start介入恢复成功路径。",
+        "实际0%账户监控跨越两个完整5分钟周期，随后停止/启动及崩溃恢复均保留已提醒阈值；用户确认没有重复低额度提醒，手动/quota正常。未使用任何真实额度重置卡。",
+        "测试期间Telegram返回502及读取超时，两条原生测试完成通知未确认送达；未因此重发任务输入。网络恢复后另一个唯一标记任务完成，完成通知由Telegram确认送达。",
+        "Computer Use被物理Esc停止。仍缺按钮追加/中止/迟到卡、编辑器离开重进及Telegram重启、真实审批、长文本/附件/静默等客户端操作；提交检查点后的状态变化与多实例错投的原生故障注入也未冒充完成。"
+      ],
+      "evidence_files": [
+        {
+          "path": ".validation/windows/native-human-reply-send.json",
+          "sha256": "e81f3548dc94f073c6840c5521cfd8455c6a9a546ee562a95e94efacdc4b7154"
+        },
+        {
+          "path": ".validation/windows/native-desktop-interactions.json",
+          "sha256": "e2ba2381bd112e8d0732674f7325c2f3bfab04e8afb58f89b088f6cf9789af4a"
+        },
+        {
+          "path": ".validation/windows/desktop_native.py",
+          "sha256": "2e5bb8f4386587c47fcc715fbbaffa5e36de861de6e354daa4eae1c794002aca"
+        },
+        {
+          "path": ".validation/windows/native-jobs.json",
+          "sha256": "e2939e12ca307bab08fd3b2647c9ab638e8abc19bb9681f1e02576d1b677b1c2"
+        },
+        {
+          "path": ".validation/windows/native-production-crash-recovery.json",
+          "sha256": "5d57b97d3db743607c26a2552cdeb8e7189729f164282d4739b223f5c67cb535"
+        },
+        {
+          "path": ".validation/windows/quota-monitor-first.json",
+          "sha256": "38be8760c7686cd089cedee54dbd39121b20b81bcb32a36ba6ac76ec8a231759"
+        },
+        {
+          "path": ".validation/windows/quota-before-restart.json",
+          "sha256": "6b9f621bb96eddd9d3c7281b280879cae140d5469e612c9479d9df1965e97a15"
+        },
+        {
+          "path": ".validation/windows/quota-runtime-after-restarts.json",
+          "sha256": "eff942471185ab29373125684b436f08a45f7151cdb53d5c86118a0ec9316d1f"
+        },
+        {
+          "path": ".validation/windows/quota-monitor-final.json",
+          "sha256": "16ce2acf53c1a484b8ba1f07ee1bd1305723c74ff32c4757e6f3531d8e13824f"
+        },
+        {
+          "path": ".validation/windows/quota-user-confirmation.json",
+          "sha256": "40c962b903dd3bfebc5c8b304ded8b94ca22749e8ee2bc4f523a70eb59735899"
+        },
+        {
+          "path": ".validation/windows/native-notification-recovery.json",
+          "sha256": "af2b284e8f88d1dcab227bda0f5f1f1cc296f4ca83130de0a47e037b4d729fe4"
+        },
+        {
+          "path": ".validation/windows/doctor-final.json",
+          "sha256": "4d032951d8137b536f3c74203f8ee56a89044911e9449b565c8dcd3c2a54a332"
+        }
+      ],
+      "low_quota_client_confirmation": "passed: explicit user confirmation; /quota command also present in live Robot log"
+    },
+    {
+      "scenario_id": "WINDOWS-OS-CREDENTIALS",
+      "rule_ids": [
+        "N10.R04"
+      ],
+      "method": "os-credential-store",
+      "outcome": "blocked",
+      "observed_at": "2026-10-31T00:57:06.671548+00:00",
+      "observations": [
+        "安装后的原生DPAPI对隔离随机测试值完成加密/解密读回；持久化内容不存在该明文，测试资料已清理。真实机器人凭据未更改。",
+        "损坏密文触发真实OSError/winerror13；损坏密文配合明文备用值仍拒绝，纯明文配置也被拒绝，没有明文回退。",
+        "没有第二个实际账户，未完成另一SID读取合成密文字节后实际调用DPAPI的拒绝测试；文件权限或环境变量替换未被作为替代证据。"
+      ],
+      "evidence_files": [
+        {
+          "path": ".validation/windows/native-dpapi.json",
+          "sha256": "f29e3802cc6fa5d8d965f88463a128bb4709c7ea0f8fe528e1a1e75494890dc6"
+        },
+        {
+          "path": ".validation/windows/native_probe.py",
+          "sha256": "7dce1f565e817c9eb5776cc81f726e642f5f5c0c382d4db4678549e99221ae95"
+        }
+      ]
+    },
+    {
+      "scenario_id": "WINDOWS-SERVICE-NATIVE",
+      "rule_ids": [
+        "D04.R02",
+        "D04.R03",
+        "D04.R04"
+      ],
+      "method": "windows-service",
+      "outcome": "passed",
+      "observed_at": "2026-10-31T01:10:01.621992+00:00",
+      "observations": [
+        "在真实Task Scheduler注册唯一隔离任务，使用当前交互用户、最低权限和绝对路径；通过系统SID转换核对登录触发者与principal一致。原生注册/重复安装及所有权拒绝没有使用模拟调度器。",
+        "实测发现相同profile但错误data目录会被旧is_owned误判，已改为精确参数、模块/旧脚本入口和单Exec校验；新增5项回归。修复已部署，安装后再次通过原生拒绝检查。",
+        "隔离原生/Create无效XML失败后恢复原任务定义；测试任务及临时资料均清理。正式Robot已升级、实际stop/start并崩溃自动恢复；凭据、偏好与2846条既有消息关联保留。",
+        "Computer Use包装notify的配置被保留；初次整安装因外部包装归属拒绝而回滚，随后仅升级独立runtime和自有计划任务。没有绕过归属保护覆盖包装。",
+        "用户明确取消本轮实际注销/重启。因此本组passed仅指约定的本轮范围，登录恢复只核对配置、未实际注销或重启，不代表全局发布门禁已满足。"
+      ],
+      "evidence_files": [
+        {
+          "path": ".validation/windows/native-service.json",
+          "sha256": "190f23a5adfb37d96705145e51922bce3c4d7822952703f279bc3d769cf49685"
+        },
+        {
+          "path": ".validation/windows/native_service.py",
+          "sha256": "56ac1715c2bd75e18fc6cd054669ac50a7f056fa44ee9bf5d1b7d83b6d5dc12b"
+        },
+        {
+          "path": ".validation/windows/deployment.json",
+          "sha256": "a0d03320c78de10244be4be2fcd257b2a3b01000af7b42fb76b9a37ded63f853"
+        },
+        {
+          "path": ".validation/windows/native-main-lock-lifecycle.json",
+          "sha256": "23922a736f8e06cb865b6d462b897269e626eb68d98d1ead9e108edf8a23d8c8"
+        },
+        {
+          "path": ".validation/windows/native-production-crash-recovery.json",
+          "sha256": "5d57b97d3db743607c26a2552cdeb8e7189729f164282d4739b223f5c67cb535"
+        },
+        {
+          "path": ".validation/windows/crash_recovery.py",
+          "sha256": "48753756ee348e95f0c610e3443898d2c8ea528da2cab6c4487f3a8cc7bfefe8"
+        },
+        {
+          "path": ".validation/windows/quota-runtime-after-restarts.json",
+          "sha256": "eff942471185ab29373125684b436f08a45f7151cdb53d5c86118a0ec9316d1f"
+        },
+        {
+          "path": ".validation/windows/runtime-final.json",
+          "sha256": "a0d1a90fbc7aafa9dcaa1f97cea4a6be50896fc4cb9ae3a06ec2169b1873ee6f"
+        }
+      ],
+      "scope_exception": {
+        "actual_logout_reboot": "explicitly waived by user for this acceptance run; not executed"
+      }
+    }
+  ],
+  "supporting_files": [
+    {
+      "path": ".validation/windows/full-final.log",
+      "sha256": "7b0ad8f0e30a871de443018b9ab3ce21b2af37b0ddece53eff0967f4a2feb193"
+    },
+    {
+      "path": ".validation/windows/audit-structure.json",
+      "sha256": "c879014bf8ebbb06c7e921ca5eb361a7088a967b72594fc38705711bb752c2a7"
+    },
+    {
+      "path": ".validation/windows/audit-reviewed.json",
+      "sha256": "4d4cb036de406e0c3e3af8ecf1c6c0b1a9b5b182085d26bdcafa702497e6d3c9"
+    },
+    {
+      "path": ".validation/windows/audit-complete.json",
+      "sha256": "b1cb907ad0bbe86d6d8968c74e69e80126e0265592e29a98160115c228ebddf1"
+    },
+    {
+      "path": ".validation/windows/audit-windows-report.json",
+      "sha256": "3cff8912d907e47304b51230abce6eedb9f668c0b3ebb266e557f7c782111207"
+    },
+    {
+      "path": ".validation/windows/native_probe.py",
+      "sha256": "7dce1f565e817c9eb5776cc81f726e642f5f5c0c382d4db4678549e99221ae95"
+    },
+    {
+      "path": ".validation/windows/native_service.py",
+      "sha256": "56ac1715c2bd75e18fc6cd054669ac50a7f056fa44ee9bf5d1b7d83b6d5dc12b"
+    },
+    {
+      "path": ".validation/windows/desktop_native.py",
+      "sha256": "2e5bb8f4386587c47fcc715fbbaffa5e36de861de6e354daa4eae1c794002aca"
+    },
+    {
+      "path": ".validation/windows/lifecycle.py",
+      "sha256": "ee7cbb0ce295075c07b441e67eee77854b70222c8f15ded6778668821d9413f4"
+    },
+    {
+      "path": ".validation/windows/crash_recovery.py",
+      "sha256": "48753756ee348e95f0c610e3443898d2c8ea528da2cab6c4487f3a8cc7bfefe8"
+    }
+  ],
+  "recorded_at": "2026-10-31T01:24:57.556417+00:00",
+  "source_scope": "e08b845 test branch plus the uncommitted Windows ownership fix, regression fixtures, mapping and documentation changes; exact manifest is in the private full report",
+  "registration_status": "Partial evidence only; not registered as complete native acceptance",
+  "regression": {
+    "created_utc": "2026-10-31T01:21:36.603114+00:00",
+    "successful": true,
+    "tests_run": 1005,
+    "outcomes": {
+      "passed": 994,
+      "skipped": 11
+    },
+    "skips": [
+      {
+        "id": "platforms.test_macos_desktop_access.LocalDesktopTargetTests.test_transcript_symlink_outside_profile_is_rejected",
+        "outcome": "skipped",
+        "reason": "macOS symlink guard; Windows symlink privileges differ"
+      },
+      {
+        "id": "test_fix6_machine_lock.MachineLockTests.test_fork_child_cannot_keep_parent_reservation",
+        "outcome": "skipped",
+        "reason": "POSIX fork inheritance"
+      },
+      {
+        "id": "test_fix6_management_contracts.ManagementContractTests.test_cli_sigterm_runs_shutdown_before_releasing_controller_lock",
+        "outcome": "skipped",
+        "reason": "POSIX CLI SIGTERM contract"
+      },
+      {
+        "id": "test_fix6_management_contracts.ManagementContractTests.test_plugin_directory_and_entrypoint_symlinks_cannot_escape_trusted_root",
+        "outcome": "skipped",
+        "reason": "Creating local symlinks is not permitted on this host"
+      },
+      {
+        "id": "test_platforms.NativeUnixTransportTests.test_abrupt_parent_exit_reaps_owned_child",
+        "outcome": "skipped",
+        "reason": "Unix sockets and OS peer credentials"
+      },
+      {
+        "id": "test_platforms.NativeUnixTransportTests.test_group_writable_socket_rejected",
+        "outcome": "skipped",
+        "reason": "Unix sockets and OS peer credentials"
+      },
+      {
+        "id": "test_platforms.NativeUnixTransportTests.test_invalid_frame_is_not_interpreted_as_json",
+        "outcome": "skipped",
+        "reason": "Unix sockets and OS peer credentials"
+      },
+      {
+        "id": "test_platforms.NativeUnixTransportTests.test_real_peer_and_fragmented_coalesced_frames",
+        "outcome": "skipped",
+        "reason": "Unix sockets and OS peer credentials"
+      },
+      {
+        "id": "test_platforms.NativeUnixTransportTests.test_symlink_socket_rejected",
+        "outcome": "skipped",
+        "reason": "Unix sockets and OS peer credentials"
+      },
+      {
+        "id": "test_platforms.NativeUnixTransportTests.test_wrong_server_pid_rejected_before_any_write",
+        "outcome": "skipped",
+        "reason": "Unix sockets and OS peer credentials"
+      },
+      {
+        "id": "test_platforms.PosixDiscoveryTests.test_native_endpoint_grammar_rejects_traversal_and_wrong_service",
+        "outcome": "skipped",
+        "reason": "Native POSIX endpoint paths"
+      }
+    ],
+    "report": {
+      "path": ".validation/windows/full.json",
+      "sha256": "8ac1646f27a6fe384a1691677613f173e3c0a948ad345d416c1848df6507069c"
+    },
+    "compatibility": {
+      "tests_run": 113,
+      "passed": 112,
+      "skipped": 1,
+      "log_sha256": "66476f6259223e5b8245e3682aacaf570b809caa63960941c166d01ee2b57cb0"
+    },
+    "distribution": {
+      "wheel_entries_checked": 118,
+      "sdist_entries_checked": 206
+    }
+  },
+  "runtime": {
+    "backend": "desktop",
+    "installed_runtime_files_verified": 112,
+    "preserved_reply_routes": 2846,
+    "credentials_preserved": true,
+    "one_logical_controller": true,
+    "package_version": "0.6.12 (unreleased test branch)",
+    "installed_wheel_sha256": "bf3c5ec63ec6d0e140015360d5ed74237d7c497a6596d4645cccdd6ca7d82327",
+    "changed_runtime_files_since_first_native_probes": [
+      "codex_telegram_bridge/platforms/windows/services.py"
+    ],
+    "restore_backup": "%USERPROFILE%/.codex/robot-upgrade-backups/platform-parity-20261031T005419Z"
+  },
+  "gates": {
+    "structure_errors": 0,
+    "require_reviewed_errors": 1014,
+    "require_complete_errors": 1050,
+    "current_windows_report_review_errors": [
+      "Final sharing and rule-mapping review is missing or stale",
+      "A53.R04: test has not passed: test_fix6_management_contracts.ManagementContractTests.test_cli_sigterm_runs_shutdown_before_releasing_controller_lock",
+      "C01.R02: test has not passed: test_platforms.NativeUnixTransportTests.test_wrong_server_pid_rejected_before_any_write",
+      "C01.R02: test has not passed: test_platforms.NativeUnixTransportTests.test_real_peer_and_fragmented_coalesced_frames",
+      "D05.R02: test has not passed: test_platforms.NativeUnixTransportTests.test_wrong_server_pid_rejected_before_any_write",
+      "E02.R02: test has not passed: test_fix6_machine_lock.MachineLockTests.test_fork_child_cannot_keep_parent_reservation",
+      "E04.R01: test has not passed: test_platforms.NativeUnixTransportTests.test_real_peer_and_fragmented_coalesced_frames",
+      "E04.R01: test has not passed: test_platforms.NativeUnixTransportTests.test_wrong_server_pid_rejected_before_any_write",
+      "E04.R01: test has not passed: test_platforms.NativeUnixTransportTests.test_group_writable_socket_rejected",
+      "E04.R01: test has not passed: test_platforms.NativeUnixTransportTests.test_symlink_socket_rejected",
+      "E04.R03: test has not passed: test_platforms.NativeUnixTransportTests.test_abrupt_parent_exit_reaps_owned_child",
+      "F01.R01: test has not passed: test_fix6_management_contracts.ManagementContractTests.test_plugin_directory_and_entrypoint_symlinks_cannot_escape_trusted_root"
+    ],
+    "explanation": "Default gates read the retained Mac report, which is stale for this Windows working tree. Current Windows regression passes; cross-platform skipped cases, final mapping review and incomplete native groups still prevent complete acceptance. No Mac fingerprints were rewritten and no Windows partial record was promoted."
+  },
+  "merge_followup": {
+    "date": "2026-10-31",
+    "authorization": "User explicitly instructed merging into main, committing, pushing, and ensuring the running Robot matches.",
+    "changes_since_native_acceptance": [
+      "CHANGELOG.md",
+      "docs/windows/README.md"
+    ],
+    "runtime_sources_unchanged": true,
+    "full_regression": {
+      "path": ".validation/windows/merge-main-full.json",
+      "sha256": "73a3a54595cfccd8a67cddc8a363b12dd1d2ede3bbf37f461ca1fce9ed36660e",
+      "source_digest": "1d2749e0605d2e901257a77be4d1ddd3c77089e59ad4ba7b9739df4f30790029",
+      "tests_run": 1005,
+      "passed": 994,
+      "skipped": 11
+    },
+    "scope": "Native records retain their original times, outcomes and fingerprints; merge authorization is not complete native acceptance."
+  }
+}

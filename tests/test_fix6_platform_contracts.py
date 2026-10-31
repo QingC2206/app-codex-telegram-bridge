@@ -172,9 +172,13 @@ class PlatformRuleTests(unittest.TestCase):
             tid='11111111-1111-4111-8111-111111111111'
             outside=root/('rollout-test-'+tid+'.jsonl');outside.write_text('outside')
             wrong=sessions/('rollout-test-'+tid+'-other.jsonl');wrong.write_text('other')
-            with sqlite3.connect(profile/'state_5.sqlite') as db:
-                db.execute('CREATE TABLE threads(id TEXT,rollout_path TEXT)')
-                db.execute('INSERT INTO threads VALUES(?,?)',(tid,str(outside)))
+            db = sqlite3.connect(profile/'state_5.sqlite')
+            try:
+                with db:
+                    db.execute('CREATE TABLE threads(id TEXT,rollout_path TEXT)')
+                    db.execute('INSERT INTO threads VALUES(?,?)',(tid,str(outside)))
+            finally:
+                db.close()
             self.assertIsNone(receipts.session_path(tid,sessions))
             correct=sessions/('rollout-test-'+tid+'.jsonl');correct.write_text('correct')
             self.assertEqual(receipts.checkpoint(tid,sessions),(str(correct.resolve()),7))

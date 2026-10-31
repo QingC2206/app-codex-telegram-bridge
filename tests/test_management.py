@@ -88,7 +88,8 @@ class InstallTests(unittest.TestCase):
 class ServiceDefinitionTests(unittest.TestCase):
     def test_schtasks_text_with_utf16_declaration_is_normalized(self):
         data=Path(tempfile.gettempdir()).resolve()/'robot-test'
-        xml=services.windows_task(['python','-m','codex_telegram_bridge','--codex-home',str(data)])
+        xml=services.windows_task(['python','-m','codex_telegram_bridge','--codex-home',str(data),
+                                  '--data-dir',str(services.data_dir()),'run'])
         emitted=xml.decode('utf-16').encode('utf-8')
         with patch.object(services,'codex_home',return_value=data):
             self.assertTrue(services._legacy_owned(emitted))

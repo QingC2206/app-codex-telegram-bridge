@@ -8,12 +8,18 @@
     "全部修复后完整公共层归属复检"
   ],
   "verification_scope": {
-    "windows_native": "deferred-by-user",
+    "windows_native": "partially-verified",
     "macos_native": "required",
     "plugin_exception": "specific-plugin-extension-only",
     "macos_ui": "required-current-evidence",
     "linux_native": "not-in-requested-scope",
-    "native_side_effects": "No real quota card redemption; quota/approval edge cases covered by isolated regression."
+    "native_side_effects": "No real quota card redemption; quota/approval edge cases covered by isolated regression.",
+    "windows_current_run": {
+      "date": "2026-10-31",
+      "second_account": "unavailable; cross-SID checks remain blocked",
+      "actual_logout_reboot": "explicitly waived by user for this run",
+      "remaining_ui": "Computer Use stopped by physical Escape; requires a new resumed UI session"
+    }
   },
   "capabilities": [
     {
@@ -7960,15 +7966,20 @@
       "path": "/Users/chenxiaocong/.local/state/telegram-app-server/mac-final-20261029-022355/reaction-fix-before/docs/parity-native-mac-final.json",
       "source_digest": "8c0188ad3511b20b91c8ed1047b22790c4123da6ebf6940adee2ab733b294310",
       "note": "Retained actual Keychain and cross-account evidence; current-version applicability must be checked explicitly."
+    },
+    "mac_before_windows_acceptance": {
+      "references": [
+        {
+          "path": "docs/parity-native-quota-fix.json",
+          "sha256": "ec736de98e3a1cfd07dfacb1979330527e47c9fa31d90ca2139a14b72aa54b18"
+        }
+      ],
+      "recorded_at": "2026-10-31",
+      "reason": "Windows service ownership, regression fixtures and evidence mapping changed. Original Mac artifact and hashes are retained; no cross-platform rerun or current-source approval is implied."
     }
   },
   "native_evidence": {
-    "current": [
-      {
-        "path": "docs/parity-native-quota-fix.json",
-        "sha256": "ec736de98e3a1cfd07dfacb1979330527e47c9fa31d90ca2139a14b72aa54b18"
-      }
-    ]
+    "current": []
   },
   "final_review": {
     "id": "quota-repeat-20261029-final",
@@ -9814,7 +9825,7 @@
       "assertion": "外部数据库路径和错误完整task后缀拒绝，只用profile内完整任务文件及末尾偏移。",
       "reviewer": "Codex cross-review map-platforms.json",
       "tests": {
-        "test_fix6_platform_contracts.PlatformRuleTests.test_receipt_path_pins_full_thread_id_and_rejects_outside_profile": "c654bbe8076cd521e6612996892e782c1a5e3c87971f34a6dc2ed1f78db1b594"
+        "test_fix6_platform_contracts.PlatformRuleTests.test_receipt_path_pins_full_thread_id_and_rejects_outside_profile": "a457469971372781781e35f3a23b8b1cba5bb3962498b144ff6bcbbab73a61b2"
       }
     },
     "REG-platforms-C04-R03": {
@@ -10587,11 +10598,16 @@
       "rule_ids": [
         "D04.R03"
       ],
-      "assertion": "外profile LaunchAgent拒绝卸载且未执行系统命令；两种安装器先查归属，外部服务拒绝时hooks/config不变。",
-      "reviewer": "Codex cross-review map-management.json",
+      "assertion": "外profile LaunchAgent拒绝卸载且未执行系统命令；两种安装器先查归属，外部服务拒绝时hooks/config不变。Windows额外核对精确profile/data目录、直接Python模块或精确旧脚本入口、唯一作用域参数及单个Exec；错误data目录时status/install/start/stop/uninstall与snapshot只查询、不改服务、不停止进程。",
+      "reviewer": "Codex cross-review map-management.json; Windows acceptance review 2026-10-31",
       "tests": {
         "test_management.ServiceRecoveryTests.test_other_profiles_launch_agent_is_never_removed": "66830350fddeb20a51a2b33cf184e8c3d7fb35417461455180c9693d0d367c5e",
-        "test_platform_compatibility.InstallerParityTests.test_foreign_service_is_rejected_before_changing_any_hooks": "8107f3d06194c0cec2d14f92a192ddc5d97e04f1140dcf87aa963e8fe76b728d"
+        "test_platform_compatibility.InstallerParityTests.test_foreign_service_is_rejected_before_changing_any_hooks": "8107f3d06194c0cec2d14f92a192ddc5d97e04f1140dcf87aa963e8fe76b728d",
+        "test_windows_service_ownership.WindowsServiceOwnershipTests.test_exact_profile_and_data_are_both_required": "04878e5b2b666e07f8f77542ebd41bd45d0585514030f0940dd3961d5b05cfc9",
+        "test_windows_service_ownership.WindowsServiceOwnershipTests.test_missing_duplicate_or_unqualified_scope_is_rejected": "9d000c6b249fa81b7d438faab37ad1e2fc87eb1f3b300da3d6dc51ec8efffa3a",
+        "test_windows_service_ownership.WindowsServiceOwnershipTests.test_wrappers_other_modules_and_multiple_actions_are_not_owned": "ad85cf75eb72cb5daf20afc90ae5e0a3c5ed87902fec6f91fd9d6d8fc33d03fc",
+        "test_windows_service_ownership.WindowsServiceOwnershipTests.test_legacy_script_requires_exact_path_and_service_arguments": "9bad10c61a3b2f7ad8577b0efd833297824ad329a74a84351cca779a8e1aa9c4",
+        "test_windows_service_ownership.WindowsServiceOwnershipTests.test_wrong_data_directory_rejects_every_management_action_before_mutation": "47e5999367f897b9b8b210a37cfb94ff499ea9b4f5a46aadd3f2e7a4730d4268"
       }
     },
     "REG-management-D04-R04": {

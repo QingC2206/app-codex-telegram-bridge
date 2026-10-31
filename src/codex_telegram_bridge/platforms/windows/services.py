@@ -2,6 +2,7 @@
 import getpass
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
@@ -52,10 +53,39 @@ def normalize_task_xml(value):
 def is_owned(xml, profile, data):
     try:
         root=ET.fromstring(normalize_task_xml(xml))
-        args=' '.join(n.text or '' for n in root.iter() if n.tag.endswith('Arguments'))
-        return ('codex_telegram_bridge' in args and str(profile) in args) or (
-            str(data/'telegram_bot.py').lower() in args.lower())
-    except (ET.ParseError,UnicodeError):
+        actions=[n for n in root.iter() if n.tag.rsplit('}',1)[-1]=='Actions']
+        if len(actions)!=1 or len(actions[0])!=1:
+            return False
+        action=actions[0][0]
+        if action.tag.rsplit('}',1)[-1]!='Exec':
+            return False
+        fields={n.tag.rsplit('}',1)[-1]:n.text or '' for n in action}
+        if len(fields)!=len(action) or not re.fullmatch(r'pythonw?(?:\d+(?:\.\d+)*)?(?:\.exe)?',
+                re.split(r'[/\\]',fields.get('Command',''))[-1],re.I):
+            return False
+        from ...management.hook_handlers import direct_command_arguments
+        args=direct_command_arguments(fields.get('Arguments',''),windows=True)
+        if not args:
+            return False
+        def same_path(value, expected):
+            candidate=Path(value).expanduser()
+            return candidate.is_absolute() and candidate.resolve()==expected.resolve()
+        # Older script installations are owned only by this exact data path.
+        if args[0]!='-m':
+            return (same_path(args[0],data/'telegram_bot.py')
+                    and args[1:] in (['--service'],['--service','--quiet-start']))
+        if args[:2]!=['-m','codex_telegram_bridge']:
+            return False
+        options={}; tail=args[2:]
+        while tail and tail[0].startswith('--'):
+            if len(tail)<2 or tail[0] not in {'--codex-home','--data-dir'} or tail[0] in options:
+                return False
+            options[tail[0]]=tail[1];tail=tail[2:]
+        return (tail in (['run'],['run','--quiet-start'])
+                and set(options)=={'--codex-home','--data-dir'}
+                and same_path(options['--codex-home'],profile)
+                and same_path(options['--data-dir'],data))
+    except (ET.ParseError,UnicodeError,OSError,RuntimeError,ValueError):
         return False
 
 

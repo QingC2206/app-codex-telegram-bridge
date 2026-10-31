@@ -1,5 +1,18 @@
 # 更新记录
 
+## 未发布 / Unreleased
+
+- 整合 Windows/macOS 共用的控制器、投递、反馈及额度状态逻辑，平台适配层继续负责原生连接、进程清理、凭据和服务安装；保留 Windows 的 Desktop 默认后端。
+- 修复文字回答提示遗留强制引用的问题；低额度已提醒阈值跨轮询、连接恢复及 Robot 重启保留，避免重复发送相同提醒。
+- 计划任务归属同时核对完整 Codex profile 和 Robot 数据目录；拒绝缺失、重复或相对路径参数、其他模块、Shell 包装及多执行动作，避免同 profile 下另一套数据的服务被覆盖或停止。保留精确路径的旧版脚本入口。
+- 修复收据路径测试未关闭 SQLite 连接导致的 Windows 临时目录清理失败，保留原有完整任务 ID 和环境边界断言。
+- 增加 Windows 服务归属回归测试；本机原生验收结果和未完成项见 `docs/windows/README.md`。
+- Share controller, delivery, feedback, and quota-state behavior across Windows and macOS while retaining native connection, process cleanup, credential, and service adapters. Windows keeps its Desktop backend by default.
+- Stop text-answer prompts from leaving a forced reply selected. Preserve previously alerted quota thresholds across polling, reconnection, and Robot restarts to prevent repeated alerts.
+- Bind scheduled-task ownership to both the exact Codex profile and Robot data directory. Reject ambiguous scope arguments, relative paths, other modules, shell wrappers, and multiple actions before managing an unrelated service. Preserve the exact legacy script entry point.
+- Close the SQLite connection in the receipt-path regression so Windows can remove its temporary directory, while retaining full-thread-ID and profile-boundary assertions.
+- Add Windows service ownership coverage and record native acceptance progress and remaining checks in `docs/windows/README.md`.
+
 ## 0.6.12 — 2026-10-21
 
 - 修复 iOS / Android 远程发起、继续及排队回合因 `client` 标签不同被误判为非 Desktop 而漏通知的问题。核验同环境 Desktop 创建记录和同一回合的本地触发来源，不按移动应用名称建立白名单。

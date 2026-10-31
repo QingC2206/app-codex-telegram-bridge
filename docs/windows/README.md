@@ -1,6 +1,6 @@
 # Windows 实机验收
 
-本目录是 `codex/platform-parity` 分支的 Windows 验收入口。先在 Windows 验收并记录结果，再决定是否合入 `main`；本文和模板均不表示 Windows 已通过。
+本目录记录原 `codex/platform-parity` 分支的 Windows 验收。用户于 2026-10-31 阅读本轮结果后明确要求合入 `main` 并更新正在运行的 Robot；该合并决定不将未完成的验收项目标记为通过。
 
 首个实现提交为 `fb81934`，验收时应安装本分支最新提交。macOS 六组原始实机证据及后续修复的补验状态以 [parity.json](../parity.json) 为准；Windows 仍有下列四组待验。证据格式和门禁见 [逐规则验收](../parity-audit.md)。本目录不另建能力清单。
 
@@ -10,6 +10,19 @@
 | WINDOWS-DESKTOP-NATIVE | Desktop 后端、正确持有者与管道、原任务交互、文字提示不复发、低额度提醒去重、子进程清理 | C01.R01、C01.R02、C02.R01、C03.R01、C04.R01、E01.R01、A52.R01、A29.R01 |
 | WINDOWS-OS-CREDENTIALS | DPAPI 正常读写、不同用户拒绝、无明文回退 | N10.R04 |
 | WINDOWS-SERVICE-NATIVE | 当前桌面用户的计划任务、服务归属、升级与恢复 | D04.R02、D04.R03、D04.R04 |
+
+## 2026-10-31 本轮状态
+
+已拉取 `codex/platform-parity` 的 `e08b845`，并将该分支及本轮 Windows 服务归属修复安装到现有独立运行环境；保留 Desktop 后端、原凭据、偏好及 2846 条既有消息关联。原生操作、环境、证据摘要和未完成项记录在 [Windows 本轮结果](../parity-native-windows.json)，原始私有记录留在 `.validation/windows/`，不提交 Token、聊天内容、账户资料或截图。
+
+- 实测发现并修复：相同 profile、不同数据目录的计划任务会被错误识别为自有服务；现在按精确参数和入口判断，并在修改服务前拒绝。另修复 Windows 下测试 SQLite 连接未释放的问题。
+- 已完成同一 Windows 账户下的生产端点互斥、正常退出/崩溃接替、Hook 并行入口、DPAPI 正常及损坏密文路径、原生计划任务隔离回滚；真实 Robot 崩溃后约 35 秒自动恢复，拥有的后台子进程被回收，独立 Desktop 保持运行。
+- 用户从 Telegram 完成了直接回复和 `/send`；分别核对到原验收任务中唯一的用户输入。原生 Robot 接口还验证了同 Turn 追加、中止确认后新建 Turn、旧 Turn 追加/中止拒绝，以及当前 Desktop 列表协议。接口测试不替代 Telegram 选择按钮和客户端显示验收。
+- 本轮没有可用于测试的第二个真实 Windows 账户，跨 SID 互斥及 DPAPI 拒绝项仍为 `blocked`。用户明确取消本轮实际注销/重启；已检查登录触发账户和 XML，但没有声称实际登录恢复经过验收。该取消只适用于本轮，不删除通用验收要求。
+- Computer Use 被 Esc 停止，剩余按钮、编辑器重进/客户端重启、真实审批和长内容等界面项目保留待验。额度周期、重启后的持久化状态与 Telegram 端观察分别记录，不能仅凭状态文件宣称没有重复通知。
+- 保留原 Mac 回归报告；本机完整回归与门禁输出存于 `.validation/windows/`。旧 Mac 指纹与未完成项不改写为当前通过。后续合并以用户明确指示为依据；GitHub 提交记录与 Release 页面分别反映代码合并和发版状态。
+
+**English:** The latest test branch and a Windows scheduled-task ownership fix are installed in the existing runtime, preserving the Desktop backend, credentials, preferences, and all 2,846 existing reply routes. Native same-user locking, DPAPI failure handling, service rollback/recovery, child cleanup, real Telegram reply and `/send`, and Desktop turn guards were exercised. Cross-user checks remain blocked because no second account is available. Actual logout/reboot was explicitly waived for this run. Computer Use was stopped, so the remaining Telegram UI checks are still pending. After reviewing these results, the user explicitly authorized merging into `main` and updating the running Robot on 2026-10-31. This does not convert pending checks into passed acceptance or publish a release.
 
 ## 1. 准备与基线
 
@@ -156,7 +169,7 @@ $BridgePython = Join-Path $CodexProfile 'telegram-bridge-runtime\Scripts\python.
 - 四组原生验收及交互回归均有证据，未解决项为零；改代码后补充对应回归及受影响平台复检。
 - 比对实际待合并代码、测试和源集合。Git 换行、本机构建元数据、文档变化都会影响摘要；不能只复制 Mac/Windows 的 `source_digest` 把旧结果改成当前通过。
 - 保留 Windows 完整报告，不直接覆盖仓库的 Mac 报告。当前审计命令读取单份 `docs/parity-tests.json`，不是多平台报告自动合并器。维护最终证据的人须审查两份报告的提交、逐项结果及源集合，保留观察时间，明确历史证据适用性。
-- 审查后的 Windows 通过记录保存为 `docs/parity-native-windows.json`，用文件 SHA-256 加入 `parity.json` 的 `native_evidence.current`，并保留有效 Mac 记录。该文件目前尚不存在，因为 Windows 未实测。Mac 原始截图/日志保留在 Mac 本机，仓库中的摘要与哈希不包含那些私人文件。
+- 审查后的 Windows 原生结果保存为 `docs/parity-native-windows.json`。本轮文件包含未通过/受阻项，不能直接加入 `native_evidence.current`；所有场景实际通过且证据与当前源码一致后，才以文件 SHA-256 登记，并保留有效 Mac 记录。Mac 原始截图/日志保留在 Mac 本机，仓库中的摘要与哈希不包含那些私人文件。
 - 最终运行 `python tools/audit_parity.py --require-reviewed` 与 `python tools/audit_parity.py --require-complete`。失败须解释并处理，不能把规则改为例外、删除 Windows 场景或降低校验；填写模板不能替代实测。
 - 原正式服务恢复，临时进程、注入和测试凭据已清理，Windows 默认后端未改变；用户确认验收结果后才合并 `main`。
 
