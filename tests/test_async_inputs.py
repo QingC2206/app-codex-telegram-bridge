@@ -42,6 +42,32 @@ class AsyncInputTests(unittest.TestCase):
         with self.manager.db() as db:
             return dict(db.execute('SELECT * FROM questions').fetchone())
 
+    def test_poll_scans_once_and_rechecks_changed_rollouts(self):
+        root = self.manager.database.parent / 'sessions'
+        root.mkdir()
+        rollout = root / f'rollout-{self.thread}.jsonl'
+        rollout.write_bytes(b'{"payload":{"type":"task_started","turn_id":"turn-123456"}}\\n')
+        other_thread = 'other-123456'
+        self.bot._list_threads = Mock(return_value=[{'id': self.thread}, {'id': other_thread}])
+        self.manager.reconcile = Mock()
+        self.manager.publish = Mock()
+        from codex_telegram_bridge.codex import receipts
+        with patch.object(b, 'SESSION_ROOT', root), patch.object(
+                b, 'persisted_thread_paths', wraps=b.persisted_thread_paths) as scan, patch.object(
+                receipts, 'checkpoint', wraps=receipts.checkpoint) as checkpoint:
+            self.manager.poll()
+            self.manager.poll()
+            self.assertEqual(scan.call_count, 2)
+            self.manager.reconcile.assert_called_once()
+            with rollout.open('ab') as stream:
+                stream.write(b'{"payload":{"type":"agent_message"}}\\n')
+            self.manager.poll()
+            self.assertEqual(self.manager.reconcile.call_count, 2)
+            self.assertEqual(checkpoint.call_count, 3)
+            checkpoint.assert_called_with(self.thread, root)
+        self.assertEqual(self.manager.publish.call_count, 3)
+        self.bot.desktop.native.read_thread.assert_called_with(self.thread)
+
     def test_question_id_matches_desktop_canonical_serialization(self):
         self.assertEqual(inputs.question_id('item', 0), '["request_user_input_async","item",0]')
 
