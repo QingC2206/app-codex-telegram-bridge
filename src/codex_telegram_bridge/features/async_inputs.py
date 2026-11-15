@@ -373,21 +373,28 @@ class AsyncInputs:
             db.execute('DELETE FROM hints WHERE updated<?', (time.time()-1800,))
             hinted = {row[0] for row in db.execute('SELECT thread FROM hints WHERE updated>?', (time.time()-1800,))}
             pending = {row[0] for row in db.execute("SELECT DISTINCT thread FROM questions WHERE bot=? AND chat=? AND status IN ('new','waiting','publishing','submitted','uncertain')", self.identity)}
-        from codex_telegram_bridge.app import persisted_thread_is_active, SESSION_ROOT
+        from codex_telegram_bridge.app import (
+            SESSION_ROOT, persisted_thread_paths, read_persisted_thread_activity,
+        )
         from codex_telegram_bridge.codex.receipts import checkpoint
+        priority = hinted | pending
         present = {thread['id'] for thread in threads}
-        threads += [{'id': tid} for tid in hinted | pending if tid not in present]
+        threads += [{'id': tid} for tid in priority if tid not in present]
+        if self.bot.stop_event.is_set():
+            return
+        rollouts = persisted_thread_paths(thread['id'] for thread in threads)
         for thread in threads:
             if self.bot.stop_event.is_set():
                 return
             tid = thread['id']
-            if tid not in hinted | pending and not persisted_thread_is_active(tid):
-                continue
-            path, size = checkpoint(tid, SESSION_ROOT)
-            stamp = (thread.get('updatedAt'), path, size if path else int(time.monotonic() // 30))
-            if tid not in hinted | pending and self.updated.get(tid) == stamp:
-                continue
             try:
+                rollout = rollouts.get(tid)
+                if tid not in priority and (rollout is None or not read_persisted_thread_activity(rollout)[0]):
+                    continue
+                path, size = checkpoint(tid, SESSION_ROOT)
+                stamp = (thread.get('updatedAt'), path, size if path else int(time.monotonic() // 30))
+                if tid not in priority and self.updated.get(tid) == stamp:
+                    continue
                 history = self.current_history(tid)
                 self.reconcile(tid, history)
                 self.updated[tid] = stamp
