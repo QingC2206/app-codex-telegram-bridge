@@ -1,4 +1,12 @@
 {
+  "建议回复": "Suggested reply",
+  "发送建议回复": "Send suggested reply",
+  "这条建议回复已失效。": "This suggested reply has expired.",
+  "这条建议回复已发送或失效。": "This suggested reply has already been sent or has expired.",
+  "原对话无法核对，建议回复未提交。": "The original conversation could not be verified. The suggested reply was not sent.",
+  "原对话暂未在桌面打开，建议回复未提交。": "The original conversation is not open in Desktop. The suggested reply was not sent.",
+  "已发回原对话": "Sent to the original conversation",
+  "原对话已开始新的一轮，建议回复未提交。": "The original conversation has moved on. The suggested reply was not sent.",
   "插件服务正在停止。": "Plugin service is stopping.",
   "无法确认原 Desktop 任务的本机归属，未提交消息。": "Could not verify ownership of the original local Desktop task. No message was submitted.",
   "原 Desktop 任务的本机记录无法核实，消息未发送。请检查该任务是否已归档或迁移。": "Could not verify the original Desktop task's local records. No message was sent. Check whether the task was archived or moved.",

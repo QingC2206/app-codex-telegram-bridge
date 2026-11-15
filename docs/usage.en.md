@@ -46,6 +46,22 @@ When directly replying to a running task, choose:
 
 Use `/steer` to append to a running task and `/stop` to request interruption of a controllable task. The bot does not take over existing Desktop tasks or switch to VS Code to work around a failed connection.
 
+## Desktop suggested replies on Windows
+
+With the Microsoft Store Codex Desktop app and the Desktop backend, an opt-in launcher can add the exact desktop composer suggestion to the original Telegram completion notification. Click **Send suggested reply** to return the suggestion once to the original conversation. The button applies to the matching completed turn. Temporary Telegram edit failures are retried on that same message, including after a bridge restart.
+
+Install the bridge normally from this revision and enable completion previews. Quit any running Codex Desktop window, then launch the registered desktop executable with the installed proxy in its process environment. Use PowerShell 7.4+ for this example, and substitute the Python interpreter from your bridge installation when you use a custom environment.
+
+```powershell
+$bridgePython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Scripts\python.exe'
+$proxy = Join-Path (Split-Path $bridgePython) 'codex-telegram-desktop-proxy.exe'
+$package = Get-AppxPackage -Name OpenAI.Codex
+if (!$package -or !(Test-Path -LiteralPath $proxy)) { throw 'Install Codex Desktop and this bridge revision first.' }
+Start-Process -FilePath (Join-Path $package.InstallLocation 'app\ChatGPT.exe') -Environment @{ CODEX_CLI_PATH = $proxy }
+```
+
+Use the same Codex profile and bridge data directory as the running bridge. The feature depends on Desktop's internal composer sampling protocol and its local safety decision log. When Desktop supplies a matching approved suggestion, it is shown on the completion notification. Start Desktop normally to turn capture off.
+
 ## Questions, approvals, and attachments
 
 Codex questions provide options or a text-answer entry point. Answer asynchronous questions using an option, text entry, or a direct reply to the question card; the answer remains associated with the original question and turn. Expired or answered questions cannot be submitted again. Complex or unsupported approvals need to be handled in Desktop.

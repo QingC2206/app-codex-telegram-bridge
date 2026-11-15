@@ -1574,6 +1574,9 @@ class TelegramCodexBot:
             log(f"submission succeeded but Telegram feedback failed: {exc}", self.token)
 
     def _reaction_worker(self):
+        from ..features import composer_replies
+
+        next_composer_retry = 0.0
         try:
             telegram_notify_module.resolve_desktop_submissions(self.token)
             for chat, message, thread, turn, emoji, updated in telegram_notify_module.task_reactions(self.token):
@@ -1611,6 +1614,12 @@ class TelegramCodexBot:
                             telegram_notify_module.set_task_reaction(self.token, chat, message, "🤔", thread, turn)
             except Exception as exc:
                 log(f"reaction reconciliation failed: {exc}", self.token)
+            if time.monotonic() >= next_composer_retry:
+                next_composer_retry = time.monotonic() + 10
+                try:
+                    composer_replies.retry_pending(self.token, self.chat_id)
+                except Exception as exc:
+                    log(f"composer reply retry scan failed: {type(exc).__name__}", self.token)
 
     def _authorized_sender(self, chat: Any, sender: Any) -> bool:
         if not isinstance(chat, dict) or str(chat.get("id")) != self.chat_id:
@@ -3308,14 +3317,18 @@ class TelegramCodexBot:
             return True
         return bool(self.desktop.can_interrupt(thread_id, probe=probe))
 
-    def _desktop_follow_up(self, thread_id, text, cwd, *, start_if_inactive=True, expected_turn_id=''):
+    def _desktop_follow_up(self, thread_id, text, cwd, *, start_if_inactive=True, expected_turn_id='',
+                           expected_completed_turn_id=''):
         self._require_task_actions()
         source = getattr(self._ui_local, 'source_message_id', None)
         self._reaction('👀', thread_id)
         tracked = telegram_notify_module.remember_desktop_submission(self.token, self.chat_id, source, thread_id, text)
         try:
             recovery = {'recover_owner': True} if not self._owns_thread(thread_id) else {}
-            if expected_turn_id:
+            if expected_completed_turn_id:
+                result = self.desktop.send_follow_up(thread_id, text, cwd,
+                    expected_completed_turn_id=expected_completed_turn_id, **recovery)
+            elif expected_turn_id:
                 result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False,
                                                      expected_turn_id=expected_turn_id, **recovery)
             elif start_if_inactive:
@@ -3793,6 +3806,10 @@ class TelegramCodexBot:
                 "cancelhours", "cancelquota", "cancelreserve", "refreshreserve"}:
             if callback.get('id'):
                 self._answer_callback(callback['id'], _t('静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。'), True)
+            return
+        if action == "composer":
+            from ..features import composer_replies
+            composer_replies.handle_click(self, callback, str(callback["data"]).partition("|")[2])
             return
         navigation = {'task','tasklist','diff','usage','watch','unwatch','reply','replypage'}
         with self._navigation_lock:

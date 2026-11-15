@@ -433,7 +433,8 @@ class DesktopControl:
         raise DesktopIpcUnavailable(_t('Desktop 已尝试打开目标任务，但回复通道尚未就绪。消息未发送，请在 Desktop 检查任务后再试。'))
 
     def send_follow_up(self, thread_id: str, text: str, cwd: str, *, start_if_inactive: bool = True,
-                       expected_turn_id: str = '', recover_owner: bool = False) -> dict[str, Any] | None:
+                       expected_turn_id: str = '', recover_owner: bool = False,
+                       expected_completed_turn_id: str = '') -> dict[str, Any] | None:
         if not text.strip():
             raise ValueError(_t('回复内容不能为空。'))
         endpoint = self.native.discover()
@@ -444,9 +445,18 @@ class DesktopControl:
             # Run after owner discovery and immediately before the one input
             # request. Never resume a Desktop thread in another app-server.
             self._check_instance(endpoint, thread_id)
-            self.access.validate_reply(endpoint, thread_id, reader,
-                start_if_inactive=start_if_inactive, expected_turn_id=expected_turn_id,
-                check_instance=lambda: self._check_instance(endpoint, thread_id))
+            if expected_completed_turn_id:
+                state = reader.read_thread(thread_id)
+                thread = state.get('thread') or {}
+                turns = state.get('turns') or []
+                latest = turns[0] if turns else {}
+                if (thread.get('id') != thread_id or (thread.get('status') or {}).get('type') != 'idle'
+                        or latest.get('id') != expected_completed_turn_id or latest.get('status') != 'completed'):
+                    raise DesktopIpcInactive(_t('原对话已开始新的一轮，建议回复未提交。'))
+            else:
+                self.access.validate_reply(endpoint, thread_id, reader,
+                    start_if_inactive=start_if_inactive, expected_turn_id=expected_turn_id,
+                    check_instance=lambda: self._check_instance(endpoint, thread_id))
 
         try:
             result = owner.send_follow_up(thread_id, text, cwd,

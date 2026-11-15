@@ -2240,8 +2240,17 @@ def forward_computer_use_notification(raw_payload: str) -> None:
 
 
 def send_desktop_notification(payload: dict[str, Any], raw_payload: str, *, _replay=False) -> int:
-    if not _replay:
+    from ..features import composer_replies
+
+    routed_payload = payload
+    if _replay:
+        composer_enabled = payload.get("_telegram_composer_reply") is True
+    else:
         forward_computer_use_notification(raw_payload)
+        composer_enabled = os.environ.get(composer_replies.ENABLED_ENV) == "1"
+        if composer_enabled:
+            # Persist the opt-in for deferred routing without changing the notification payload.
+            routed_payload = {**payload, "_telegram_composer_reply": True}
     if payload.get("type") != "agent-turn-complete":
         return 0
     if is_empty_suggestions_reply(payload):
@@ -2249,7 +2258,7 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str, *, _rep
         return 0
     if notifications_muted():
         return 0
-    decision = route_completion(payload)
+    decision = route_completion(routed_payload)
     if decision is None:
         return 0
 
@@ -2301,6 +2310,8 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str, *, _rep
         message_id = sent.get("message_id", "unknown") if isinstance(sent, dict) else "unknown"
         proof = f"; verified_local_turn={decision.turn_trigger}" if decision.requires_turn_evidence else ""
         log_error(f"desktop notification delivered for {thread_id[:8]}; message_id={message_id}{proof}", token)
+        if subagent is None and include_preview and composer_enabled:
+            composer_replies.record_notification(token, request, sent, thread_id, payload_turn_id(payload))
         complete_payload_reactions(payload)
     except Exception as exc:
         log_error(f"desktop notification failed: {exc}", token)

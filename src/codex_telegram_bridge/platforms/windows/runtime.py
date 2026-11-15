@@ -2,16 +2,39 @@ from __future__ import annotations
 from codex_telegram_bridge.i18n import tr as _t
 import os,json,subprocess,logging
 from pathlib import Path
+import sys
 from ...paths import codex_home
 log = logging.getLogger(__name__).warning
+
+PROXY_EXE = "codex-telegram-desktop-proxy.exe"
+
+
+def store_desktop_runtime(desktop: Path) -> Path | None:
+    """Locate the CLI belonging to the same, installed Microsoft Store Desktop."""
+    program_files = os.environ.get("ProgramW6432") or os.environ.get("ProgramFiles")
+    if not program_files:
+        return None
+    desktop = desktop.resolve()
+    package = desktop.parent.parent
+    if (desktop.name.lower() != "chatgpt.exe" or desktop.parent.name.lower() != "app"
+            or package.parent != (Path(program_files) / "WindowsApps").resolve()
+            or not package.name.lower().startswith("openai.codex_")
+            or not package.name.lower().endswith("__2p2nqsd0c76g0")):
+        return None
+    candidate = desktop.parent / "resources" / "codex.exe"
+    if candidate.is_file() and candidate.resolve() == candidate:
+        return candidate
+    return None
+
 
 def _desktop_codex_path(path: Path, runtime_root: Path) -> bool:
     """Accept only Desktop's build directories, including after resolving links."""
     resolved = path.resolve()
-    return (
-        resolved.name.lower() == "codex.exe"
-        and resolved.parent.parent == runtime_root.resolve()
-    )
+    if resolved.name.lower() != "codex.exe":
+        return False
+    if resolved.parent.parent == runtime_root.resolve():
+        return True
+    return store_desktop_runtime(resolved.parent.parent / "ChatGPT.exe") == resolved
 
 
 def _running_desktop_codex(runtime_root: Path) -> list[Path]:
@@ -24,23 +47,26 @@ def _running_desktop_codex(runtime_root: Path) -> list[Path]:
             info = process.info
             records.append({'Name': info['name'], 'ProcessId': info['pid'],
                             'ParentProcessId': info['ppid'], 'ExecutablePath': info['exe']})
-        desktop_pids = set()
+        desktops = {}
         for record in records:
             path = Path(record.get("ExecutablePath") or "")
             if (str(record.get("Name", "")).lower() == "chatgpt.exe"
                     and path.parent.name.lower() == "app"
                     and path.parent.parent.name.lower().startswith("openai.codex_")
                     and path.parent.parent.parent.name.lower() == "windowsapps"):
-                desktop_pids.add(record["ProcessId"])
-        return sorted({
-            Path(record["ExecutablePath"]).resolve()
-            for record in records
-            if record.get("ParentProcessId") in desktop_pids
-            and str(record.get("Name", "")).lower() == "codex.exe"
-            and record.get("ExecutablePath")
-            and _desktop_codex_path(Path(record["ExecutablePath"]), runtime_root)
-            and Path(record["ExecutablePath"]).is_file()
-        })
+                desktops[record["ProcessId"]] = path
+        proxy = Path(sys.executable).with_name(PROXY_EXE).resolve()
+        runtimes = set()
+        for record in records:
+            desktop = desktops.get(record["ParentProcessId"])
+            if desktop is None or not record["ExecutablePath"]:
+                continue
+            executable = Path(record["ExecutablePath"])
+            if executable.name.lower() == PROXY_EXE and executable.resolve() == proxy:
+                executable = store_desktop_runtime(desktop)
+            if executable is not None and _desktop_codex_path(executable, runtime_root) and executable.is_file():
+                runtimes.add(executable.resolve())
+        return sorted(runtimes)
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
         log(f"Desktop runtime discovery unavailable: {type(exc).__name__}")
         return []
@@ -68,6 +94,8 @@ def locate_codex(discover=None) -> Path:
         except Exception as exc:
             log(f"could not read CODEX_CLI_PATH from config: {exc}")
 
+    if configured and Path(configured).resolve() == Path(sys.executable).with_name(PROXY_EXE).resolve():
+        configured = None
     if configured and not _desktop_codex_path(Path(configured), runtime_root):
         raise ValueError(_t('CODEX_CLI_PATH 必须指向 Codex Desktop 的 OpenAI/Codex/bin 配套程序；禁止 VS Code、CLI 和其他来源。'))
     running = (discover or _running_desktop_codex)(runtime_root)

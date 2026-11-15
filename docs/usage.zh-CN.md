@@ -46,6 +46,22 @@
 
 `/steer` 用于追加运行中任务，`/stop` 用于请求中止当前可控制的任务。机器人不会为解决连接失败而接管原 Desktop 任务或改用 VS Code。
 
+## Windows Desktop 建议回复
+
+Microsoft Store 版 Codex Desktop 配合 Desktop 后端可选用建议回复。Telegram 会在原完成通知上附加 Desktop 编辑框里的建议原文。点击 **发送建议回复**，原文只发回同一个对话一次。按钮与生成建议的已完成轮次绑定。Telegram 临时编辑失败时会继续编辑同一条通知，桥接重启后也能恢复处理。
+
+按正常流程安装本修订并开启完成通知预览。退出正在运行的 Codex Desktop，再用安装时生成的代理启动。以下示例需要 PowerShell 7.4+。自定义运行环境请用实际的桥接 Python 路径。
+
+```powershell
+$bridgePython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Scripts\python.exe'
+$proxy = Join-Path (Split-Path $bridgePython) 'codex-telegram-desktop-proxy.exe'
+$package = Get-AppxPackage -Name OpenAI.Codex
+if (!$package -or !(Test-Path -LiteralPath $proxy)) { throw '请先安装 Codex Desktop 和本版 Telegram 桥接。' }
+Start-Process -FilePath (Join-Path $package.InstallLocation 'app\ChatGPT.exe') -Environment @{ CODEX_CLI_PATH = $proxy }
+```
+
+使用与现有桥接相同的 Codex 配置目录和桥接数据目录。功能依赖 Desktop 内部的建议请求协议和本地安全检查日志。Desktop 给出与原对话及轮次匹配且经检查放行的建议时，才会显示按钮。正常启动 Desktop 即可关闭捕获。
+
 ## 问题、审批与附件
 
 Codex 提问会显示选项或文字回答入口。异步问题可以通过选项、文字入口或直接回复问题卡片回答，答案关联原问题和 Turn。过期或已回答的问题不可重复提交；复杂或不支持的审批需回 Desktop 处理。
