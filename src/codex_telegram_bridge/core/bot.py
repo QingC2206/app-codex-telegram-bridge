@@ -15,6 +15,7 @@ from pathlib import Path
 import queue
 import re
 import shutil
+import stat
 import struct
 import subprocess
 import sys
@@ -828,13 +829,44 @@ def latest_lifecycle_event(data: bytes) -> str | None:
     return name if position >= 0 else None
 
 
+def persisted_thread_paths(thread_ids) -> dict[str, Path]:
+    """Find the newest live rollout for each requested thread in one traversal."""
+    suffixes = {}
+    for tid in thread_ids:
+        if re.fullmatch(r"[A-Za-z0-9-]{6,64}", tid):
+            suffix = os.path.normcase(f"{tid}.jsonl")
+            suffixes.setdefault(suffix, set()).add(tid)
+    if not suffixes:
+        return {}
+    suffix_lengths = {len(suffix) for suffix in suffixes}
+    newest = {}
+    inaccessible = set()
+    for path in SESSION_ROOT.rglob("*.jsonl"):
+        name = os.path.normcase(path.name)
+        matches = [name[-length:] for length in suffix_lengths if name[-length:] in suffixes]
+        if not matches:
+            continue
+        try:
+            info = path.stat()
+        except FileNotFoundError:
+            continue
+        except OSError:
+            # We cannot know whether this is newer than another match. Omit
+            # only those threads rather than trusting an older rollout.
+            inaccessible.update(tid for suffix in matches for tid in suffixes[suffix])
+            continue
+        if not stat.S_ISREG(info.st_mode):
+            continue
+        for suffix in matches:
+            for tid in suffixes[suffix]:
+                previous = newest.get(tid)
+                if previous is None or previous[0] < info.st_mtime_ns:
+                    newest[tid] = (info.st_mtime_ns, path)
+    return {tid: path for tid, (_, path) in newest.items() if tid not in inaccessible}
+
+
 def persisted_thread_path(thread_id: str) -> Path | None:
-    if not re.fullmatch(r"[A-Za-z0-9-]{6,64}", thread_id) or not SESSION_ROOT.exists():
-        return None
-    candidates = [path for path in SESSION_ROOT.glob(f"**/*{thread_id}.jsonl") if path.is_file()]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda candidate: candidate.stat().st_mtime_ns)
+    return persisted_thread_paths((thread_id,)).get(thread_id)
 
 
 def persisted_thread_activity(thread_id: str, *, strict: bool = False) -> tuple[bool, str]:
@@ -844,11 +876,16 @@ def persisted_thread_activity(thread_id: str, *, strict: bool = False) -> tuple[
         if strict:
             raise OSError(_t('任务的生命周期记录不可用。'))
         return False, ""
+    return read_persisted_thread_activity(path, strict=strict)
+
+
+def read_persisted_thread_activity(path: Path, *, strict: bool = False) -> tuple[bool, str]:
+    """Read the latest lifecycle marker from a resolved live rollout."""
     chunk_size = 1024 * 1024
     overlap = 2048
     try:
         with path.open("rb") as handle:
-            end = path.stat().st_size
+            end = os.fstat(handle.fileno()).st_size
             while end > 0:
                 start = max(0, end - chunk_size)
                 handle.seek(start)
@@ -872,7 +909,7 @@ def persisted_thread_activity(thread_id: str, *, strict: bool = False) -> tuple[
     except OSError as exc:
         if strict:
             raise
-        log(f"could not inspect thread lifecycle {thread_id[:8]}: {exc}")
+        log(f"could not inspect thread lifecycle: {exc}")
     return False, ""
 
 
