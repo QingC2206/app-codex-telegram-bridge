@@ -47,6 +47,8 @@ Windows 的全局 `codex-ipc` 代理可能被另一个 Cockpit 实例持有。�
 
 只选择能证明属于 Desktop 的后端，拒绝 VS Code、PATH CLI 和不匹配的 `CODEX_CLI_PATH`。同环境多实例、跨环境同任务 ID、无法读取实例环境、端点身份变化均停止提交。
 
+Windows 支持旧的 `OpenAI/Codex/bin/<build>/codex.exe` 和官方 `OpenAI.Codex` 安装包内的 `app/resources/codex.exe`。内置路径必须与 Windows 的 [GetPackagePathByFullName](https://learn.microsoft.com/en-us/windows/win32/api/appmodel/nf-appmodel-getpackagepathbyfullname) 返回目录一致，并在解析链接后核验包身份；仅有相同目录名不能放行。优先选择真实 Desktop 子进程使用的后端，尚未加载子进程时只使用该 Desktop 自己的已登记安装包。升级后已删除的旧包路径提示仅可让位于同安装目录下、已验证的活动新包，不会执行旧路径；现存但无法核验的程序继续拒绝。
+
 macOS 支持安装包内 `Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex` 的嵌套后端布局，并优先使用已验证 Desktop 的配套运行进程。
 
 Unix follower 端点按所选环境的 `ipc/ipc.sock` 发现，兼容旧版当前用户临时目录端点。App Tools 使用 Desktop/配套子进程公布的 `codex-app-tools/<id>.sock` 或兼容 browser-use 地址。协议是四字节小端长度加 JSON。传输、查询和业务路由分别封装；不是把所有 Unix socket 都当成同一种协议。

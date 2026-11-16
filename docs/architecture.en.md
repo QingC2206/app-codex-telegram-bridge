@@ -47,6 +47,8 @@ The global Windows `codex-ipc` broker may belong to another Cockpit instance. Th
 
 Only backends proven to belong to Desktop are selected. VS Code, CLI binaries on PATH, and mismatched `CODEX_CLI_PATH` are rejected. Multiple instances sharing a profile, duplicate task IDs across profiles, unreadable instance environments, or changed endpoint identities stop submission.
 
+Windows supports both `OpenAI/Codex/bin/<build>/codex.exe` and `app/resources/codex.exe` in the official `OpenAI.Codex` package. After resolving links, the bundled path must match the installation directory returned by Windows [GetPackagePathByFullName](https://learn.microsoft.com/en-us/windows/win32/api/appmodel/nf-appmodel-getpackagepathbyfullname) and the official package identity; a lookalike directory is insufficient. Prefer a real Desktop child runtime, or that Desktop's own registered bundle if its backend has not loaded. A deleted old-package hint may yield only to a verified active replacement under the same installation parent; it is never executed. Existing but unverifiable executables remain rejected.
+
 macOS supports the nested backend at `Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex` and prefers the verified Desktop instance's running backend.
 
 Unix follower endpoints are discovered at the selected profile's `ipc/ipc.sock`, with compatibility for legacy endpoints in the current user's temporary directory. App Tools use `codex-app-tools/<id>.sock` or compatible browser-use endpoints published by Desktop or its bundled child process. Framing uses a four-byte little-endian length followed by JSON. Transport, queries, and application routing are separate; Unix sockets are not all treated as one protocol.

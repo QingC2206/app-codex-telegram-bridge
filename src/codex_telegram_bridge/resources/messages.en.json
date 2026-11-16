@@ -558,7 +558,7 @@
   "无法验证 Desktop 连接进程。": "Cannot verify the Desktop connection process.",
   "Desktop 连接进程已改变或不属于当前环境，未提交消息。": "The Desktop connection process changed or belongs to another profile. Message not submitted.",
   "缺少 LOCALAPPDATA，无法定位 Codex Desktop 配套程序。": "LOCALAPPDATA is missing; cannot locate the backend bundled with Codex Desktop.",
-  "CODEX_CLI_PATH 必须指向 Codex Desktop 的 OpenAI/Codex/bin 配套程序；禁止 VS Code、CLI 和其他来源。": "CODEX_CLI_PATH must point to the backend in Codex Desktop's OpenAI/Codex/bin directory. VS Code, standalone CLI, and other sources are forbidden.",
+  "CODEX_CLI_PATH 必须指向已验证的 Codex Desktop 配套程序（Desktop 安装包或 OpenAI/Codex/bin）；禁止 VS Code、CLI 和其他来源。": "CODEX_CLI_PATH must point to a verified Codex Desktop backend (the registered Desktop package or OpenAI/Codex/bin). VS Code, standalone CLI, and other sources are forbidden.",
   "检测到多个不同版本的 Desktop 后端；请关闭旧版本实例后重试。": "Multiple Desktop backend versions detected. Close old instances and retry.",
   "未找到 Codex Desktop 配套程序。请先启动或更新 Desktop；不会回退到 VS Code 或 PATH 中的 CLI。": "Codex Desktop's bundled backend was not found. Start or update Desktop; there is no fallback to VS Code or a CLI on PATH.",
   "Codex Desktop IPC 仅支持 Windows。": "This Codex Desktop IPC transport supports Windows only.",

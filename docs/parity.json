@@ -10001,12 +10001,16 @@
       "rule_ids": [
         "E03.R01"
       ],
-      "assertion": "Store主进程路径、renderer排除和profile端点一致性；环境API本体仍需Windows原生。",
-      "reviewer": "Codex cross-review map-platforms.json",
+      "assertion": "Store主进程路径、renderer排除和profile端点一致性；环境API本体仍需Windows原生。 Windows后端按Desktop父进程与已登记包配对；排除Bot/VSCode子进程及其他包的后端，保留运行中旧提取后端的优先级。",
+      "reviewer": "Codex cross-review map-platforms.json; Windows packaged runtime review 2026-11-16",
       "tests": {
         "test_fix6_platform_contracts.PlatformRuleTests.test_windows_inventory_filters_store_main_process_and_helpers": "a517dfe32091db732eb4f1368e22507ee75287f6cb66e63148fab6f828e9a196",
         "test_desktop_bridge.DiscoveryTests.test_modern_pipe_selection_stays_with_the_correct_subscription": "c86b42b0329981a855890c2aa7868f01dc1390bd129b71e6cc14b4c32140ee8f",
-        "test_desktop_bridge.DiscoveryTests.test_conflicting_home_hints_fail_closed": "af7295a94547d9e78f69d8cf31e1ae77349f4a031f0d01a59fbe9b75af611465"
+        "test_desktop_bridge.DiscoveryTests.test_conflicting_home_hints_fail_closed": "af7295a94547d9e78f69d8cf31e1ae77349f4a031f0d01a59fbe9b75af611465",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_running_bundle_is_selected_and_bot_or_vscode_children_are_excluded": "eed68c37a6467ec219cfa153885114f773ecaf824177132945a02341f1c31372",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_running_legacy_child_precedes_its_apps_unused_bundle": "d47628b1c6abe21566eda5d5dd21c72003d49b8db88875ad8ebd76f77498a22a",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_other_packages_child_is_not_paired_to_this_desktop": "7f27cea05f16890b8a5184c58f86b73168c862c0cd6335606196485a7fb681da",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_desktop_without_loaded_backend_uses_its_verified_bundle": "c23b165ef3d090921f6542ec24c071cc239c0a5130403d325e6af1ec892acc06"
       }
     },
     "REG-platforms-E03-R02": {
@@ -10279,12 +10283,18 @@
       "rule_ids": [
         "A02.R01"
       ],
-      "assertion": "伪造包名/Bundle ID被拒；仅有效Desktop包内嵌CodexCLI被返回，普通codex/vscode包不能充作Desktop配套后端。Windows选择器另有原生限定测试，不能用这些Mac/POSIX夹具替代Windows实机。",
-      "reviewer": "Codex cross-review map-management.json",
+      "assertion": "伪造包名/Bundle ID被拒；仅有效Desktop包内嵌CodexCLI被返回，普通codex/vscode包不能充作Desktop配套后端。Windows选择器另有原生限定测试，不能用这些Mac/POSIX夹具替代Windows实机。 Windows新增系统包登记路径与官方包身份核验，覆盖配置中的内置程序、活动实例优先、延迟加载及已删除旧包提示；伪造路径和其他发布者拒绝。",
+      "reviewer": "Codex cross-review map-management.json; Windows packaged runtime review 2026-11-16",
       "tests": {
         "test_platforms.PosixDiscoveryTests.test_mac_bundle_identity_and_electron_metadata_both_required": "9dcde460ee3304d694262f5a0e52cb372d2b03182d30ef568f3b1f763e0e2218",
         "test_platforms.PosixDiscoveryTests.test_mac_nested_bundled_runtime_found_before_starting_a_task": "6e9d7a4abe9f022a620b82944f46d93fd99da43aa9b620b08994df6aa950e02c",
-        "test_platforms.PosixDiscoveryTests.test_linux_desktop_package_is_required_not_cli_basename": "72d726b8839366e1838000ec62b60b7d5d0734aaea77ce50438a8040e7359fc8"
+        "test_platforms.PosixDiscoveryTests.test_linux_desktop_package_is_required_not_cli_basename": "72d726b8839366e1838000ec62b60b7d5d0734aaea77ce50438a8040e7359fc8",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_registered_bundle_in_config_is_accepted": "a06c0515d506bec58c7a3a0784e6eebdd4ce4e5e452f056c6330882ad66082a5",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_environment_hint_uses_registered_bundle_not_newer_cache": "d95846d32586502999f1dd56ec646327601e0af06ad9334b3859ca51bc308df9",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_unregistered_and_lookalike_package_paths_are_rejected": "f6e01375dc4d5cb4e4412babb7239a6ba969973f549f73f974ec6dec1b6bd626",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_other_publisher_is_rejected_even_if_registered": "c506fabfe458adba3363737d822f757f394c9fd1e53526951181e71a203489db",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_desktop_without_loaded_backend_uses_its_verified_bundle": "c23b165ef3d090921f6542ec24c071cc239c0a5130403d325e6af1ec892acc06",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_missing_retired_hint_only_yields_to_verified_active_package": "40c05a6fe343d501b71815277aad9e793b5c8e3b4594f122bc8985b4c7bae69f"
       }
     },
     "REG-management-A02-R02": {
@@ -10292,11 +10302,15 @@
       "rule_ids": [
         "A02.R02"
       ],
-      "assertion": "同profile两个根进程、无法读取进程环境均抛DesktopBridgeSafetyError，不选任意一个实例。",
-      "reviewer": "Codex cross-review map-management.json",
+      "assertion": "同profile两个根进程、无法读取进程环境均抛DesktopBridgeSafetyError，不选任意一个实例。 Windows新增活动包版本歧义、现存未登记程序与不同安装目录旧提示拒绝；系统包查询失败或异常长度不能产生可信路径。",
+      "reviewer": "Codex cross-review map-management.json; Windows packaged runtime review 2026-11-16",
       "tests": {
         "test_desktop_bridge.DiscoveryTests.test_two_roots_sharing_profile_are_rejected": "95871ee449304841f364e4796e48922200f42de885ad9880f2f42a4a3b2835f6",
-        "test_desktop_bridge.DiscoveryTests.test_unreadable_instance_cannot_be_silently_assumed_safe": "2e69ed5fc0904d59e4f9403f85eba5d11c0adc56f491ec7d780309c2b91ee5ca"
+        "test_desktop_bridge.DiscoveryTests.test_unreadable_instance_cannot_be_silently_assumed_safe": "2e69ed5fc0904d59e4f9403f85eba5d11c0adc56f491ec7d780309c2b91ee5ca",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_multiple_active_package_versions_fail_closed": "fdd8c51b7dc9a847013982060a44bb995f8a893313924644bbb46eedfe702f36",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_existing_unregistered_hint_is_not_silently_ignored": "6d301ccc8343ae09e01480d8743ad193c27e4ff7ad89d1449fd7b3c0dc8cca14",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_retired_hint_in_another_location_is_rejected": "e89827f4cea6c15d11c051238185bbfe240dd7662723d91cf0208cec5f0f166b",
+        "test_windows_packaged_runtime.NativePackageLookupTests.test_failed_or_unbounded_package_lookup_returns_no_trusted_path": "8e6e7dcba744f95b6af7f34795a17d3e6a592591e48f3c2e82eb42fb094412bb"
       }
     },
     "REG-management-A02-R03": {
@@ -10304,10 +10318,12 @@
       "rule_ids": [
         "A02.R03"
       ],
-      "assertion": "设置未配对VSCode CLI路径时locate_runtime拒绝，不返回其他客户端。",
-      "reviewer": "Codex cross-review map-management.json",
+      "assertion": "设置未配对VSCode CLI路径时locate_runtime拒绝，不返回其他客户端。 Windows同样拒绝VSCode/独立CLI及伪造目录，即使已有有效Desktop也不静默忽略不可信覆盖。",
+      "reviewer": "Codex cross-review map-management.json; Windows packaged runtime review 2026-11-16",
       "tests": {
-        "test_platforms.PosixDiscoveryTests.test_unpaired_cli_override_rejected_before_returning_runtime": "8e867275ed46e8e2e0db79bad0250bc972b47b213d35ce2269dd894311cfee5c"
+        "test_platforms.PosixDiscoveryTests.test_unpaired_cli_override_rejected_before_returning_runtime": "8e867275ed46e8e2e0db79bad0250bc972b47b213d35ce2269dd894311cfee5c",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_foreign_override_is_rejected_with_a_valid_running_desktop": "a4cc4a0ae8a35f61e6c1775b555a2209026c767dc8175b961132df749f9d1f59",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_unregistered_and_lookalike_package_paths_are_rejected": "f6e01375dc4d5cb4e4412babb7239a6ba969973f549f73f974ec6dec1b6bd626"
       }
     },
     "REG-management-A20-R01": {

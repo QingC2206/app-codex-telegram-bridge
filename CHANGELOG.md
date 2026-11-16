@@ -2,6 +2,8 @@
 
 ## 未发布 / Unreleased
 
+- 适配新版 Windows Desktop 安装包内的 `app/resources/codex.exe`：通过系统包登记核验安装目录，优先使用正在运行的 Desktop 配套程序，兼容已删除的旧包路径提示；继续拒绝 VS Code、独立 CLI、伪造包路径及多版本冲突。修复由旧路径限制导致的 Telegram 回复、额度查询和提问监控失败。
+- Support `app/resources/codex.exe` in newer Windows Desktop packages. Verify the install location through Windows package registration, prefer the running Desktop runtime, and tolerate a deleted old-package hint. Continue rejecting VS Code, standalone CLI, lookalike packages, and ambiguous versions. Restore Telegram replies, quota queries, and question monitoring blocked by the old path restriction.
 - 整合 Windows/macOS 共用的控制器、投递、反馈及额度状态逻辑，平台适配层继续负责原生连接、进程清理、凭据和服务安装；保留 Windows 的 Desktop 默认后端。
 - 修复文字回答提示遗留强制引用的问题；低额度已提醒阈值跨轮询、连接恢复及 Robot 重启保留，避免重复发送相同提醒。
 - 计划任务归属同时核对完整 Codex profile 和 Robot 数据目录；拒绝缺失、重复或相对路径参数、其他模块、Shell 包装及多执行动作，避免同 profile 下另一套数据的服务被覆盖或停止。保留精确路径的旧版脚本入口。
