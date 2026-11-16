@@ -42,42 +42,78 @@ class AsyncInputTests(unittest.TestCase):
         with self.manager.db() as db:
             return dict(db.execute('SELECT * FROM questions').fetchone())
 
-    def test_poll_scans_once_and_rechecks_changed_rollouts(self):
+    def test_rollout_fallback_reads_only_new_questions_and_deduplicates(self):
         root = self.manager.database.parent / 'sessions'
         root.mkdir()
-        rollout = root / f'rollout-{self.thread}.jsonl'
-        rollout.write_bytes(b'{"payload":{"type":"task_started","turn_id":"turn-123456"}}\\n')
-        other_thread = 'other-123456'
-        self.bot._list_threads = Mock(return_value=[{'id': self.thread}, {'id': other_thread}])
+        thread = '12345678-1234-1234-1234-123456789abc'
+        rollout = root / f'rollout-2026-11-17T01-00-00-{thread}.jsonl'
+        ordinary = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread,
+                    "turn_id": self.turn, "item": {"id": "ordinary", "type": "CommandExecution",
+                    "questions": ["quoted by a tool"]}}}
+        question = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread,
+                    "turn_id": self.turn, "item": dict(self.message, type="AgentMessage")}}
+        reply = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread,
+                 "turn_id": self.turn, "item": {"id": "answer", "type": "UserMessage",
+                 "content": [{"type": "text", "text": "<send_user_message_question_reply>"}]}}}
+        def record(value):
+            return json.dumps(value).encode("utf-8") + b"\n"
+
+        self.history["thread"]["id"] = thread
+        self.history["thread"]["turns"][0]["status"] = "inProgress"
+        self.manager.current_history = Mock(return_value=self.history)
+        self.bot._list_threads = Mock(side_effect=AssertionError("observer must not call thread/list"))
+        rollout.write_bytes(record(ordinary))
+        with patch.object(b, 'SESSION_ROOT', root):
+            self.manager.poll()
+            self.manager.current_history.assert_not_called()
+            with rollout.open('ab') as stream:
+                stream.write(record(ordinary) + record(question)[:-9])
+            self.manager.poll()
+            self.manager.current_history.assert_not_called()
+            with rollout.open('ab') as stream:
+                stream.write(record(question)[-9:])
+            self.manager.poll()
+            self.manager.current_history.assert_called_once_with(thread)
+            self.bot.send.assert_called_once()
+            self.manager.poll()
+            with rollout.open('ab') as stream:
+                stream.write(record(ordinary) + record(question))
+            self.manager.poll()
+            self.manager.current_history.assert_called_once_with(thread)
+            self.bot.send.assert_called_once()
+            with rollout.open('ab') as stream:
+                stream.write(record(reply))
+            self.manager.poll()
+            self.assertEqual(self.manager.current_history.call_count, 2)
+            self.bot.send.assert_called_once()
+
+    def test_hook_hydrates_target_without_repeating_a_steady_hint(self):
+        root = self.manager.database.parent / 'sessions'
+        root.mkdir()
+        with self.manager.db() as db:
+            db.execute('INSERT INTO hints VALUES(?,?)', (self.thread, inputs.time.time()))
         self.manager.reconcile = Mock()
         self.manager.publish = Mock()
-        from codex_telegram_bridge.codex import receipts
-        with patch.object(b, 'SESSION_ROOT', root), patch.object(
-                b, 'persisted_thread_paths', wraps=b.persisted_thread_paths) as scan, patch.object(
-                receipts, 'checkpoint', wraps=receipts.checkpoint) as checkpoint:
+        self.bot._list_threads = Mock(side_effect=AssertionError('unexpected thread/list'))
+        with patch.object(b, 'SESSION_ROOT', root):
             self.manager.poll()
             self.manager.poll()
-            self.assertEqual(scan.call_count, 2)
-            self.manager.reconcile.assert_called_once()
-            with rollout.open('ab') as stream:
-                stream.write(b'{"payload":{"type":"agent_message"}}\\n')
-            self.manager.poll()
-            self.assertEqual(self.manager.reconcile.call_count, 2)
-            self.assertEqual(checkpoint.call_count, 3)
-            checkpoint.assert_called_with(self.thread, root)
-        self.assertEqual(self.manager.publish.call_count, 3)
-        self.bot.desktop.native.read_thread.assert_called_with(self.thread)
+        self.manager.reconcile.assert_called_once()
+        self.assertEqual(self.manager.reconcile.call_args.args[0], self.thread)
 
     def test_inaccessible_rollout_does_not_block_healthy_threads_or_publish(self):
         root = self.manager.database.parent / 'sessions'
         root.mkdir()
-        blocked_thread = 'blocked-123456'
+        blocked_thread = '12345678-1234-1234-1234-123456789abc'
+        healthy_thread = '12345678-1234-1234-1234-123456789def'
         blocked = root / f'rollout-{blocked_thread}.jsonl'
-        healthy = root / f'rollout-{self.thread}.jsonl'
-        older = root / f'rollout-older-{blocked_thread}.jsonl'
-        for path in (blocked, healthy, older):
-            path.write_bytes(b'{"payload":{"type":"task_started","turn_id":"turn-123456"}}\n')
-        self.bot._list_threads = Mock(return_value=[{'id': blocked_thread}, {'id': self.thread}])
+        healthy = root / f'rollout-{healthy_thread}.jsonl'
+        for path, thread_id in ((blocked, blocked_thread), (healthy, healthy_thread)):
+            event = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread_id,
+                     "turn_id": self.turn, "item": dict(self.message, type="AgentMessage")}}
+            path.write_text(json.dumps(event) + "\n", encoding="utf-8")
+        self.history["thread"]["id"] = healthy_thread
+        self.manager.current_history = Mock(return_value=self.history)
         self.manager.reconcile = Mock()
         self.manager.publish = Mock()
         original_stat = Path.stat
@@ -90,7 +126,7 @@ class AsyncInputTests(unittest.TestCase):
         with patch.object(b, 'SESSION_ROOT', root), patch.object(Path, 'stat', selective_stat):
             self.manager.poll()
         self.manager.reconcile.assert_called_once()
-        self.assertEqual(self.manager.reconcile.call_args.args[0], self.thread)
+        self.assertEqual(self.manager.reconcile.call_args.args[0], healthy_thread)
         self.manager.publish.assert_called_once()
 
     def test_question_id_matches_desktop_canonical_serialization(self):

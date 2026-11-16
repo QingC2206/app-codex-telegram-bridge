@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 
+from codex_telegram_bridge.codex.async_rollout import AsyncRolloutTail
 from codex_telegram_bridge.codex.desktop import DesktopBridgeSafetyError, DesktopIpcInactive, DesktopIpcUnavailable
 from codex_telegram_bridge.codex.history import read_thread_history, question_answers, REPLY_OPEN, REPLY_CLOSE
 
@@ -37,7 +38,12 @@ class AsyncInputs:
         self.bot = bot
         self.database = Path(database or (data_dir() / 'telegram_async_inputs.sqlite3'))
         self.identity = (bot.token.split(':')[0], bot.chat_id)
-        self.updated = {}
+        self.rollouts = AsyncRolloutTail()
+        self.checked_hints = {}
+        self.checked_pending = set()
+        self.changed_pending = set()
+        self.remote_checked = {}
+        self.new_items = {}
         self.failures = {}
         self.worker = None
 
@@ -368,42 +374,63 @@ class AsyncInputs:
         self.refresh_card(self.get(key))
 
     def poll(self):
-        threads = self.bot._list_threads(limit=30)
+        from codex_telegram_bridge.app import SESSION_ROOT, log
+
+        now = time.monotonic()
+        cutoff = time.time() - 1800
         with self.db() as db:
-            db.execute('DELETE FROM hints WHERE updated<?', (time.time()-1800,))
-            hinted = {row[0] for row in db.execute('SELECT thread FROM hints WHERE updated>?', (time.time()-1800,))}
-            pending = {row[0] for row in db.execute("SELECT DISTINCT thread FROM questions WHERE bot=? AND chat=? AND status IN ('new','waiting','publishing','submitted','uncertain')", self.identity)}
-        from codex_telegram_bridge.app import (
-            SESSION_ROOT, persisted_thread_paths, read_persisted_thread_activity,
-        )
-        from codex_telegram_bridge.codex.receipts import checkpoint
-        priority = hinted | pending
-        present = {thread['id'] for thread in threads}
-        threads += [{'id': tid} for tid in priority if tid not in present]
-        if self.bot.stop_event.is_set():
-            return
-        rollouts = persisted_thread_paths(thread['id'] for thread in threads)
-        for thread in threads:
+            db.execute('DELETE FROM hints WHERE updated<?', (cutoff,))
+            hints = dict(db.execute('SELECT thread,updated FROM hints WHERE updated>=?', (cutoff,)))
+            pending = {row[0] for row in db.execute(
+                "SELECT DISTINCT thread FROM questions WHERE bot=? AND chat=? "
+                "AND status IN ('new','waiting','publishing','submitted','submitting','uncertain')",
+                self.identity)}
+            known = {(row[0], row[1]) for row in db.execute(
+                'SELECT DISTINCT thread,item FROM questions WHERE bot=? AND chat=?', self.identity)}
+
+        signals, changed, local = self.rollouts.scan(SESSION_ROOT, pending)
+        for key, turn in signals.items():
+            if key not in known:
+                self.new_items.setdefault(key, (turn, now + 60))
+        self.new_items = {key: value for key, value in self.new_items.items()
+                          if key not in known and value[1] > now}
+        self.changed_pending.intersection_update(pending)
+        self.changed_pending.update(changed)
+        self.checked_pending.intersection_update(pending)
+        self.checked_hints = {thread: stamp for thread, stamp in self.checked_hints.items() if thread in hints}
+        self.remote_checked = {thread: when for thread, when in self.remote_checked.items()
+                               if thread in (hints.keys() | pending) and thread not in local}
+
+        targets = pending - self.checked_pending | self.changed_pending
+        targets |= {thread for thread, updated in hints.items() if self.checked_hints.get(thread) != updated}
+        targets |= {thread for thread, _ in self.new_items}
+        # A hook or an outstanding question can refer to a session that has
+        # no local transcript, so retain a targeted reconciliation for it.
+        targets |= {thread for thread in (hints.keys() | pending) - local
+                    if now - self.remote_checked.get(thread, -1000) >= 30}
+        for thread in sorted(targets):
             if self.bot.stop_event.is_set():
                 return
-            tid = thread['id']
             try:
-                rollout = rollouts.get(tid)
-                if tid not in priority and (rollout is None or not read_persisted_thread_activity(rollout)[0]):
-                    continue
-                path, size = checkpoint(tid, SESSION_ROOT)
-                stamp = (thread.get('updatedAt'), path, size if path else int(time.monotonic() // 30))
-                if tid not in priority and self.updated.get(tid) == stamp:
-                    continue
-                history = self.current_history(tid)
-                self.reconcile(tid, history)
-                self.updated[tid] = stamp
-                self.failures.pop(tid, None)
+                history = self.current_history(thread)
+                self.reconcile(thread, history)
+                latest = ((history.get('thread') or {}).get('turns') or [{}])[-1]
+                present = {item.get('id') for item in latest.get('items') or [] if isinstance(item, dict)}
+                for key, (turn, _) in tuple(self.new_items.items()):
+                    if key[0] == thread and (key[1] in present
+                            or (latest.get('id') == turn and latest.get('status') != 'inProgress')):
+                        self.new_items.pop(key)
+                if thread in hints:
+                    self.checked_hints[thread] = hints[thread]
+                self.checked_pending.add(thread)
+                if thread not in local:
+                    self.remote_checked[thread] = now
+                self.changed_pending.discard(thread)
+                self.failures.pop(thread, None)
             except Exception as exc:
-                if time.monotonic() - self.failures.get(tid, -1000) > 60:
-                    from codex_telegram_bridge.app import log
+                if now - self.failures.get(thread, -1000) > 60:
                     log('async task observation postponed: ' + type(exc).__name__)
-                    self.failures[tid] = time.monotonic()
+                    self.failures[thread] = now
         self.publish()
 
     def _loop(self):
