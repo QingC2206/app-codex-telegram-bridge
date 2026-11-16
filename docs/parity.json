@@ -10001,14 +10001,14 @@
       "rule_ids": [
         "E03.R01"
       ],
-      "assertion": "Store主进程路径、renderer排除和profile端点一致性；环境API本体仍需Windows原生。 Windows后端按Desktop父进程与已登记包配对；排除Bot/VSCode子进程及其他包的后端，保留运行中旧提取后端的优先级。",
+      "assertion": "Store主进程路径、renderer排除和profile端点一致性；环境API本体仍需Windows原生。 Windows后端按Desktop父进程与已登记包配对；排除渲染辅助进程、Bot/VSCode子进程及其他包的后端，保留运行中旧提取后端的优先级。",
       "reviewer": "Codex cross-review map-platforms.json; Windows packaged runtime review 2026-11-16",
       "tests": {
         "test_fix6_platform_contracts.PlatformRuleTests.test_windows_inventory_filters_store_main_process_and_helpers": "a517dfe32091db732eb4f1368e22507ee75287f6cb66e63148fab6f828e9a196",
         "test_desktop_bridge.DiscoveryTests.test_modern_pipe_selection_stays_with_the_correct_subscription": "c86b42b0329981a855890c2aa7868f01dc1390bd129b71e6cc14b4c32140ee8f",
         "test_desktop_bridge.DiscoveryTests.test_conflicting_home_hints_fail_closed": "af7295a94547d9e78f69d8cf31e1ae77349f4a031f0d01a59fbe9b75af611465",
         "test_windows_packaged_runtime.PackagedRuntimeTests.test_running_bundle_is_selected_and_bot_or_vscode_children_are_excluded": "eed68c37a6467ec219cfa153885114f773ecaf824177132945a02341f1c31372",
-        "test_windows_packaged_runtime.PackagedRuntimeTests.test_running_legacy_child_precedes_its_apps_unused_bundle": "d47628b1c6abe21566eda5d5dd21c72003d49b8db88875ad8ebd76f77498a22a",
+        "test_windows_packaged_runtime.PackagedRuntimeTests.test_running_legacy_child_precedes_its_apps_unused_bundle": "6136e3ed2aceeec87e9c8d26d92a32c87063cd1685f69932ff86b47abeab41f8",
         "test_windows_packaged_runtime.PackagedRuntimeTests.test_other_packages_child_is_not_paired_to_this_desktop": "7f27cea05f16890b8a5184c58f86b73168c862c0cd6335606196485a7fb681da",
         "test_windows_packaged_runtime.PackagedRuntimeTests.test_desktop_without_loaded_backend_uses_its_verified_bundle": "c23b165ef3d090921f6542ec24c071cc239c0a5130403d325e6af1ec892acc06"
       }

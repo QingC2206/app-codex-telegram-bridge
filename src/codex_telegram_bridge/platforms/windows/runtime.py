@@ -65,14 +65,17 @@ def _running_desktop_codex(runtime_root: Path) -> list[Path]:
     try:
         import psutil
         records = []
-        for process in psutil.process_iter(['name', 'pid', 'ppid', 'exe']):
+        for process in psutil.process_iter(['name', 'pid', 'ppid', 'exe', 'cmdline']):
             info = process.info
             records.append({'Name': info['name'], 'ProcessId': info['pid'],
-                            'ParentProcessId': info['ppid'], 'ExecutablePath': info['exe']})
+                            'ParentProcessId': info['ppid'], 'ExecutablePath': info['exe'],
+                            'CommandLine': info.get('cmdline') or []})
         desktop_apps = {}
         for record in records:
             path = Path(record.get("ExecutablePath") or "")
             if (str(record.get("Name", "")).lower() == "chatgpt.exe"
+                    and not any(arg == '--type' or arg.startswith('--type=')
+                                for arg in record['CommandLine'])
                     and path.parent.name.lower() == "app"
                     and path.parent.parent.name.lower().startswith("openai.codex_")
                     and path.parent.parent.parent.name.lower() == "windowsapps"):

@@ -95,8 +95,11 @@ class PackagedRuntimeTests(unittest.TestCase):
             self.assertEqual(runtime.locate_codex(), self.bundle)
 
     def test_running_legacy_child_precedes_its_apps_unused_bundle(self):
+        renderer = self.process(12, self.app(self.bundle), 10)
+        renderer.info['cmdline'] = [str(self.app(self.bundle)), '--type=renderer']
         self.assertEqual(self.discover([self.process(10, self.app(self.bundle)),
-                                       self.process(11, self.legacy, 10)]), [self.legacy])
+                                       self.process(11, self.legacy, 10), renderer]), [self.legacy])
+        self.assertEqual(self.discover([renderer]), [])
 
     def test_other_packages_child_is_not_paired_to_this_desktop(self):
         other = self.package('26.1112.1000.0')
