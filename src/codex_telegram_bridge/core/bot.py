@@ -15,6 +15,7 @@ from pathlib import Path
 import queue
 import re
 import shutil
+import sqlite3
 import stat
 import struct
 import subprocess
@@ -82,7 +83,7 @@ WATCH_POLL_SECONDS = 5
 BOT_OPERATION_THREAD = "telegram-operation"
 DESKTOP_RECEIPT_TIMEOUT_SECONDS = 10
 OPERATION_CALLBACKS = {"quotaview", "tasklist", "task", "watch", "unwatch", "diff", "usage",
-                       "reply", "replypage", "replyfile", "localpath", "screenshot", "subagents", "asyncq"}
+                       "reply", "replypage", "replyfile", "localpath", "screenshot", "subagents", "asyncq", "suggest"}
 QUOTA_MONITOR_SECONDS = 300
 QUOTA_NATURAL_RESET_GRACE_SECONDS = 600
 QUOTA_MONITOR_FAILURE_ALERT_THRESHOLD = 3
@@ -976,6 +977,8 @@ class TelegramCodexBot:
         self.starting_sources = {}
         self.token = token
         self.chat_id = str(credential_config["chat_id"])
+        self._suggestion_config = {key: credential_config.get(key) for key in
+                                   ('chat_id', 'include_message_preview', 'desktop_suggestion_source')}
         allowed = credential_config.get("allowed_user_ids", [])
         if not isinstance(allowed, list) or any(not str(value).isdigit() or int(value) <= 0 for value in allowed):
             raise ValueError(_t('allowed_user_ids 必须是正整数 Telegram 用户 ID 的列表。'))
@@ -1315,6 +1318,9 @@ class TelegramCodexBot:
     def _run_service(self, *, quiet_start: bool = False) -> int:
         self._start_service_worker(self._outbox_worker, 'telegram-outbox')
         self._start_service_worker(self._reaction_worker, 'telegram-reactions')
+        from ..features import suggested_replies
+        if suggested_replies.configured(self._suggestion_config):
+            self._start_service_worker(self._suggestion_worker, 'telegram-desktop-suggestions')
         self.plugins.start()
         self._set_commands()
         offset = int(self.state.snapshot().get("update_offset") or 0)
@@ -1572,6 +1578,14 @@ class TelegramCodexBot:
             # Submission already succeeded. A lost Telegram acknowledgement
             # must never turn it into an apparent command failure or retry.
             log(f"submission succeeded but Telegram feedback failed: {exc}", self.token)
+
+    def _suggestion_worker(self):
+        from ..features import suggested_replies
+        while not self.stop_event.wait(2):
+            try:
+                suggested_replies.poll(self._suggestion_config, self.token, self.desktop)
+            except Exception as exc:
+                log('Desktop suggestion check unavailable: ' + type(exc).__name__)
 
     def _reaction_worker(self):
         try:
@@ -3138,6 +3152,8 @@ class TelegramCodexBot:
 
     def submit_direct_reply(self, thread_id: str, text: str) -> None:
         self._require_task_actions()
+        from ..features.suggested_replies import note_user_input
+        note_user_input(self.token, self.chat_id, thread_id)
         title = self.task_names.get(thread_id, thread_id[:8])
         receipt = None
         if not self._reaction("👀", thread_id):
@@ -3308,14 +3324,33 @@ class TelegramCodexBot:
             return True
         return bool(self.desktop.can_interrupt(thread_id, probe=probe))
 
-    def _desktop_follow_up(self, thread_id, text, cwd, *, start_if_inactive=True, expected_turn_id=''):
+    def _desktop_follow_up(self, thread_id, text, cwd, *, start_if_inactive=True, expected_turn_id='',
+                           expected_completed_turn_id='', before_start=None):
         self._require_task_actions()
         source = getattr(self._ui_local, 'source_message_id', None)
         self._reaction('👀', thread_id)
-        tracked = telegram_notify_module.remember_desktop_submission(self.token, self.chat_id, source, thread_id, text)
+        def track():
+            return telegram_notify_module.remember_desktop_submission(self.token, self.chat_id, source, thread_id, text)
+
+        tracked = False
+        def claim_and_track(endpoint):
+            nonlocal tracked
+            before_start(endpoint)
+            try:
+                tracked = track()
+            except (OSError, sqlite3.Error) as exc:
+                raise DesktopIpcUnavailable(_t('无法记录本次提交，建议回复尚未发送。')) from exc
+
+        if not expected_completed_turn_id:
+            from ..features.suggested_replies import note_user_input
+            note_user_input(self.token, self.chat_id, thread_id)
+            tracked = track()
         try:
             recovery = {'recover_owner': True} if not self._owns_thread(thread_id) else {}
-            if expected_turn_id:
+            if expected_completed_turn_id:
+                result = self.desktop.send_follow_up(thread_id, text, cwd,
+                    expected_completed_turn_id=expected_completed_turn_id, before_start=claim_and_track)
+            elif expected_turn_id:
                 result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False,
                                                      expected_turn_id=expected_turn_id, **recovery)
             elif start_if_inactive:
@@ -3473,6 +3508,8 @@ class TelegramCodexBot:
         )
 
     def _begin_turn(self, thread_id: str, text: str) -> str:
+        from ..features.suggested_replies import note_user_input
+        note_user_input(self.token, self.chat_id, thread_id)
         self._reaction('👀', thread_id)
         with self.live_lock:
             self.active_turns.pop(thread_id, None)
@@ -3939,6 +3976,9 @@ class TelegramCodexBot:
                 self._request_task_message(value, "steer")
             elif action == "direct":
                 self.request_direct_reply(value)
+            elif action == 'suggest':
+                from ..features.suggested_replies import handle_click
+                handle_click(self, message, value)
             elif action == "directcancel":
                 self.cancel_direct_reply(value, message_id=message.get('message_id'))
             elif action == "directchoice":

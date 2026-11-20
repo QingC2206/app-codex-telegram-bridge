@@ -2,6 +2,20 @@
 
 **简体中文** | [English](notifications.en.md) · [文档目录](README.md)
 
+## Desktop 建议来源
+
+一键发送建议面向能读取 **Desktop 检查通过后的输入框结果** 的客户端集成。当前版本没有随包提供适用于标准 Windows Desktop 的来源。PR 作者提供了手机实测截图。本机 Desktop 的按轮次放行日志只有任务、轮次和判定结果，普通回复中的 JSON 也不能证明某段原文是输入框最终采用的建议。[PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
+
+可信本地 Python 包可以在 `codex_telegram_bridge.desktop_suggestions` 入口组注册读取函数。在对应 profile 的通知配置中将 `desktop_suggestion_source` 设为入口名称，随后重启 Robot。函数接收已核实的 `DesktopEndpoint`、完整任务 ID 和完成轮次 ID，只读取当前登录账号已有的结果。适配器有责任核实候选已经通过 Desktop 的最终检查。
+
+| 返回字段 | 用途 |
+| --- | --- |
+| `hostId`、`threadId`、`sourceTurnId` | 精确匹配本机 Desktop、原任务与原轮次。 |
+| `accountId`、`userId` | 当前 Desktop 账号和用户。建议尚在生成时，返回这些关联字段并将正文设为空值。 |
+| `responseId`、`text` | 最终候选标识和完整原文。无法确认账号或任务归属时，函数返回 `None`。 |
+
+Robot 在原卡发出时记录 Desktop 实例及账号关联，在删除原卡前、删除后和提交用户输入前重新核验。profile 本地的 SQLite 日志保存排版后的通知及标识摘要，在功能运行时清理超过 47 小时的记录。新卡沿用回复引用、话题和通知设置。新卡或用户输入的回执不明时会停止重试。用户点击已送达的新卡时可以补认消息 ID。Telegram 已删除消息上的表情回应无法迁移。[Telegram 删除规则](https://core.telegram.org/bots/api#deletemessages)
+
 ## 回调位置与边界
 
 安装器把完成通知接在用户配置的 `notify`，把提问提示接在 `PreToolUse`。`notify` 是官方支持的外部通知入口，但 `agent-turn-complete` 只代表一个回合结束，不能保证这是用户需要阅读的答复；官方列出的常见字段不包含用途分类。[官方通知文档](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications)

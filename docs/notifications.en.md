@@ -2,6 +2,20 @@
 
 [简体中文](notifications.zh-CN.md) | **English** · [Documentation](README.en.md)
 
+## Desktop suggestion sources
+
+Suggested replies are an optional integration for a Desktop client or extension that can read its **post-approval composer result**. There is currently no bundled source for the stock Windows app. The PR author's Telegram screenshot demonstrates the interaction. The stock app's per-turn safety log provides no candidate identifier or final text. The bridge accepts neither this log nor a normal JSON reply as a source. [PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
+
+An installed Python package can register a callable in the `codex_telegram_bridge.desktop_suggestions` entry-point group. Select its exact name in the profile's `desktop_suggestion_source` notification setting and restart the Robot. The callable receives the verified `DesktopEndpoint`, full thread ID and completed turn ID. It reads an existing local result for the currently signed-in account. The adapter is trusted local code and must independently establish that the candidate passed Desktop's final check.
+
+| Returned fields | Meaning |
+| --- | --- |
+| `hostId`, `threadId`, `sourceTurnId` | Exact target. Only the local Desktop host is accepted. |
+| `accountId`, `userId` | Current Desktop principal bound to the target. Return the same context with null text while a suggestion is pending. |
+| `responseId`, `text` | Identity and full literal text of the approved candidate. Return `None` for an unverifiable owner. |
+
+The bridge pins the original Desktop instance and principal when sending the ordinary card. It checks the candidate again before deleting the old card, after deletion and before submitting user input. Its profile-local SQLite journal retains prepared Telegram text and hashed identities for up to 47 hours of active operation. The outgoing text card keeps the reply target, topic and delivery preferences. A lost acknowledgement for the replacement or the task input never triggers an automatic duplicate. An authorized click on the replacement can confirm its message ID. Telegram reactions on the deleted message are lost. [Telegram deletion semantics](https://core.telegram.org/bots/api#deletemessages)
+
 ## Callback placement
 
 The installer uses the user-level `notify` setting for completions and `PreToolUse` for question hints. `notify` is a supported external notification entry point, but `agent-turn-complete` only identifies a finished turn. Its documented common fields do not guarantee a purpose classification. [Official notification documentation](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications)

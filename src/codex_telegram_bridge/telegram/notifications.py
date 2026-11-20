@@ -1249,7 +1249,7 @@ def prepare_local_image_reply(token: str, payload: dict[str, Any], *, upload: bo
     return prepared
 
 
-def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool, api=None) -> Any:
+def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool, api=None, literal_fallback=None) -> Any:
     call = api or (lambda method, request: telegram_call(token, method, request, timeout=30))
     original = str(payload.get("text") or "")
     base = dict(payload)
@@ -1271,13 +1271,14 @@ def _markdown_request(token: str, payload: dict[str, Any], *, edit: bool, api=No
     if len(fallback) > MAX_TELEGRAM_MESSAGE:
         fallback = fallback[:MAX_TELEGRAM_MESSAGE - 1].rstrip() + "…"
     method = "editMessageText" if edit else "sendMessage"
-    legacy = dict(base, text=markdown_to_telegram_html(fallback), parse_mode="HTML")
+    legacy_html, legacy_plain = literal_fallback or (markdown_to_telegram_html(fallback), fallback)
+    legacy = dict(base, text=legacy_html, parse_mode="HTML")
     try:
         return call(method, legacy)
     except Exception as exc:
         if not _format_rejected(exc):
             raise
-    return call(method, dict(base, text=fallback))
+    return call(method, dict(base, text=legacy_plain))
 
 
 NATIVE_REPLY_DIR = HOOK_DIR / "telegram_message_routes"
@@ -2185,16 +2186,15 @@ def send_hook_notification(payload: dict[str, Any]) -> int:
             "_local_image_text": payload.get("last_assistant_message") if include_preview else "",
         }
         resolve_desktop_submissions(token, thread_id)
-        attach_task_reply(token, request, thread_id, payload_turn_id(payload))
+        source_turn = payload_turn_id(payload)
+        attach_task_reply(token, request, thread_id, source_turn)
         reply_markup = build_notification_keyboard(thread_id, cache_id)
         if reply_markup:
             request["reply_markup"] = reply_markup
         if notifications_muted():
             return 0
-        sent = send_markdown_message(
-            token,
-            request,
-        )
+        from ..features.suggested_replies import send_completion
+        sent = send_completion(config, token, request, decision, source_turn, subagent=subagent)
         message_id = sent.get("message_id", "unknown") if isinstance(sent, dict) else "unknown"
         log_error(f"notification delivered for {thread_id[:8]}; message_id={message_id}", token)
         complete_payload_reactions(payload)
@@ -2288,16 +2288,15 @@ def send_desktop_notification(payload: dict[str, Any], raw_payload: str, *, _rep
             "_local_image_text": payload.get("last-assistant-message") if include_preview else "",
         }
         resolve_desktop_submissions(token, thread_id)
-        attach_task_reply(token, request, thread_id, payload_turn_id(payload))
+        source_turn = payload_turn_id(payload)
+        attach_task_reply(token, request, thread_id, source_turn)
         reply_markup = build_notification_keyboard(thread_id, cache_id)
         if reply_markup:
             request["reply_markup"] = reply_markup
         if notifications_muted():
             return 0
-        sent = send_markdown_message(
-            token,
-            request,
-        )
+        from ..features.suggested_replies import send_completion
+        sent = send_completion(config, token, request, decision, source_turn, subagent=subagent)
         message_id = sent.get("message_id", "unknown") if isinstance(sent, dict) else "unknown"
         proof = f"; verified_local_turn={decision.turn_trigger}" if decision.requires_turn_evidence else ""
         log_error(f"desktop notification delivered for {thread_id[:8]}; message_id={message_id}{proof}", token)

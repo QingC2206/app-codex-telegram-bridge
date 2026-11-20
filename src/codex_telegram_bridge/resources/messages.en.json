@@ -1058,5 +1058,12 @@
   "收到尚未确认归属的额度变化，原预约已失效，请刷新额度。": "A quota change with unverified ownership was received. The previous reservation is no longer valid; refresh the quota.",
   "旧兑换记录的账户归属尚未确认，已保留防重复保护；请核对后再使用重置卡。": "The account owning an old redemption record is unverified. Duplicate-redemption protection remains active; verify the record before using reset credits.",
   "额度消息所属账户已变化，未发送旧消息。": "The account owning this quota message changed. The old message was not sent.",
-  "侧边问题提交结果未确认：": "Side-chat question submission is unconfirmed: "
+  "侧边问题提交结果未确认：": "Side-chat question submission is unconfirmed: ",
+  "原任务或轮次已变化，建议回复已失效。": "The task or turn has changed. This suggestion has expired.",
+  "建议回复": "Suggested reply",
+  "发送建议回复": "Send suggested reply",
+  "这条建议已发送或失效。": "This suggestion was already sent or has expired.",
+  "原任务的 Desktop 回复通道尚未就绪，请稍后再试。": "Desktop is not ready to receive a reply in this task. Try again later.",
+  "已发回原对话。": "Sent to the original chat.",
+  "无法记录本次提交，建议回复尚未发送。": "Could not record the submission. The suggested reply has not been sent."
 }

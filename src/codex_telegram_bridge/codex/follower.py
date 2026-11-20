@@ -58,7 +58,7 @@ def normalize_snapshot(state, thread_id):
     turns = ordered_turns(state)
     if status['type'] == 'active' and (not turns or turns[-1].get('status') != 'inProgress'):
         raise DesktopIpcUnavailable('Desktop active turn is not confirmed yet.')
-    thread = {'id': thread_id, 'status': status, 'title': state.get('title'),
+    thread = {'id': thread_id, 'hostId': 'local', 'status': status, 'title': state.get('title'),
               'name': state.get('title'), 'cwd': state.get('cwd'),
               'updatedAt': state.get('updatedAt'), 'turns': turns}
     return {'thread': thread, 'turns': list(reversed(turns))}

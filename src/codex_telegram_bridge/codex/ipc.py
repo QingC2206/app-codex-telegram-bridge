@@ -117,6 +117,7 @@ class CodexDesktopIpc(Transport):
         *,
         start_if_inactive: bool = True,
         before_submit: Callable[[], None] | None = None,
+        start_only: bool = False,
     ) -> dict[str, Any] | None:
         """Return None when no Desktop window currently owns the task."""
         handle = self._open()
@@ -171,50 +172,40 @@ class CodexDesktopIpc(Transport):
                 "cwd": workspace_root,
                 "createdAt": int(time.time() * 1000),
             }
-            try:
-                steered = self._request(
-                    handle,
-                    client_id,
-                    "thread-follower-steer-turn",
-                    {
-                        "conversationId": thread_id,
-                        "clientUserMessageId": client_message_id,
-                        "input": input_items,
-                        "serviceTier": None,
-                        "attachments": [],
-                        "additionalContext": None,
-                        "restoreMessage": restore_message,
-                    },
-                    target_client_id=owner_id,
-                )
-                turn_id = self._turn_id(steered)
-                if not turn_id:
-                    raise DesktopSubmissionUnknown(_t('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。'))
-                return {"mode": "steer", "turn_id": turn_id, "route": "desktop-user-input",
-                        "client_message_id": client_message_id}
-            except DesktopIpcError as exc:
-                if not self._is_inactive_steer_error(exc):
-                    raise
-                if not start_if_inactive:
-                    raise DesktopIpcInactive(_t('该 Desktop 任务当前没有运行中的 Turn。')) from exc
+            if not start_only:
+                try:
+                    steered = self._request(
+                        handle, client_id, "thread-follower-steer-turn",
+                        {"conversationId": thread_id, "clientUserMessageId": client_message_id,
+                         "input": input_items, "serviceTier": None, "attachments": [],
+                         "additionalContext": None, "restoreMessage": restore_message},
+                        target_client_id=owner_id,
+                    )
+                    turn_id = self._turn_id(steered)
+                    if not turn_id:
+                        raise DesktopSubmissionUnknown(_t('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。'))
+                    return {"mode": "steer", "turn_id": turn_id, "route": "desktop-user-input",
+                            "client_message_id": client_message_id}
+                except DesktopIpcError as exc:
+                    if not self._is_inactive_steer_error(exc):
+                        raise
+                    if not start_if_inactive:
+                        raise DesktopIpcInactive(_t('该 Desktop 任务当前没有运行中的 Turn。')) from exc
 
-            started = self._request(
-                handle,
-                client_id,
-                "thread-follower-start-turn",
-                {
-                    "conversationId": thread_id,
-                    "turnStart": {
-                        "request": {
-                            "threadId": thread_id,
-                            "clientUserMessageId": client_message_id,
-                            "input": input_items,
-                        },
-                        "context": {"inheritThreadSettings": True},
-                    },
+            start = {
+                "conversationId": thread_id,
+                "turnStart": {
+                    "request": {"threadId": thread_id, "clientUserMessageId": client_message_id, "input": input_items},
+                    "context": {"inheritThreadSettings": True},
                 },
-                target_client_id=owner_id,
-            )
+            }
+            try:
+                started = self._request(handle, client_id, "thread-follower-start-turn", start, target_client_id=owner_id)
+            except DesktopIpcError as exc:
+                if (start_only and type(exc) is DesktopIpcError
+                        and str(exc).strip().lower() in {'no-client-found', 'client-not-found'}):
+                    raise DesktopIpcUnavailable(str(exc)) from exc
+                raise
             turn_id = self._turn_id(started)
             if not turn_id:
                 raise DesktopSubmissionUnknown(_t('Desktop 未返回接收消息的 Turn ID，请先核对；不会重发。'))

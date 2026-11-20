@@ -330,6 +330,22 @@ def thread_activity(state: dict[str, Any], thread_id: str) -> tuple[bool, str]:
     return kind == 'active', turn_id if kind == 'active' and isinstance(turn_id, str) else ''
 
 
+def completed_turn_target(state, thread_id, turn_id):
+    thread = state.get('thread') if isinstance(state, dict) else None
+    if not isinstance(thread, dict) or thread.get('id') != thread_id or thread.get('hostId') != 'local':
+        raise DesktopBridgeSafetyError(_t('Desktop 返回的任务与目标不一致，未提交消息。'))
+    turns = state.get('turns')
+    latest = turns[0] if isinstance(turns, list) and turns and isinstance(turns[0], dict) else {}
+    runtime = thread.get('status')
+    status = runtime.get('type') if isinstance(runtime, dict) else None
+    if status not in {'idle', 'active'}:
+        raise DesktopIpcUnavailable(_t('Desktop 当前任务状态未能核实，请稍后重试。'))
+    if (not turn_id or status != 'idle'
+            or latest.get('status') != 'completed' or latest.get('id') != turn_id):
+        raise DesktopIpcInactive(_t('原任务或轮次已变化，建议回复已失效。'))
+    return thread
+
+
 class DesktopControl:
     """Submit human input only through its verified Desktop owner.
 
@@ -433,7 +449,8 @@ class DesktopControl:
         raise DesktopIpcUnavailable(_t('Desktop 已尝试打开目标任务，但回复通道尚未就绪。消息未发送，请在 Desktop 检查任务后再试。'))
 
     def send_follow_up(self, thread_id: str, text: str, cwd: str, *, start_if_inactive: bool = True,
-                       expected_turn_id: str = '', recover_owner: bool = False) -> dict[str, Any] | None:
+                       expected_turn_id: str = '', recover_owner: bool = False,
+                       expected_completed_turn_id: str = '', before_start=None) -> dict[str, Any] | None:
         if not text.strip():
             raise ValueError(_t('回复内容不能为空。'))
         endpoint = self.native.discover()
@@ -444,14 +461,21 @@ class DesktopControl:
             # Run after owner discovery and immediately before the one input
             # request. Never resume a Desktop thread in another app-server.
             self._check_instance(endpoint, thread_id)
-            self.access.validate_reply(endpoint, thread_id, reader,
-                start_if_inactive=start_if_inactive, expected_turn_id=expected_turn_id,
-                check_instance=lambda: self._check_instance(endpoint, thread_id))
+            if expected_completed_turn_id:
+                completed_turn_target(reader.read_thread(thread_id), thread_id, expected_completed_turn_id)
+                self._check_instance(endpoint, thread_id)
+                if before_start is not None:
+                    before_start(endpoint)
+            else:
+                self.access.validate_reply(endpoint, thread_id, reader,
+                    start_if_inactive=start_if_inactive, expected_turn_id=expected_turn_id,
+                    check_instance=lambda: self._check_instance(endpoint, thread_id))
 
+        start_options = {'start_only': True} if expected_completed_turn_id else {}
         try:
             result = owner.send_follow_up(thread_id, text, cwd,
                                           start_if_inactive=start_if_inactive and not expected_turn_id,
-                                          before_submit=guard)
+                                          before_submit=guard, **start_options)
         except DesktopOwnerDiscoveryUnavailable:
             if not (recover_owner and self.access.recover_discovery_unavailable):
                 raise
@@ -464,7 +488,7 @@ class DesktopControl:
             owner = self._legacy_for_current_desktop(thread_id, endpoint=endpoint)
             result = owner.send_follow_up(thread_id, text, cwd,
                                           start_if_inactive=start_if_inactive and not expected_turn_id,
-                                          before_submit=guard)
+                                          before_submit=guard, **start_options)
             if result is not None:
                 result['owner_recovered'] = True
         if result is not None and expected_turn_id and result.get('turn_id') != expected_turn_id:

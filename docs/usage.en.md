@@ -46,6 +46,12 @@ When directly replying to a running task, choose:
 
 Use `/steer` to append to a running task and `/stop` to request interruption of a controllable task. The bot does not take over existing Desktop tasks or switch to VS Code to work around a failed connection.
 
+### Desktop suggested replies (preview)
+
+With a trusted source connected, the completion card quotes the exact suggestion Desktop generated for that turn. Tap **Send suggested reply** to send it as a new message in the original chat. The bridge checks the account, task and latest completed turn again when you tap. If the suggestion arrives late, the ordinary completion arrives first and a new card replaces it. Replying or starting another turn invalidates the old suggestion. Photos are uploaded once.
+
+Standard Windows installations continue to receive ordinary completion cards. The verified external interfaces in Desktop 26.1111.9664.0 do not expose the final composer text. This preview requires a trusted source adapter. Enable message previews and configure that source to record card associations. See [suggestion sources and delivery](notifications.en.md#desktop-suggestion-sources).
+
 ## Questions, approvals, and attachments
 
 Codex questions provide options or a text-answer entry point. Answer asynchronous questions using an option, text entry, or a direct reply to the question card; the answer remains associated with the original question and turn. Expired or answered questions cannot be submitted again. Complex or unsupported approvals need to be handled in Desktop.
