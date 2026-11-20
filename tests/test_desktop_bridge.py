@@ -538,13 +538,37 @@ class DiscoveryTests(unittest.TestCase):
         self.roots.stop()
         app = self.home / "WindowsApps/OpenAI.Codex_test/app/ChatGPT.exe"
         app.parent.mkdir(parents=True); app.write_bytes(b"fixture")
-        records = [{"ProcessId": 44, "ExecutablePath": str(app), "CommandLine": str(app)},
-                   {"ProcessId": 66, "ExecutablePath": str(app), "CommandLine": str(app) + " --type=renderer"},
-                   {"ProcessId": 88, "ExecutablePath": str(self.home / "vscode/ChatGPT.exe")}]
         import psutil
-        processes=[Mock(info={'pid':r['ProcessId'],'exe':r['ExecutablePath'],'cmdline':[r['ExecutablePath']]+(['--type=renderer'] if r['ProcessId']==66 else [])}) for r in records]
-        with patch.object(psutil, "process_iter", return_value=processes):
-            self.assertEqual([r["ProcessId"] for r in d._desktop_roots()], [44])
+        desktop = Mock(pid=44, info={'name': 'ChatGPT.exe'})
+        desktop.exe.return_value = str(app)
+        desktop.cmdline.return_value = [str(app)]
+        renderer = Mock(pid=66, info={'name': 'chatgpt.exe'})
+        renderer.exe.return_value = str(app)
+        renderer.cmdline.return_value = [str(app), '--type=renderer']
+        unpackaged = Mock(pid=88, info={'name': 'ChatGPT.exe'})
+        unpackaged.exe.return_value = str(self.home / 'vscode/ChatGPT.exe')
+        unrelated = Mock(info={'name': 'Other.exe'})
+        exiting = Mock(info={'name': 'ChatGPT.exe'})
+        exiting.exe.side_effect = psutil.NoSuchProcess(101)
+        with patch.object(psutil, 'process_iter', return_value=[
+                desktop, renderer, unpackaged, unrelated, exiting]) as process_iter:
+            self.assertEqual([r['ProcessId'] for r in d._desktop_roots()], [44])
+        process_iter.assert_called_once_with(['name'])
+        unrelated.exe.assert_not_called()
+        unrelated.cmdline.assert_not_called()
+        unpackaged.cmdline.assert_not_called()
+
+        renderer.cmdline.return_value = [str(app), '--type', 'renderer']
+        with patch.object(psutil, 'process_iter', return_value=[desktop, renderer]):
+            self.assertEqual([r['ProcessId'] for r in d._desktop_roots()], [44])
+        desktop.cmdline.side_effect = psutil.AccessDenied(44)
+        with patch.object(psutil, 'process_iter', return_value=[desktop]):
+            with self.assertRaises(d.DesktopBridgeSafetyError):
+                d._desktop_roots()
+        desktop.exe.side_effect = psutil.AccessDenied(44)
+        with patch.object(psutil, 'process_iter', return_value=[renderer, desktop]):
+            with self.assertRaises(d.DesktopBridgeSafetyError):
+                d._desktop_roots()
 
 
 class ProfileCollisionTests(unittest.TestCase):

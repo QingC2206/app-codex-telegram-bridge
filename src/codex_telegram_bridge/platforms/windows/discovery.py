@@ -92,14 +92,30 @@ def validate_pipe_server(handle: int, expected_pid: int) -> None:
 def desktop_roots():
     import psutil
     records = []
-    for process in psutil.process_iter(['pid', 'exe', 'cmdline']):
-        info = process.info
-        if not info['exe']:
+    for process in psutil.process_iter(['name']):
+        if (process.info['name'] or '').lower() != 'chatgpt.exe':
             continue
-        path = Path(info['exe']).resolve()
-        if (path.name.lower() == 'chatgpt.exe' and path.parent.name.lower() == 'app'
-                and path.parent.parent.name.lower().startswith('openai.codex_')
-                and path.parent.parent.parent.name.lower() == 'windowsapps'
-                and not any(arg.startswith('--type=') for arg in (info['cmdline'] or []))):
-            records.append({'ProcessId': info['pid'], 'ExecutablePath': str(path)})
+        try:
+            executable = process.exe()
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied as exc:
+            raise DesktopBridgeSafetyError(_t('无法验证 Desktop 连接进程。')) from exc
+        if not executable:
+            raise DesktopBridgeSafetyError(_t('无法验证 Desktop 连接进程。'))
+        path = Path(executable).resolve()
+        if (path.name.lower() != 'chatgpt.exe' or path.parent.name.lower() != 'app'
+                or not path.parent.parent.name.lower().startswith('openai.codex_')
+                or path.parent.parent.parent.name.lower() != 'windowsapps'):
+            continue
+        try:
+            args = process.cmdline()
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied as exc:
+            raise DesktopBridgeSafetyError(_t('无法验证 Desktop 连接进程。')) from exc
+        if not args:
+            raise DesktopBridgeSafetyError(_t('无法验证 Desktop 连接进程。'))
+        if not any(arg == '--type' or arg.startswith('--type=') for arg in args):
+            records.append({'ProcessId': process.pid, 'ExecutablePath': str(path)})
     return records

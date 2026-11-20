@@ -10004,7 +10004,7 @@
       "assertion": "Store主进程路径、renderer排除和profile端点一致性；环境API本体仍需Windows原生。 Windows后端按Desktop父进程与已登记包配对；排除渲染辅助进程、Bot/VSCode子进程及其他包的后端，保留运行中旧提取后端的优先级。",
       "reviewer": "Codex cross-review map-platforms.json; Windows packaged runtime review 2026-11-16",
       "tests": {
-        "test_fix6_platform_contracts.PlatformRuleTests.test_windows_inventory_filters_store_main_process_and_helpers": "a517dfe32091db732eb4f1368e22507ee75287f6cb66e63148fab6f828e9a196",
+        "test_fix6_platform_contracts.PlatformRuleTests.test_windows_inventory_filters_store_main_process_and_helpers": "7a2d093a7aa9f06303f840f611ceb33a00db0c0976adb967b9ca97b02651d056",
         "test_desktop_bridge.DiscoveryTests.test_modern_pipe_selection_stays_with_the_correct_subscription": "c86b42b0329981a855890c2aa7868f01dc1390bd129b71e6cc14b4c32140ee8f",
         "test_desktop_bridge.DiscoveryTests.test_conflicting_home_hints_fail_closed": "af7295a94547d9e78f69d8cf31e1ae77349f4a031f0d01a59fbe9b75af611465",
         "test_windows_packaged_runtime.PackagedRuntimeTests.test_running_bundle_is_selected_and_bot_or_vscode_children_are_excluded": "eed68c37a6467ec219cfa153885114f773ecaf824177132945a02341f1c31372",

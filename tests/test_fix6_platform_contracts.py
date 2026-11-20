@@ -27,9 +27,15 @@ class PlatformRuleTests(unittest.TestCase):
         import psutil
         with tempfile.TemporaryDirectory() as folder:
             exe=Path(folder)/'WindowsApps/OpenAI.Codex_fixture/app/ChatGPT.exe'
-            records=[Mock(info={'pid':1,'exe':str(exe),'cmdline':[str(exe)]}),
-                     Mock(info={'pid':2,'exe':str(exe),'cmdline':[str(exe),'--type=renderer']}),
-                     Mock(info={'pid':3,'exe':str(Path(folder)/'vscode/ChatGPT.exe'),'cmdline':[]})]
+            main = Mock(pid=1, info={'name': 'ChatGPT.exe'})
+            main.exe.return_value = str(exe)
+            main.cmdline.return_value = [str(exe)]
+            child = Mock(pid=2, info={'name': 'ChatGPT.exe'})
+            child.exe.return_value = str(exe)
+            child.cmdline.return_value = [str(exe), '--type=renderer']
+            unpackaged = Mock(pid=3, info={'name': 'ChatGPT.exe'})
+            unpackaged.exe.return_value = str(Path(folder) / 'vscode/ChatGPT.exe')
+            records = [main, child, unpackaged]
             with patch.object(psutil,'process_iter',return_value=records):
                 self.assertEqual(discovery.desktop_roots(),[{'ProcessId':1,'ExecutablePath':str(exe.resolve())}])
 
