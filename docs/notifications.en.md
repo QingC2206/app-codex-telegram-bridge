@@ -4,7 +4,9 @@
 
 ## Desktop suggestion sources
 
-Suggested replies are an optional integration for a Desktop client or extension that can read its **post-approval composer result**. There is currently no bundled source for the stock Windows app. The PR author's Telegram screenshot demonstrates the interaction. The stock app's per-turn safety log provides no candidate identifier or final text. The bridge accepts neither this log nor a normal JSON reply as a source. [PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
+The bundled Windows source uses the approach contributed in PR #3. A dedicated shortcut launches the selected Microsoft Store Desktop with a local relay for its bundled backend. The relay forwards the original stdio bytes and pairs each `composer_predictions` request to `thread/sample` with the response for that request ID. It verifies the source thread, turn, candidate identity and approval recorded by that Desktop process. Only a uniquely attributable suggestion can be read. [Setup](setup.en.md#one-tap-desktop-suggestions) · [PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
+
+Candidate text stays in the relay's memory. The Robot reads approved results through a local named pipe with process checks and a Windows DPAPI-protected capability. Account-change events, changes to login-file metadata and a relay restart invalidate prior buttons. Missing or conflicting evidence, or an incompatible Desktop update, leaves ordinary completion notifications available.
 
 An installed Python package can register a callable in the `codex_telegram_bridge.desktop_suggestions` entry-point group. Select its exact name in the profile's `desktop_suggestion_source` notification setting and restart the Robot. The callable receives the verified `DesktopEndpoint`, full thread ID and completed turn ID. It reads an existing local result for the currently signed-in account. The adapter is trusted local code and must independently establish that the candidate passed Desktop's final check.
 
@@ -12,6 +14,7 @@ An installed Python package can register a callable in the `codex_telegram_bridg
 | --- | --- |
 | `hostId`, `threadId`, `sourceTurnId` | Exact target. Only the local Desktop host is accepted. |
 | `accountId`, `userId` | Current Desktop principal bound to the target. Return the same context with null text while a suggestion is pending. |
+| `principalEpoch` | The bundled Windows source uses a random session identifier that changes on account changes or relay restarts. Other adapters supply the account fields above. |
 | `responseId`, `text` | Identity and full literal text of the approved candidate. Return `None` for an unverifiable owner. |
 
 The bridge pins the original Desktop instance and principal when sending the ordinary card. It checks the candidate again before deleting the old card, after deletion and before submitting user input. Its profile-local SQLite journal retains prepared Telegram text and hashed identities for up to 47 hours of active operation. The outgoing text card keeps the reply target, topic and delivery preferences. A lost acknowledgement for the replacement or the task input never triggers an automatic duplicate. An authorized click on the replacement can confirm its message ID. Telegram reactions on the deleted message are lost. [Telegram deletion semantics](https://core.telegram.org/bots/api#deletemessages)

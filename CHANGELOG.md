@@ -1,9 +1,9 @@
 # 更新记录
 
-## 未发布 / Unreleased
+## 0.7.0 — 2026-11-20
 
-- 为 #3 加入 Desktop 建议的 Telegram 投递和一次性提交。建议晚到时按原任务替换完成通知，保留引用、附件路由和通知设置。该功能需要能读取当前账号最终建议的本地来源适配器。Windows Desktop 26.1111.9664.0 的原文接入仍待实机验证。普通安装继续发送原有完成通知。
-- Added Telegram delivery and one-tap submission for approved Desktop suggestions in #3. Late suggestions replace the original completion card and retain its reply target, attachment routes and notification preferences. This requires a local adapter for the signed-in principal's final suggestion. Stock Windows Desktop 26.1111.9664.0 capture is still unverified. Ordinary installations continue to receive completion notifications.
+- 新增 #3 一键发送 Desktop 建议。Windows 用户可为单个 Microsoft Store Desktop 创建专用快捷方式。Robot 引用该实例为本轮生成并放行的建议，点击后将原文发回原任务一次。建议晚到时，先送达普通通知，再删除旧卡并重发，保留回复引用、附件路由和通知设置。
+- Added one-tap Desktop suggested replies from #3. Windows users can opt in one Microsoft Store Desktop profile with a dedicated shortcut. Telegram quotes its approved suggestion for the turn and sends the exact text to the original chat once when tapped. Late suggestions replace the delivered card while preserving the reply target, attachment routes and notification preferences.
 
 - 降低 Windows 查找 Codex Desktop 的开销。先按进程名筛选，再核验安装路径和启动参数。多实例和无法核验的候选仍按原有安全规则处理。
 - 异步提问按本地会话变化和钩子提示核对。Robot 重启、Desktop 历史暂不可读或提问位于长回合早期时，恢复后可以找回待答卡。用户通过 Desktop 委派回答后，Telegram 原卡会保留回答并收起按钮。

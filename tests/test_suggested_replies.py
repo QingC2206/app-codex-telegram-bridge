@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from copy import deepcopy
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import threading
@@ -114,6 +115,36 @@ class SuggestedReplyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.click()
         self.assertEqual(self.inputs, [(THREAD, TURN, PROMPT)])
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows packaged suggestion source')
+    def test_windows_sample_through_real_pipe_replaces_card_and_submits_once(self):
+        import psutil
+        from test_windows_suggestion_capture import request, response, observe, TEXT
+        from codex_telegram_bridge.platforms.windows import composer_capture, suggestion_pipe
+        root = notify.HOOK_DIR.resolve()
+        self.enter.enter_context(patch.dict(os.environ, CODEX_HOME=str(root), CODEX_TELEGRAM_DATA_DIR=str(root)))
+        (root/'auth.json').write_text('fixture')
+        self.endpoint = DesktopEndpoint(psutil.Process().ppid(), None, root)
+        self.desktop.native.discover.return_value = self.endpoint
+        self.config['desktop_suggestion_source'] = composer_capture.SOURCE
+        decision = Mock(return_value=False)
+        tracker = composer_capture.Capture(root, self.endpoint.pid, decision=decision)
+        sender = suggestion_pipe.Publisher(tracker)
+        self.enter.callback(sender.close)
+        self.reader.side_effect = suggestion_pipe.read_approved
+        self.send()
+        observe(tracker, request(73), True)
+        observe(tracker, response(73), False)
+        self.poll()
+        self.assertEqual(self.methods(), ['sendRichMessage'])
+        decision.return_value = True
+        self.due()
+        self.poll()
+        self.assertEqual(self.methods(), ['sendRichMessage', 'deleteMessages', 'sendRichMessage'])
+        self.click()
+        with self.assertRaises(ValueError):
+            self.click()
+        self.assertEqual(self.inputs, [(THREAD, TURN, TEXT)])
 
     def test_late_deletes_old_text_before_repost_and_keeps_both_routes(self):
         self.make_late()

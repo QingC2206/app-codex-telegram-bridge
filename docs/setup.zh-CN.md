@@ -133,6 +133,22 @@ Windows 示例：
 
 可将 `doctor` 替换为 `setup`、`language zh`、`language en`、`service start`、`service stop` 或 `uninstall`。自定义环境的 `--codex-home` / `--data-dir` 放在子命令之前。本机 CLI 修改语言后，发送 Telegram `/language` 或重启服务刷新命令菜单。
 
+## 一键发送 Desktop 建议
+
+此功能适用于 Windows Microsoft Store 版 Codex、Desktop 后端以及已开启消息预览的 Robot。使用安装 Robot 的 Python 执行以下命令。自定义环境需在每个子命令前传入对应的 `--codex-home` 和 `--data-dir`。
+
+```powershell
+$robotPython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Scripts\python.exe'
+& $robotPython -m codex_telegram_bridge desktop-suggestions enable
+& $robotPython -m codex_telegram_bridge service stop
+& $robotPython -m codex_telegram_bridge service start
+& $robotPython -m codex_telegram_bridge desktop-suggestions status
+```
+
+下次正常退出这个 Desktop 后，从桌面上的 **Codex Desktop - Telegram** 快捷方式启动。状态里的 `enabled` 表示当前 Robot 已启用来源，`relay` 从 `inactive` 变为 `connected` 表示专用启动已生效。快捷方式把启动配置仅传给该实例。Cockpit 隔离 profile 需要独立的 Electron 用户数据目录；配置目标为主账号时，第二个账号继续使用原入口。
+
+要关闭此功能，运行 `desktop-suggestions disable`，重启 Robot，下次用原 Desktop 入口启动。[建议卡的使用方式](usage.zh-CN.md#desktop-建议回复)
+
 ## 更新与卸载
 
 执行 `git pull --ff-only` 后重新运行本平台安装命令。现有凭据、消息关联和语言偏好会保留。同一 Token 不应交给多个运行中的轮询服务。

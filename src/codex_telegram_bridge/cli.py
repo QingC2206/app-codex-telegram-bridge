@@ -27,6 +27,9 @@ def main(argv=None):
     commands.add_parser('uninstall', help='remove owned hooks/service, keeping credentials and messages')
     service = commands.add_parser('service')
     service.add_argument('action', choices=['install', 'start', 'stop', 'status', 'uninstall'])
+    suggestions = commands.add_parser('desktop-suggestions', help='manage the Windows Desktop suggestion shortcut')
+    suggestions.add_argument('action', choices=['enable', 'disable', 'status', 'start'])
+    suggestions.add_argument('--desktop-user-data-dir', type=Path)
     configure = commands.add_parser('configure-app-server', help='select the official app-server backend')
     configure.add_argument('--codex', type=Path)
     configure.add_argument('--cwd', type=Path, required=True)
@@ -52,6 +55,9 @@ def main(argv=None):
     if args.command == 'service':
         from .management.services import manage
         return manage(args.action)
+    if args.command == 'desktop-suggestions':
+        from .platforms.windows.desktop_launch import manage
+        return manage(args.action, args.desktop_user_data_dir)
     if args.command == 'setup':
         from .telegram.notifications import setup
         return setup()

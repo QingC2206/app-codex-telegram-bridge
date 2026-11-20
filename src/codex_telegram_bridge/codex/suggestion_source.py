@@ -10,6 +10,7 @@ from hashlib import sha256
 from importlib.metadata import entry_points
 import json
 import re
+import sys
 
 from .desktop import DesktopIpcUnavailable, completed_turn_target, validate_thread_profile
 from ..paths import codex_home
@@ -21,6 +22,8 @@ ID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 
 @lru_cache(maxsize=4)
 def installed(name):
+    if name == 'windows-desktop' and sys.platform != 'win32':
+        return None
     matches = list(entry_points(group=GROUP, name=name))
     return matches[0] if len(matches) == 1 else None
 
@@ -58,9 +61,15 @@ def observe(desktop, name, thread, turn, *, endpoint=None, keep_pending_owner=Fa
     if not isinstance(value, dict) or (value.get('hostId'), value.get('threadId'),
             value.get('sourceTurnId')) != ('local', thread, turn):
         return None
-    ids = [value.get(field) for field in ('accountId', 'userId')]
-    if not all(isinstance(part, str) and part.strip() and len(part) <= 256 for part in ids):
-        return None
+    if name == 'windows-desktop':
+        epoch = value.get('principalEpoch')
+        if not isinstance(epoch, str) or not re.fullmatch('[0-9a-f]{32}', epoch):
+            return None
+        ids = [epoch]
+    else:
+        ids = [value.get(field) for field in ('accountId', 'userId')]
+        if not all(isinstance(part, str) and part.strip() and len(part) <= 256 for part in ids):
+            return None
     scope = [name, str(endpoint.profile), endpoint.pid, endpoint.pipe, thread, turn, *ids]
     owner = sha256(json.dumps(scope).encode()).hexdigest()
     desktop._check_instance(endpoint, thread)

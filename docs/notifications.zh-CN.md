@@ -4,7 +4,9 @@
 
 ## Desktop 建议来源
 
-一键发送建议面向能读取 **Desktop 检查通过后的输入框结果** 的客户端集成。当前版本没有随包提供适用于标准 Windows Desktop 的来源。PR 作者提供了手机实测截图。本机 Desktop 的按轮次放行日志只有任务、轮次和判定结果，普通回复中的 JSON 也不能证明某段原文是输入框最终采用的建议。[PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
+内置 Windows 来源复用了 PR #3 的取值方法。专用快捷方式让选定的 Microsoft Store Desktop 通过本地中转程序启动自己的配套后端。中转程序按原样转发标准输入输出，将 `thread/sample` 的 `composer_predictions` 请求与同一请求 ID 的响应配对。它核对来源任务、轮次、候选标识和该 Desktop 进程的放行记录。只有同一轮能对应到唯一建议时，Robot 才能读取原文。[启用方式](setup.zh-CN.md#一键发送-desktop-建议) · [PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
+
+候选原文暂存在中转进程内存中。Robot 通过核对进程身份的本地命名管道读取结果，连接凭据由 Windows DPAPI 保护。中转程序按账号变更事件和登录文件的元数据使旧按钮失效。Desktop 重启后，旧会话的建议也随之失效。缺少来源、证据冲突或 Desktop 版本改变协议时，仍然发送普通完成通知。
 
 可信本地 Python 包可以在 `codex_telegram_bridge.desktop_suggestions` 入口组注册读取函数。在对应 profile 的通知配置中将 `desktop_suggestion_source` 设为入口名称，随后重启 Robot。函数接收已核实的 `DesktopEndpoint`、完整任务 ID 和完成轮次 ID，只读取当前登录账号已有的结果。适配器有责任核实候选已经通过 Desktop 的最终检查。
 
@@ -12,6 +14,7 @@
 | --- | --- |
 | `hostId`、`threadId`、`sourceTurnId` | 精确匹配本机 Desktop、原任务与原轮次。 |
 | `accountId`、`userId` | 当前 Desktop 账号和用户。建议尚在生成时，返回这些关联字段并将正文设为空值。 |
+| `principalEpoch` | 内置 Windows 来源用随机会话标识绑定当前登录状态，账号变更或中转重启时重新生成。其他适配器使用上面的账号字段。 |
 | `responseId`、`text` | 最终候选标识和完整原文。无法确认账号或任务归属时，函数返回 `None`。 |
 
 Robot 在原卡发出时记录 Desktop 实例及账号关联，在删除原卡前、删除后和提交用户输入前重新核验。profile 本地的 SQLite 日志保存排版后的通知及标识摘要，在功能运行时清理超过 47 小时的记录。新卡沿用回复引用、话题和通知设置。新卡或用户输入的回执不明时会停止重试。用户点击已送达的新卡时可以补认消息 ID。Telegram 已删除消息上的表情回应无法迁移。[Telegram 删除规则](https://core.telegram.org/bots/api#deletemessages)

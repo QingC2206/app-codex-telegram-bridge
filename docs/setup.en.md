@@ -87,6 +87,22 @@ On Windows:
 
 Replace `doctor` with `setup`, `language en`, `language zh`, `service start`, `service stop`, or `uninstall` as needed. With a custom profile, put `--codex-home` / `--data-dir` before the subcommand. Changing language through the local CLI updates text rendering; use Telegram `/language` or restart the service to refresh command menus.
 
+## One-tap Desktop suggestions
+
+Use the Windows Microsoft Store version of Codex, the Desktop backend and a Robot with message previews enabled. Run the following commands with the Robot's installed Python. For a custom installation, pass its `--codex-home` and `--data-dir` before each subcommand.
+
+```powershell
+$robotPython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Scripts\python.exe'
+& $robotPython -m codex_telegram_bridge desktop-suggestions enable
+& $robotPython -m codex_telegram_bridge service stop
+& $robotPython -m codex_telegram_bridge service start
+& $robotPython -m codex_telegram_bridge desktop-suggestions status
+```
+
+After you next quit this Desktop, start it using the **Codex Desktop - Telegram** shortcut on the Windows desktop. Status reports `enabled` for the Robot configuration. The `relay` field changes from `inactive` to `connected` once the selected Desktop starts its local app-server through the shortcut. Only this launch receives the setting. An isolated Cockpit profile needs its own Electron user-data directory. Other profiles keep their usual launchers.
+
+To turn the feature off, run `desktop-suggestions disable`, restart the Robot and use your usual Desktop launcher next time. [Using suggestion cards](usage.en.md#desktop-suggested-replies)
+
 ## Updates and uninstall
 
 Run `git pull --ff-only`, then rerun the installation command for your platform. Existing credentials, message associations, and the language preference are retained. Avoid multiple running copies with the same token.

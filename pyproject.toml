@@ -25,6 +25,10 @@ dev = ["build>=1.2", "wheel", "packaging>=23"]
 
 [project.scripts]
 codex-telegram-bridge = "codex_telegram_bridge.cli:main"
+codex-telegram-desktop-proxy = "codex_telegram_bridge.platforms.windows.desktop_proxy:main"
+
+[project.entry-points."codex_telegram_bridge.desktop_suggestions"]
+windows-desktop = "codex_telegram_bridge.platforms.windows.suggestion_pipe:read_approved"
 
 [project.urls]
 Repository = "https://github.com/QingC2206/app-codex-telegram-bridge"

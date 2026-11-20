@@ -12,6 +12,8 @@ Documentation and the Telegram interface support Chinese and English, with Chine
 
 [Installation](docs/setup.en.md) · [Usage](docs/usage.en.md) · [Plugin API](docs/plugins.en.md) · [Changelog](CHANGELOG.md) · [Documentation index](docs/README.en.md)
 
+On Windows, the Microsoft Store edition of Desktop can share its approved composer suggestion with Telegram. Tap **Send suggested reply** on the completion card to send the exact text to the original chat. When a suggestion arrives late, the ordinary notification arrives first and the bot replaces it with a card containing the button. [Set up the per-profile shortcut](docs/setup.en.md#one-tap-desktop-suggestions)
+
 The default **Desktop backend** connects only to Codex Desktop and its bundled backend. It never automatically falls back to the VS Code extension or a standalone Codex CLI found on `PATH`. Messages for existing Desktop tasks go through the Desktop instance that owns them; the bot does not take over those tasks through a separate backend.
 
 Local tasks **started from iOS before their desktop window loads** are supported: queries remain read-only; sending, answering, and stopping load the original window on demand and verify the task/turn. See the [usage guide](docs/usage.en.md#tasks-started-from-ios-before-their-desktop-window-loads) for details and dual-instance limitations.

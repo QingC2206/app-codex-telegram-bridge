@@ -10,6 +10,8 @@
 
 [安装指南](docs/setup.zh-CN.md) · [使用指南](docs/usage.zh-CN.md) · [插件 API](docs/plugins.zh-CN.md) · [更新日志](CHANGELOG.md) · [文档目录](docs/README.md)
 
+Windows 的 Microsoft Store 版 Desktop 可选开启**一键发送建议回复**。Telegram 完成卡会引用该实例输入框里已放行的建议原文，点一次即可发回原任务。建议晚到时，Robot 先送达普通通知，再替换为带按钮的卡片。[配置专用快捷方式](docs/setup.zh-CN.md#一键发送-desktop-建议)
+
 默认 **Desktop 模式**只连接 Codex Desktop 及其配套后端，不自动回退到其他客户端。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
 
 另可明确选择[官方 app-server 模式](docs/app-server.md)：通过官方 JSONL 协议执行 Telegram 任务，复用本机 Codex 登录，支持任务续聊与追加、审批、附件、进度、变更、额度、截图和持久化投递。Desktop 完成通知使用独立 Stop Hook，保留已有 `notify`；回复通知中的文字消息会通过 Desktop 持有者继续原对话，保留上下文和任务编号。消息展示复用 Windows 版富文本、完成卡片和原生状态表情，提供任务筛选、进度卡片、完整回复分页和下载按钮；确认未提交的 Desktop 消息可手动重试原任务。具体插件扩展不包含在此模式中。下文原有功能列表及安装器描述适用于 Desktop 模式；使用已有 Conda 环境时请按 app-server 专用步骤安装。

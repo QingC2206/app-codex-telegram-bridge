@@ -195,7 +195,7 @@ def send_completion(config, token, request, decision, turn, *, subagent=None):
         # the observation already started for this completion. A future account
         # can never claim a notification whose original owner was unverified.
         try:
-            observation = result.get(timeout=0.4)
+            observation = result.get(timeout=2.5)
         except queue.Empty:
             observation = None
     try:
