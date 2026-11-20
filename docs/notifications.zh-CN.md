@@ -4,6 +4,14 @@
 
 ## Desktop 建议来源
 
+消息预览开启时，默认来源 `desktop-hook` 在通知过滤前收集 `notify` 或 `Stop` 中的输入框建议。明确的 `composer_predictions` 来源可以识别这类回调。旧格式需匹配 Desktop 的生成请求，且在本环境可读的任务记录中查无该临时任务。正常对话里用户要求的 `{"suggestion":"…"}` 仍按普通回复投递。
+
+两次回调可按生成任务的完整 ID 和生成轮次汇合。原任务和原轮次取自回调的结构化来源字段，例如 `responsesapiClientMetadata.prediction_source_thread_id` 与 `prediction_source_turn_id`。正文或来源均可先到。Robot 在确认钩子由对应 Desktop 进程派生、候选唯一且同一进程明确放行该原轮次后，才会挂到原完成卡上。归属不明的建议不会发成独立消息。Desktop 只在 `thread/sample` 的返回值里提供原文时，这两个 Hook 无法取得它。
+
+如果回调给出了原轮次但缺少原任务 ID，Robot 还可以从当前 profile 的 `thread_spawn_edges` 核对生成任务的父任务，并在使用时复核。只有父任务、没有原轮次的记录会继续等待。
+
+Hook 候选暂存在 Robot 数据目录的 `telegram_hook_suggestions.sqlite3`，最多 1024 条生成记录。访问时和后台服务运行期间会清理超过 47 小时的记录。Robot 通过当前进程和 profile 中 `auth.json` 的文件元数据核对登录状态。无法核实时保留普通卡。Desktop 重启、登录文件变化或静默模式切换会使旧关联失效。普通通知日志不记录候选原文。macOS 的 Desktop 放行记录取自应用日志目录。[Codex 日志位置](https://learn.chatgpt.com/docs/reference/troubleshooting)
+
 内置 Windows 来源复用了 PR #3 的取值方法。专用快捷方式让选定的 Microsoft Store Desktop 通过本地中转程序启动自己的配套后端。中转程序按原样转发标准输入输出，将 `thread/sample` 的 `composer_predictions` 请求与同一请求 ID 的响应配对。它核对来源任务、轮次、候选标识和该 Desktop 进程的放行记录。只有同一轮能对应到唯一建议时，Robot 才能读取原文。[启用方式](setup.zh-CN.md#一键发送-desktop-建议) · [PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
 
 候选原文暂存在中转进程内存中。Robot 通过核对进程身份的本地命名管道读取结果，连接凭据由 Windows DPAPI 保护。中转程序按账号变更事件和登录文件的元数据使旧按钮失效。Desktop 重启后，旧会话的建议也随之失效。缺少来源、证据冲突或 Desktop 版本改变协议时，仍然发送普通完成通知。
@@ -14,7 +22,7 @@
 | --- | --- |
 | `hostId`、`threadId`、`sourceTurnId` | 精确匹配本机 Desktop、原任务与原轮次。 |
 | `accountId`、`userId` | 当前 Desktop 账号和用户。建议尚在生成时，返回这些关联字段并将正文设为空值。 |
-| `principalEpoch` | 内置 Windows 来源用随机会话标识绑定当前登录状态，账号变更或中转重启时重新生成。其他适配器使用上面的账号字段。 |
+| `principalEpoch` | 两个内置来源使用当前 Desktop 会话标识。其他适配器使用上面的账号字段。 |
 | `responseId`、`text` | 最终候选标识和完整原文。无法确认账号或任务归属时，函数返回 `None`。 |
 
 Robot 在原卡发出时记录 Desktop 实例及账号关联，在删除原卡前、删除后和提交用户输入前重新核验。profile 本地的 SQLite 日志保存排版后的通知及标识摘要，在功能运行时清理超过 47 小时的记录。新卡沿用回复引用、话题和通知设置。新卡或用户输入的回执不明时会停止重试。用户点击已送达的新卡时可以补认消息 ID。Telegram 已删除消息上的表情回应无法迁移。[Telegram 删除规则](https://core.telegram.org/bots/api#deletemessages)

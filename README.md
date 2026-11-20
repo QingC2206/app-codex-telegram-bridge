@@ -10,7 +10,7 @@
 
 [安装指南](docs/setup.zh-CN.md) · [使用指南](docs/usage.zh-CN.md) · [插件 API](docs/plugins.zh-CN.md) · [更新日志](CHANGELOG.md) · [文档目录](docs/README.md)
 
-Windows 的 Microsoft Store 版 Desktop 可选开启**一键发送建议回复**。Telegram 完成卡会引用该实例输入框里已放行的建议原文，点一次即可发回原任务。建议晚到时，Robot 先送达普通通知，再替换为带按钮的卡片。[配置专用快捷方式](docs/setup.zh-CN.md#一键发送-desktop-建议)
+开启消息预览后，Robot 默认通过已有的 Desktop Hook 接收输入框建议。兼容版本提供建议原文、原任务和轮次且 Desktop 已放行时，Telegram 完成卡会显示 **发送建议回复**。点一次即可把原文发回该任务。建议晚到时，Robot 会替换先前的普通卡片。Windows 也可选用专用快捷方式读取建议。[配置与版本条件](docs/setup.zh-CN.md#一键发送-desktop-建议)
 
 默认 **Desktop 模式**只连接 Codex Desktop 及其配套后端，不自动回退到其他客户端。原 Desktop 任务始终经当前持有者接收用户消息，不由机器人另起后端接管。
 

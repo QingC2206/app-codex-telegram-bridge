@@ -127,7 +127,8 @@ class CaptureTests(unittest.TestCase):
         logfile = folder/'codex-desktop-test-123-t0-i1-test.log'
         prefix = (now.isoformat() + ' info [cumberbatch] cumberbatch_safety_decision ' +
                   f'sourceThreadId={THREAD} sourceTurnId={TURN} suppressed=')
-        with patch.dict(os.environ, LOCALAPPDATA=str(self.profile)):
+        with patch.dict(os.environ, LOCALAPPDATA=str(self.profile)), patch(
+                'codex_telegram_bridge.codex.composer_approval.sys.platform', 'win32'):
             def ok(pid=123, turn=TURN, when=None):
                 return capture.approved_in_log(pid, (THREAD, turn), when or time.time()-20)
             self.assertFalse(ok())

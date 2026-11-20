@@ -1906,12 +1906,23 @@ def is_empty_internal_exclusion_completion(payload: dict[str, Any]) -> bool:
     return completion_thread_source(payload) == 'ambient_suggestion_safety'
 
 
+def observe_hook_suggestion(payload, decision=None):
+    from ..codex import hook_suggestions
+    try:
+        hook_suggestions.capture(payload, decision)
+    except Exception as exc:
+        # The observer is optional. Neither candidate text nor a broken adapter
+        # may affect ordinary delivery, structural diagnostics or their logs.
+        log_error('Desktop hook suggestion unavailable: ' + type(exc).__name__)
+
+
 def route_completion(payload):
     """One provenance gate for both completion transports, before any delivery."""
     from . import completion_routing as routing, pending_completions as pending
     decision = routing.classify(payload, SOURCE_STATE_ROOT)
     if decision.deliver:
         return decision
+    observe_hook_suggestion(payload, decision)
     safe_id = decision.thread_id[:8] or 'unknown'
     diagnostic = ''
     if decision.kind == 'unknown':

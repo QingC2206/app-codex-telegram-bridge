@@ -89,7 +89,11 @@ Replace `doctor` with `setup`, `language en`, `language zh`, `service start`, `s
 
 ## One-tap Desktop suggestions
 
-Use the Windows Microsoft Store version of Codex, the Desktop backend and a Robot with message previews enabled. Run the following commands with the Robot's installed Python. For a custom installation, pass its `--codex-home` and `--data-dir` before each subcommand.
+Install the bridge, enable message previews and start Desktop as usual. The background service defaults to `desktop-hook` and listens on the existing `notify` and `Stop` callbacks. The button requires a callback carrying the suggestion text, a verifiable source chat and turn, and a Desktop approval for that turn. Builds that keep the text inside Desktop continue to send ordinary completion cards. [Source and version requirements](notifications.en.md#desktop-suggestion-sources)
+
+To select the hook explicitly, set `desktop_suggestion_source` to `"desktop-hook"` in the notification settings and restart the bridge. An empty string `""` disables suggested replies.
+
+Windows Microsoft Store installations can optionally capture `thread/sample` responses through a dedicated shortcut. Run the following commands with the bridge's installed Python. For custom installations, pass `--codex-home` and `--data-dir` before each subcommand.
 
 ```powershell
 $robotPython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Scripts\python.exe'
@@ -99,7 +103,7 @@ $robotPython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Script
 & $robotPython -m codex_telegram_bridge desktop-suggestions status
 ```
 
-After you next quit this Desktop, start it using the **Codex Desktop - Telegram** shortcut on the Windows desktop. Status reports `enabled` for the Robot configuration. The `relay` field changes from `inactive` to `connected` once the selected Desktop starts its local app-server through the shortcut. Only this launch receives the setting. An isolated Cockpit profile needs its own Electron user-data directory. Other profiles keep their usual launchers.
+After you next quit this Desktop, start it using the **Codex Desktop - Telegram** shortcut on the Windows desktop. Status reports `enabled` when the Windows relay source is selected. The `relay` field changes from `inactive` to `connected` once the shortcut takes effect. If you use the normal launcher while the relay is inactive, new completion cards can still use compatible hook callbacks. Each card stays pinned to its original source. Only the selected instance receives the shortcut's launch settings. An isolated Cockpit profile needs its own Electron user-data directory.
 
 To turn the feature off, run `desktop-suggestions disable`, restart the Robot and use your usual Desktop launcher next time. [Using suggestion cards](usage.en.md#desktop-suggested-replies)
 

@@ -1,9 +1,4 @@
-"""Read an already approved composer result from an explicitly installed adapter.
-
-The stock app-server prediction notification has no candidate-level Desktop
-approval. Ordinary completions, instruction text and model samples are never
-inputs to this reader.
-"""
+"""Read an approved composer result and pin it to the original Desktop owner."""
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -17,6 +12,7 @@ from ..paths import codex_home
 
 
 GROUP = 'codex_telegram_bridge.desktop_suggestions'
+HOOK_SOURCE = 'desktop-hook'
 ID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 
 
@@ -30,7 +26,9 @@ def installed(name):
 
 @lru_cache(maxsize=4)
 def reader_for(name):
-    """Only an administrator-selected, locally installed adapter can supply text."""
+    if name == HOOK_SOURCE:
+        from .hook_suggestions import read_approved
+        return read_approved
     adapter = installed(name)
     return adapter.load() if adapter else None
 
@@ -47,7 +45,7 @@ class Observation:
     suggestion: Suggestion | None
 
 
-def observe(desktop, name, thread, turn, *, endpoint=None, keep_pending_owner=False):
+def observe(desktop, name, thread, turn, *, endpoint=None, keep_pending_owner=False, hook_fallback=True):
     reader = reader_for(name)
     if reader is None:
         return None
@@ -58,10 +56,13 @@ def observe(desktop, name, thread, turn, *, endpoint=None, keep_pending_owner=Fa
     # The reader must get the final result for the *current* Desktop principal.
     # None also represents revocation, account change, abstention or cache loss.
     value = reader(endpoint, thread, turn)
+    if value is None and name == 'windows-desktop' and hook_fallback:
+        name = HOOK_SOURCE
+        value = reader_for(name)(endpoint, thread, turn)
     if not isinstance(value, dict) or (value.get('hostId'), value.get('threadId'),
             value.get('sourceTurnId')) != ('local', thread, turn):
         return None
-    if name == 'windows-desktop':
+    if name in ('windows-desktop', HOOK_SOURCE):
         epoch = value.get('principalEpoch')
         if not isinstance(epoch, str) or not re.fullmatch('[0-9a-f]{32}', epoch):
             return None
@@ -72,6 +73,8 @@ def observe(desktop, name, thread, turn, *, endpoint=None, keep_pending_owner=Fa
             return None
     scope = [name, str(endpoint.profile), endpoint.pid, endpoint.pipe, thread, turn, *ids]
     owner = sha256(json.dumps(scope).encode()).hexdigest()
+    if name == HOOK_SOURCE:
+        owner = 'hook:' + owner
     desktop._check_instance(endpoint, thread)
     text = value.get('text')
     if text is None:
@@ -95,5 +98,7 @@ def observe(desktop, name, thread, turn, *, endpoint=None, keep_pending_owner=Fa
 
 
 def read_current(desktop, name, thread, turn, *, owner, endpoint=None):
-    result = observe(desktop, name, thread, turn, endpoint=endpoint)
+    if name == 'windows-desktop' and isinstance(owner, str) and owner.startswith('hook:'):
+        name = HOOK_SOURCE
+    result = observe(desktop, name, thread, turn, endpoint=endpoint, hook_fallback=False)
     return result.suggestion if result and result.owner == owner else None

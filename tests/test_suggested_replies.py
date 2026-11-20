@@ -318,7 +318,7 @@ class SuggestedReplyTests(unittest.TestCase):
             self.poll()
         self.assertEqual(self.methods(), ['sendRichMessage'])
 
-    def test_unconfigured_install_uses_ordinary_sender_and_stores_nothing(self):
+    def test_default_hook_without_login_uses_ordinary_sender_and_stores_nothing(self):
         self.config.pop('desktop_suggestion_source')
         self.request['text'] = '{"suggestion":"Ordinary user-requested JSON"}'
         self.send()

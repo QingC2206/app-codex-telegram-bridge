@@ -114,6 +114,23 @@ def _read_db(profile, prefix):
     return db
 
 
+def spawn_parent(profile, child):
+    """Resolve the full child ID against the selected profile's native fork edges."""
+    try:
+        db = _read_db(_resolved(profile), 'state')
+        if db is not None:
+            try:
+                rows = db.execute('SELECT parent_thread_id FROM thread_spawn_edges WHERE child_thread_id=? LIMIT 2',
+                                  (child,)).fetchall()
+            finally:
+                db.close()
+            if len(rows) == 1 and isinstance(rows[0][0], str) and rows[0][0] != child:
+                return rows[0][0]
+    except (OSError, RuntimeError, sqlite3.Error):
+        pass
+    return None
+
+
 def _safe_rollout(profile, path, thread_id):
     if not path:
         return None

@@ -4,6 +4,14 @@
 
 ## Desktop suggestion sources
 
+With message previews enabled, the default `desktop-hook` source collects composer suggestions from `notify` and `Stop` before notification filtering. It recognizes explicit `composer_predictions` provenance. The legacy form requires the known Desktop generation request and a temporary task absent from the readable profile records. User-requested `{"suggestion":"…"}` JSON in an ordinary chat is delivered normally.
+
+The full generation thread and turn IDs join two callbacks. Structured source fields identify the original chat and turn, for example `responsesapiClientMetadata.prediction_source_thread_id` and `prediction_source_turn_id`. The text and binding may arrive in either order. The bridge verifies that the hook descended from the selected Desktop process and that this process approved the original turn with one matching candidate. Unbound candidates stay private. If a build supplies the text only in a `thread/sample` response, these two hooks cannot see it.
+
+When a callback identifies the source turn alone, the bridge can resolve the generation's parent from the profile's `thread_spawn_edges` table and recheck that link each time the suggestion is used. A parent without a source turn stays pending.
+
+The profile-local `telegram_hook_suggestions.sqlite3` holds up to 1,024 generation records. Access and periodic service cleanup remove records older than 47 hours. The bridge identifies the login session using the Desktop process and file metadata for the profile's `auth.json`. An unverifiable session keeps the ordinary card. Changes to the process, login file or quiet-mode generation invalidate old associations. Ordinary notification logs omit candidate text. On macOS the final decision is read from the Desktop application log directory. [Codex log locations](https://learn.chatgpt.com/docs/reference/troubleshooting)
+
 The bundled Windows source uses the approach contributed in PR #3. A dedicated shortcut launches the selected Microsoft Store Desktop with a local relay for its bundled backend. The relay forwards the original stdio bytes and pairs each `composer_predictions` request to `thread/sample` with the response for that request ID. It verifies the source thread, turn, candidate identity and approval recorded by that Desktop process. Only a uniquely attributable suggestion can be read. [Setup](setup.en.md#one-tap-desktop-suggestions) · [PR #3](https://github.com/QingC2206/app-codex-telegram-bridge/pull/3)
 
 Candidate text stays in the relay's memory. The Robot reads approved results through a local named pipe with process checks and a Windows DPAPI-protected capability. Account-change events, changes to login-file metadata and a relay restart invalidate prior buttons. Missing or conflicting evidence, or an incompatible Desktop update, leaves ordinary completion notifications available.
@@ -14,7 +22,7 @@ An installed Python package can register a callable in the `codex_telegram_bridg
 | --- | --- |
 | `hostId`, `threadId`, `sourceTurnId` | Exact target. Only the local Desktop host is accepted. |
 | `accountId`, `userId` | Current Desktop principal bound to the target. Return the same context with null text while a suggestion is pending. |
-| `principalEpoch` | The bundled Windows source uses a random session identifier that changes on account changes or relay restarts. Other adapters supply the account fields above. |
+| `principalEpoch` | Both built-in sources bind results to the current Desktop session. Other adapters supply the account fields above. |
 | `responseId`, `text` | Identity and full literal text of the approved candidate. Return `None` for an unverifiable owner. |
 
 The bridge pins the original Desktop instance and principal when sending the ordinary card. It checks the candidate again before deleting the old card, after deletion and before submitting user input. Its profile-local SQLite journal retains prepared Telegram text and hashed identities for up to 47 hours of active operation. The outgoing text card keeps the reply target, topic and delivery preferences. A lost acknowledgement for the replacement or the task input never triggers an automatic duplicate. An authorized click on the replacement can confirm its message ID. Telegram reactions on the deleted message are lost. [Telegram deletion semantics](https://core.telegram.org/bots/api#deletemessages)

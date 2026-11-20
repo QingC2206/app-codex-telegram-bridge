@@ -135,7 +135,11 @@ Windows 示例：
 
 ## 一键发送 Desktop 建议
 
-此功能适用于 Windows Microsoft Store 版 Codex、Desktop 后端以及已开启消息预览的 Robot。使用安装 Robot 的 Python 执行以下命令。自定义环境需在每个子命令前传入对应的 `--codex-home` 和 `--data-dir`。
+安装 Robot、启用消息预览后，按平常方式启动 Desktop 即可。后台服务默认使用 `desktop-hook`，从已有的 `notify` 和 `Stop` 接收输入框建议。显示按钮需要 Desktop 通过回调提供正文、提供可核对的原任务与轮次，并为该轮记录放行决定。只把建议返回给自己进程的版本会继续收到普通完成卡。[来源与版本条件](notifications.zh-CN.md#desktop-建议来源)
+
+需要显式选择来源时，在通知配置中将 `desktop_suggestion_source` 设为 `"desktop-hook"`，随后重启 Robot。空字符串 `""` 可关闭建议卡。
+
+Windows Microsoft Store 版还可选用专用快捷方式采集 `thread/sample` 的返回值。使用安装 Robot 的 Python 执行以下命令。自定义环境需在每个子命令前传入对应的 `--codex-home` 和 `--data-dir`。
 
 ```powershell
 $robotPython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Scripts\python.exe'
@@ -145,7 +149,7 @@ $robotPython = Join-Path $env:USERPROFILE '.codex\telegram-bridge-runtime\Script
 & $robotPython -m codex_telegram_bridge desktop-suggestions status
 ```
 
-下次正常退出这个 Desktop 后，从桌面上的 **Codex Desktop - Telegram** 快捷方式启动。状态里的 `enabled` 表示当前 Robot 已启用来源，`relay` 从 `inactive` 变为 `connected` 表示专用启动已生效。快捷方式把启动配置仅传给该实例。Cockpit 隔离 profile 需要独立的 Electron 用户数据目录；配置目标为主账号时，第二个账号继续使用原入口。
+下次正常退出这个 Desktop 后，从桌面上的 **Codex Desktop - Telegram** 快捷方式启动。状态里的 `enabled` 表示已选择 Windows 中转来源，`relay` 从 `inactive` 变为 `connected` 表示专用启动已生效。使用原图标且中转未连接时，新完成卡仍可使用兼容的 Hook 回调。每张卡固定使用首次确认的来源。快捷方式只给选定实例传递启动配置。Cockpit 隔离 profile 需要独立的 Electron 用户数据目录。
 
 要关闭此功能，运行 `desktop-suggestions disable`，重启 Robot，下次用原 Desktop 入口启动。[建议卡的使用方式](usage.zh-CN.md#desktop-建议回复)
 

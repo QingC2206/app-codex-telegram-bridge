@@ -1,6 +1,6 @@
 """Desktop Stop notifications are independent of the task execution backend.
 
-The hook writes a local inbox only: no credentials, network calls or Desktop IPC.
+The hook writes local inbox/candidate records without network or Desktop IPC.
 Codex itself owns review/trust of this hook definition.
 """
 from datetime import datetime, timezone
@@ -113,9 +113,12 @@ def main(arguments=None):
         payload = json.loads(raw)
         # Filter before initializing/migrating a database or waking the service.
         if (os.environ.get('CODEX_TELEGRAM_MANAGED_APP_SERVER') != '1'
-                and os.environ.get('CODEX_TELEGRAM_SIDE_CHAT') != '1' and envelope(payload)):
-            state = BridgeState(ensure_data_dir()/'app-server-state.sqlite3')
-            ingest(payload, state)
+                and os.environ.get('CODEX_TELEGRAM_SIDE_CHAT') != '1'):
+            from ..telegram.notifications import observe_hook_suggestion
+            observe_hook_suggestion(payload)  # Ephemeral predictions may have no session transcript.
+            if envelope(payload):
+                state = BridgeState(ensure_data_dir()/'app-server-state.sqlite3')
+                ingest(payload, state)
     except Exception as exc:
         print('Telegram Desktop hook: '+type(exc).__name__, file=sys.stderr)
     finally:

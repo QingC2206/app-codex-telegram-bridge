@@ -8,6 +8,7 @@ import sys
 
 from ...management.transaction import atomic_write
 from ...paths import codex_home, data_dir
+from ...codex.suggestion_source import HOOK_SOURCE
 from .composer_capture import SOURCE
 from .desktop_proxy import PROXY, PROFILE_MARKER, bundled_runtime
 
@@ -162,7 +163,7 @@ def manage(action, user_data=None):
                               relay='connected' if live else 'inactive'), ensure_ascii=True))
         return 0
     cfg = json.loads(_config().read_text(encoding='utf-8-sig'))
-    if cfg.get('desktop_suggestion_source') not in (None, '', SOURCE):
+    if cfg.get('desktop_suggestion_source') not in (None, '', SOURCE, HOOK_SOURCE):
         raise RuntimeError('This profile already uses a different suggestion adapter.')
     if action == 'enable':
         from ...management.runtime import load_settings
@@ -185,6 +186,7 @@ def manage(action, user_data=None):
         print(link)
     elif action == 'disable':
         shortcut('disable')
-        if cfg.pop('desktop_suggestion_source', None) == SOURCE:
+        if cfg.get('desktop_suggestion_source') != '':
+            cfg['desktop_suggestion_source'] = ''
             atomic_write(_config(), (json.dumps(cfg, ensure_ascii=False, indent=2) + '\n').encode())
     return 0

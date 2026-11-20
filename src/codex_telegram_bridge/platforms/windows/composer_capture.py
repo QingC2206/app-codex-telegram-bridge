@@ -1,25 +1,19 @@
 """Observe only Desktop composer samples and account boundaries on local stdio."""
 from dataclasses import dataclass
-from datetime import datetime, timezone
 import json
-import os
-from pathlib import Path
-import re
 import secrets
 import threading
 import time
 
+from ...codex.composer_approval import TTL, approved_in_log, auth_stamp
 from ...codex.suggestion_source import ID
 
 
 SOURCE = 'windows-desktop'
-TTL = 47 * 3600
 MAX_TURNS = 1024
 MAX_FRAME = 2 * 1024 * 1024
 AUTH_METHODS = {'account/updated', 'account/login/start', 'account/login/completed',
                 'account/logout', 'account/switch', 'account/authTokens/refresh'}
-SAFETY = re.compile(rb'^(\S+) info \[cumberbatch\] cumberbatch_safety_decision '
-                    rb'sourceThreadId=([0-9a-f-]{36}) sourceTurnId=([0-9a-f-]{36}) suppressed=(true|false)\b')
 
 
 def key_for(params):
@@ -29,57 +23,6 @@ def key_for(params):
     if all(isinstance(x, str) and ID.fullmatch(x) for x in (thread, turn)):
         return thread, turn
     return None
-
-
-def auth_stamp(profile):
-    # A Cockpit/external account switch may replace this file without an RPC.
-    # Check metadata only; token refreshes conservatively expire old buttons.
-    try:
-        stat = (profile / 'auth.json').stat()
-        return stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
-    except OSError:
-        return None
-
-
-def approved_in_log(pid, key, requested):
-    local = os.environ.get('LOCALAPPDATA')
-    if not local:
-        return False
-    roots = (Path(local) / 'Codex/Logs',
-             Path(local) / 'Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/Codex/Logs')
-    now = time.time()
-    if not 0 <= now - requested <= TTL:
-        return False
-    # Include the intervening day around midnight, local time and UTC.
-    dates = {dt.strftime('%Y/%m/%d') for ts in (requested, (requested + now)/2, now)
-             for dt in (datetime.fromtimestamp(ts), datetime.fromtimestamp(ts, timezone.utc))}
-    needles = tuple(s.encode('ascii') for s in key)
-    found = 0
-    for root in roots:
-        for day in dates:
-            for file in (root/day).glob(f'codex-desktop-*-{pid}-t0-i*-*.log'):
-                try:
-                    with file.open('rb') as log:
-                        # Inspect only recent decisions from this exact Desktop.
-                        # Missing or truncated evidence yields no suggestion.
-                        size = file.stat().st_size
-                        offset = max(0, size - 1024 * 1024)
-                        log.seek(offset)
-                        if offset:
-                            log.readline()
-                        for line in log:
-                            if b'cumberbatch_safety_decision' not in line or any(k not in line for k in needles):
-                                continue
-                            row = SAFETY.match(line)
-                            if not row or row.group(2, 3) != needles:
-                                continue
-                            stamp = datetime.fromisoformat(row[1].decode().replace('Z', '+00:00')).timestamp()
-                            if stamp < requested or row[4] != b'false' or found:
-                                return False
-                            found += 1
-                except (OSError, ValueError, OverflowError):
-                    return False
-    return found == 1
 
 
 @dataclass

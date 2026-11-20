@@ -1,5 +1,10 @@
 # 更新记录
 
+## 未发布 / Unreleased
+
+- 新增默认的 Desktop Hook 建议来源。Robot 可在原有通知过滤前收集输入框建议，按完整生成标识关联晚到的原文或归属，核对 Desktop 放行记录后更新对应的 Telegram 完成卡。正常 JSON 回复继续投递。支持这一回调的 Desktop 版本可沿用原启动入口。
+- Added a default Desktop hook source for suggested replies. It captures composer callbacks before notification filtering, joins late text or source metadata using the full generation IDs, and updates the matching Telegram card after Desktop approval. Ordinary JSON replies still reach Telegram. Compatible Desktop builds work with the usual launcher.
+
 ## 0.7.0 — 2026-11-20
 
 - 新增 #3 一键发送 Desktop 建议。Windows 用户可为单个 Microsoft Store Desktop 创建专用快捷方式。Robot 引用该实例为本轮生成并放行的建议，点击后将原文发回原任务一次。建议晚到时，先送达普通通知，再删除旧卡并重发，保留回复引用、附件路由和通知设置。

@@ -12,6 +12,7 @@ import threading
 import time
 
 from ..codex import suggestion_source as source
+from ..codex.composer_approval import auth_stamp
 from ..codex.desktop import DesktopControl, DesktopIpcInactive, DesktopIpcUnavailable, DesktopSubmissionUnknown
 from ..codex.ipc import CodexDesktopIpc
 from ..i18n import tr as _t
@@ -48,7 +49,7 @@ def _database():
 
 
 def _provider(config):
-    name = config.get('desktop_suggestion_source')
+    name = config.get('desktop_suggestion_source', source.HOOK_SOURCE)
     if (config.get('include_message_preview') is True and isinstance(name, str)
             and re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,95}', name)):
         return name
@@ -58,7 +59,7 @@ def _provider(config):
 def configured(config):
     name = _provider(config)
     try:
-        return bool(name and source.installed(name))
+        return name == source.HOOK_SOURCE or bool(name and source.installed(name))
     except Exception as exc:
         notify.log_error('Desktop suggestion adapter unavailable: ' + type(exc).__name__)
         return False
@@ -150,7 +151,8 @@ def send_completion(config, token, request, decision, turn, *, subagent=None):
     """Common hook, notify and deferred delivery. Never wait for generation."""
     name, thread = _provider(config), decision.thread_id
     if (subagent is not None or not name or decision.kind != 'conversation' or not source.ID.fullmatch(thread or '')
-            or not source.ID.fullmatch(turn or '') or not configured(config)):
+            or not source.ID.fullmatch(turn or '') or not configured(config)
+            or (name == source.HOOK_SOURCE and auth_stamp(notify.SOURCE_STATE_ROOT) is None)):
         return notify.send_markdown_message(token, request)
     result = queue.Queue(1)
     generation = notify.completion_generation()
@@ -171,6 +173,8 @@ def send_completion(config, token, request, decision, turn, *, subagent=None):
     rich = _rich_card(prepared, suggestion, button) if suggestion else None
     if notify.notifications_muted() or generation != notify.completion_generation():
         return None
+    if name == source.HOOK_SOURCE and observation is None and not pending:
+        return _send(token, prepared, allow_inherited_topic=True)
     now = time.time()
     try:
         with _database() as db:
@@ -213,8 +217,20 @@ def _backoff(row):
     return time.time() + (POLL_INTERVAL if age < 300 else 120 if age < 3600 else 900)
 
 
+def wake_hook_card(thread, turn):
+    if _path().is_file():
+        with _database() as db:
+            db.execute("""UPDATE cards SET due=0 WHERE (? IS NULL OR thread=?) AND turn=? AND state='plain'
+                          AND owner LIKE 'hook:%' AND touched=0""", (thread, thread, turn))
+
+
 def poll(config, token, desktop):
     """Bound each pass to one due card. Never run on a Telegram/RPC reader."""
+    from ..codex import hook_suggestions
+    try:
+        hook_suggestions.prune_if_due()
+    except (OSError, sqlite3.Error) as exc:
+        notify.log_error('Hook suggestion cleanup unavailable: ' + type(exc).__name__)
     if not _path().is_file():
         return
     with _database() as db:
@@ -227,6 +243,13 @@ def poll(config, token, desktop):
         _set(key, state, 'expired')
         return
     try:
+        if state == 'plain' and (row['owner'] or '').startswith('hook:'):
+            if not hook_suggestions.has_target(row['thread'], row['turn']):
+                _set(key, state, state, due=row['created'] + RETENTION)
+                # A hook could have committed and woken the card just as it was parked.
+                if hook_suggestions.has_target(row['thread'], row['turn']):
+                    wake_hook_card(row['thread'], row['turn'])
+                return
         suggestion = source.read_current(desktop, _provider(config), row['thread'], row['turn'], owner=row['owner'])
     except DesktopIpcInactive:
         suggestion = None

@@ -50,7 +50,7 @@ Use `/steer` to append to a running task and `/stop` to request interruption of 
 
 With a trusted source connected, the completion card quotes the exact suggestion Desktop generated for that turn. Tap **Send suggested reply** to send it as a new message in the original chat. The bridge checks the account, task and latest completed turn again when you tap. If the suggestion arrives late, the ordinary completion arrives first and a new card replaces it. Replying or starting another turn invalidates the old suggestion. Photos are uploaded once.
 
-Windows installations can enable a dedicated shortcut for one Desktop profile. Approved suggestions with a unique matching candidate appear on the completion card. Empty or suppressed suggestions, a changed account, or ambiguous ownership leave the ordinary notification in place. [Enable the Windows source](setup.en.md#one-tap-desktop-suggestions) · [Suggestion sources and delivery](notifications.en.md#desktop-suggestion-sources)
+The default hook source works with your usual Desktop launcher. A button appears when that build sends the text to a hook and the bridge can verify its target and approval. If a legacy callback carries only the text, the bridge waits for source metadata from the same generation. Windows also supports a dedicated shortcut. [Set up a suggestion source](setup.en.md#one-tap-desktop-suggestions) · [Suggestion sources and delivery](notifications.en.md#desktop-suggestion-sources)
 
 ## Questions, approvals, and attachments
 
