@@ -30,7 +30,7 @@ class SuggestedReplyTests(unittest.TestCase):
     def setUp(self):
         stack = self.enter = ExitStack()
         self.addCleanup(stack.close)
-        root = Path(stack.enter_context(TemporaryDirectory()))
+        root = Path(stack.enter_context(TemporaryDirectory())).resolve()
         for attr, path in [('HOOK_DIR', root), ('SOURCE_STATE_ROOT', root),
                            ('BOT_STATE_PATH', root / 'state'), ('NATIVE_REPLY_DIR', root / 'routes')]:
             stack.enter_context(patch.object(notify, attr, path))
