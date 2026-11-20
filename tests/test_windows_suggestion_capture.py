@@ -41,7 +41,7 @@ class CaptureTests(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        self.profile = Path(tmp.name)
+        self.profile = Path(tmp.name).resolve()
         (self.profile/'auth.json').write_text('fixture')
         self.check = Mock(return_value=True)
         self.tracker = capture.Capture(self.profile, 123, decision=self.check)
