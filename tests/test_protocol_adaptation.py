@@ -57,6 +57,17 @@ class ProtocolTests(unittest.TestCase):
         self.assertTrue(result['_historyTruncated'])
         self.assertEqual(app.request.call_count, 3)
 
+    def test_question_recovery_rejects_foreign_items_and_repeated_cursor_before_publication(self):
+        from codex_telegram_bridge.codex.history import complete_question_history
+        for page in ({'data': [{'turnId': 'other', 'item': {}}]}, {'data': [], 'nextCursor': 'again'}):
+            with self.subTest(page=page):
+                app = Mock()
+                app.request.return_value = page
+                turn = {'id': 'expected', 'items': [], '_itemsTruncated': True, '_olderItemsCursor': 'again'}
+                with self.assertRaises(ValueError):
+                    complete_question_history(app, 'task', turn, lambda: False)
+                self.assertEqual(turn['items'], [])
+
     def test_normal_json_is_preserved_even_with_internal_shape(self):
         with patch.object(n, '_stored_thread_purpose', return_value=('stored', 'user')):
             for body in ('{"title":"Valid data","description":"Requested JSON"}', '{"exclude":[]}'):

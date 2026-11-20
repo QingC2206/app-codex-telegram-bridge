@@ -28,6 +28,10 @@ Desktop user-input requests default to a **10-second** timeout. On a timeout or 
 
 ### Background execution and window ownership
 
+The asynchronous question observer reads changes in the selected profile's session files. A pre-tool hook can prompt an earlier check. It journals the bot, chat, task, turn and item identifiers before advancing its read position. After a restart, it samples up to 256 KiB from the end of each file. If the sample cannot account for an earlier question, it checks that task's Desktop history. It inventories session paths every 30 seconds, checks recent files more frequently and periodically rechecks outstanding cards. Large backlogs may take several passes. Idle polling does not request a global task list.
+
+Desktop confirms the current turn and supplies the question text and answer state. When a question lies beyond the first history pages, the observer reads older pages of that turn. An identified question stays queued across transient read failures and restarts. Only reads are retried automatically. The existing delivery and submission journals protect against duplicate cards and answers when an acknowledgement is lost.
+
 `remote_ios` can start a local background turn before a window registers its owner. Runtime queries use the matching profile's App Tools `read_thread`; local `notLoaded`, `interrupted`, and unclosed rollout records are history or candidate hints. Running lists and stop/steer selectors share live verification, including unloaded sidebar entries with active lifecycle records.
 
 Interrupt capability probes only query the owner, native tool catalog, and current task. An explicit stop pins the instance and turn. A missing owner permits one window recovery only before any interrupt frame; the original turn is checked again immediately before dispatch. Interrupt v4 carries `expectedTurnId`, and the actual interrupted turn must match. “Interrupt and send” also requires a confirmed idle Desktop state; unknown outcomes block the follow-up. An asynchronous answer with no owner after recovery returns to awaiting an answer, rather than being marked submitted.

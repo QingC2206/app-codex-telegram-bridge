@@ -1,7 +1,10 @@
 """Durable async-question routing and at-most-once submission regressions."""
 import copy
+from html import escape
 import json
+import os
 from pathlib import Path
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -42,42 +45,263 @@ class AsyncInputTests(unittest.TestCase):
         with self.manager.db() as db:
             return dict(db.execute('SELECT * FROM questions').fetchone())
 
-    def test_poll_scans_once_and_rechecks_changed_rollouts(self):
+    def rollout_fixture(self, suffix=''):
         root = self.manager.database.parent / 'sessions'
         root.mkdir()
-        rollout = root / f'rollout-{self.thread}.jsonl'
-        rollout.write_bytes(b'{"payload":{"type":"task_started","turn_id":"turn-123456"}}\\n')
-        other_thread = 'other-123456'
-        self.bot._list_threads = Mock(return_value=[{'id': self.thread}, {'id': other_thread}])
+        self.thread = '12345678-1234-1234-1234-123456789abc'
+        self.history['thread']['id'] = self.thread
+        self.bot.desktop.native.read_thread.return_value['thread']['id'] = self.thread
+        self.bot._list_threads = Mock(side_effect=AssertionError('unexpected global task poll'))
+        session_root = patch.object(b, 'SESSION_ROOT', root)
+        session_root.start()
+        self.addCleanup(session_root.stop)
+        return root / f'rollout-fixture-{self.thread}{suffix}.jsonl'
+
+    def rollout_event(self, kind, **fields):
+        payload = dict(type=kind, thread_id=self.thread, turn_id=self.turn, **fields)
+        return (json.dumps({'type': 'event_msg', 'payload': payload}) + '\n').encode()
+
+    def rollout_question(self):
+        return self.rollout_event('item_completed', item=dict(self.message, type='AgentMessage'))
+
+    def test_old_rewritten_file_recovers_waiting_question_without_hook(self):
+        path = self.rollout_fixture('_rewrite-generation')
+        path.write_bytes(self.rollout_question())
+        stamp = inputs.time.time() - 35 * 60
+        os.utime(path, (stamp, stamp))
+        self.manager.poll()
+        inputs.AsyncInputs(self.bot, self.manager.database).poll()
+        self.bot.send.assert_called_once()
+        self.bot._list_threads.assert_not_called()
+
+    def test_question_before_cold_tail_is_recovered_but_closed_archive_stays_idle(self):
+        path = self.rollout_fixture()
+        padding = self.rollout_event('other', text='x' * (300 * 1024))
+        path.write_bytes(self.rollout_question() + padding + self.rollout_event('task_complete'))
+        self.manager.poll()
+        self.bot.desktop.native.read_thread.assert_not_called()
+        self.bot.send.assert_not_called()
+        path.write_bytes(self.rollout_question() + padding)
+        self.manager.poll()
+        self.bot.send.assert_called_once()
+
+    def test_pending_read_survives_outage_restart_and_rollout_removal(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_question())
+        clock = inputs.time.time()
+        with patch.object(inputs.time, 'time', return_value=clock) as wall:
+            self.manager.current_history = Mock(side_effect=TimeoutError)
+            self.manager.poll()
+            path.unlink()
+            for elapsed in (5, 15, 35, 75):
+                wall.return_value = clock + elapsed
+                self.manager.poll()
+            with self.manager.db() as db:
+                row = db.execute('SELECT * FROM observations').fetchone()
+                self.assertEqual((row['thread'], row['turn'], row['item']), (self.thread, self.turn, self.item))
+                self.assertGreaterEqual(row['attempts'], 4)
+            self.bot.send.assert_not_called()
+            wall.return_value = clock + 245
+            restarted = inputs.AsyncInputs(self.bot, self.manager.database)
+            restarted.poll()
+            restarted.poll()
+            self.bot.send.assert_called_once()
+            with restarted.db() as db:
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0], 0)
+
+    def test_failed_journal_write_does_not_acknowledge_rollout(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_question())
+        with patch.object(self.manager, '_queue_observation', side_effect=sqlite3.OperationalError):
+            with self.assertRaises(sqlite3.OperationalError):
+                self.manager.poll()
+        self.bot.send.assert_not_called()
+        self.assertNotIn(path, self.manager.rollouts.cursors)
+        self.manager.poll()
+        self.bot.send.assert_called_once()
+
+    def test_delegated_answer_signal_retires_original_buttons_during_active_turn(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_question())
+        self.manager.poll()
+        answer = inputs.REPLY_OPEN + json.dumps([{'questionItemId': inputs.question_id(self.item, 0),
+                                                  'answer': 'Second'}]) + inputs.REPLY_CLOSE
+        receipt = dict(id='result', namespace='codex_app', name='send_message_to_thread',
+                       output='<codex_delegation><input>' + escape(answer, quote=False) + '</input></codex_delegation>')
+        self.history['thread']['turns'][0]['items'].append(dict(receipt, type='functionCallOutput'))
+        with path.open('ab') as stream:
+            stream.write((json.dumps({'type': 'response_item',
+                                     'payload': dict(receipt, type='function_call_output')}) + '\n').encode())
+        self.manager.poll()
+        with self.manager.db() as db:
+            self.assertEqual(tuple(db.execute('SELECT status,answer FROM questions').fetchone()), ('answered', 'Second'))
+        self.assertEqual(self.bot.enqueue_edit.call_args.args[2], {'inline_keyboard': []})
+        self.bot.send.assert_called_once()
+        self.bot._desktop_follow_up.assert_not_called()
+
+    def test_caught_up_observer_performs_no_history_or_file_reads_while_idle(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_event('task_complete'))
+        self.manager.poll()
+        now = inputs.time.monotonic()
+        with patch.object(self.manager.rollouts, '_read', wraps=self.manager.rollouts._read) as read, \
+                patch.object(inputs.time, 'monotonic', return_value=now) as clock:
+            for _ in range(30):
+                clock.return_value += 5
+                self.manager.poll()
+            read.assert_not_called()
+        self.bot.desktop.native.read_thread.assert_not_called()
+        self.bot._list_threads.assert_not_called()
+        path.write_bytes(self.rollout_question())
+        self.manager.poll()
+        self.bot.send.assert_called_once()
+
+    def test_answer_rechecks_older_pages_and_blocks_a_previously_answered_question(self):
+        self.rollout_fixture()
+        row = self.observed()
+        latest = self.history['thread']['turns'][0]
+        latest.update(items=[], _itemsTruncated=True, _olderItemsCursor='older')
+        answer = inputs.REPLY_OPEN + json.dumps([{'questionItemId': inputs.question_id(self.item, 0),
+                                                  'answer': 'First'}]) + inputs.REPLY_CLOSE
+        receipt = {'id': 'answer', 'type': 'userMessage', 'content': [{'type': 'text', 'text': answer}]}
+        self.bot.app.request.return_value = {'data': [{'turnId': self.turn, 'item': receipt},
+                                                      {'turnId': self.turn, 'item': self.message}]}
+        with self.assertRaises(ValueError):
+            self.manager.submit(row['key'], 'Second')
+        self.assertEqual(self.manager.get(row['key'])['status'], 'answered')
+        self.bot._desktop_follow_up.assert_not_called()
+
+    def test_cold_recovery_reads_older_typed_questions_from_the_verified_turn(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_question() + self.rollout_event('other', text='x' * 300000))
+        self.history['thread']['turns'][0].update(items=[], _itemsTruncated=True, _olderItemsCursor='old')
+        self.bot.app.request.return_value = {'data': [{'turnId': self.turn, 'item': self.message}]}
+        self.manager.poll()
+        self.bot.send.assert_called_once()
+        params = self.bot.app.request.call_args.args[1]
+        self.assertEqual((params['threadId'], params['turnId'], params['cursor']), (self.thread, self.turn, 'old'))
+
+    def test_pre_tool_hint_retries_when_only_a_previous_question_is_visible(self):
+        self.rollout_fixture()
+        clock = inputs.time.time()
+        with patch.object(inputs.time, 'time', return_value=clock) as wall:
+            self.observed()
+            wall.return_value = clock + 2
+            with self.manager.db() as db:
+                db.execute('INSERT INTO hints VALUES(?,?)', (self.thread, clock + 2))
+            self.manager.poll()
+            self.bot.send.assert_called_once()
+            self.history['thread']['turns'][0]['items'].append(dict(self.message, id='new-question'))
+            wall.return_value = clock + 10
+            self.manager.poll()
+            self.assertEqual(self.bot.send.call_count, 2)
+
+    def test_lagging_turn_is_retried_and_proven_older_turn_is_retired(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_question())
+        latest = self.history['thread']['turns'][0]
+        latest.update(id='another-turn', items=[])
+        self.bot.desktop.native.read_thread.return_value['turns'][0]['id'] = 'another-turn'
+        self.bot.app.request.return_value = {'data': [{'id': 'another-turn'}]}
+        clock = inputs.time.time()
+        with patch.object(inputs.time, 'time', return_value=clock) as wall:
+            self.manager.poll()
+            with self.manager.db() as db:
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0], 1)
+            self.bot.app.request.side_effect = [{'data': [{'id': 'another-turn'}], 'nextCursor': 'older'},
+                                                {'data': [{'id': self.turn}]}]
+            wall.return_value = clock + 10
+            self.manager.poll()
+            with self.manager.db() as db:
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0], 0)
+        self.bot.send.assert_not_called()
+
+    def test_partially_written_question_in_history_is_retried_with_the_same_id(self):
+        path = self.rollout_fixture()
+        path.write_bytes(self.rollout_question())
+        latest = self.history['thread']['turns'][0]
+        latest['items'] = [dict(self.message, questions=[])]
+        clock = inputs.time.time()
+        with patch.object(inputs.time, 'time', return_value=clock) as wall:
+            self.manager.poll()
+            self.bot.send.assert_not_called()
+            latest['items'] = [self.message]
+            wall.return_value = clock + 10
+            self.manager.poll()
+        self.bot.send.assert_called_once()
+
+    def test_rollout_fallback_reads_only_new_questions_and_deduplicates(self):
+        root = self.manager.database.parent / 'sessions'
+        root.mkdir()
+        thread = '12345678-1234-1234-1234-123456789abc'
+        rollout = root / f'rollout-2026-11-17T01-00-00-{thread}.jsonl'
+        ordinary = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread,
+                    "turn_id": self.turn, "item": {"id": "ordinary", "type": "CommandExecution",
+                    "questions": ["quoted by a tool"]}}}
+        question = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread,
+                    "turn_id": self.turn, "item": dict(self.message, type="AgentMessage")}}
+        reply = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread,
+                 "turn_id": self.turn, "item": {"id": "answer", "type": "UserMessage",
+                 "content": [{"type": "text", "text": "<send_user_message_question_reply>"}]}}}
+        def record(value):
+            return json.dumps(value).encode("utf-8") + b"\n"
+
+        self.history["thread"]["id"] = thread
+        self.history["thread"]["turns"][0]["status"] = "inProgress"
+        self.manager.current_history = Mock(return_value=self.history)
+        self.bot._list_threads = Mock(side_effect=AssertionError("observer must not call thread/list"))
+        rollout.write_bytes(record(ordinary))
+        with patch.object(b, 'SESSION_ROOT', root):
+            self.manager.poll()
+            self.manager.current_history.assert_not_called()
+            with rollout.open('ab') as stream:
+                stream.write(record(ordinary) + record(question)[:-9])
+            self.manager.poll()
+            self.manager.current_history.assert_not_called()
+            with rollout.open('ab') as stream:
+                stream.write(record(question)[-9:])
+            self.manager.poll()
+            self.manager.current_history.assert_called_once_with(thread)
+            self.bot.send.assert_called_once()
+            self.manager.poll()
+            with rollout.open('ab') as stream:
+                stream.write(record(ordinary) + record(question))
+            self.manager.poll()
+            self.manager.current_history.assert_called_once_with(thread)
+            self.bot.send.assert_called_once()
+            with rollout.open('ab') as stream:
+                stream.write(record(reply))
+            self.manager.poll()
+            self.assertEqual(self.manager.current_history.call_count, 2)
+            self.bot.send.assert_called_once()
+
+    def test_hook_hydrates_target_without_repeating_a_steady_hint(self):
+        root = self.manager.database.parent / 'sessions'
+        root.mkdir()
+        with self.manager.db() as db:
+            db.execute('INSERT INTO hints VALUES(?,?)', (self.thread, inputs.time.time()))
         self.manager.reconcile = Mock()
         self.manager.publish = Mock()
-        from codex_telegram_bridge.codex import receipts
-        with patch.object(b, 'SESSION_ROOT', root), patch.object(
-                b, 'persisted_thread_paths', wraps=b.persisted_thread_paths) as scan, patch.object(
-                receipts, 'checkpoint', wraps=receipts.checkpoint) as checkpoint:
+        self.bot._list_threads = Mock(side_effect=AssertionError('unexpected thread/list'))
+        with patch.object(b, 'SESSION_ROOT', root):
             self.manager.poll()
             self.manager.poll()
-            self.assertEqual(scan.call_count, 2)
-            self.manager.reconcile.assert_called_once()
-            with rollout.open('ab') as stream:
-                stream.write(b'{"payload":{"type":"agent_message"}}\\n')
-            self.manager.poll()
-            self.assertEqual(self.manager.reconcile.call_count, 2)
-            self.assertEqual(checkpoint.call_count, 3)
-            checkpoint.assert_called_with(self.thread, root)
-        self.assertEqual(self.manager.publish.call_count, 3)
-        self.bot.desktop.native.read_thread.assert_called_with(self.thread)
+        self.manager.reconcile.assert_called_once()
+        self.assertEqual(self.manager.reconcile.call_args.args[0], self.thread)
 
     def test_inaccessible_rollout_does_not_block_healthy_threads_or_publish(self):
         root = self.manager.database.parent / 'sessions'
         root.mkdir()
-        blocked_thread = 'blocked-123456'
+        blocked_thread = '12345678-1234-1234-1234-123456789abc'
+        healthy_thread = '12345678-1234-1234-1234-123456789def'
         blocked = root / f'rollout-{blocked_thread}.jsonl'
-        healthy = root / f'rollout-{self.thread}.jsonl'
-        older = root / f'rollout-older-{blocked_thread}.jsonl'
-        for path in (blocked, healthy, older):
-            path.write_bytes(b'{"payload":{"type":"task_started","turn_id":"turn-123456"}}\n')
-        self.bot._list_threads = Mock(return_value=[{'id': blocked_thread}, {'id': self.thread}])
+        healthy = root / f'rollout-{healthy_thread}.jsonl'
+        for path, thread_id in ((blocked, blocked_thread), (healthy, healthy_thread)):
+            event = {"type": "event_msg", "payload": {"type": "item_completed", "thread_id": thread_id,
+                     "turn_id": self.turn, "item": dict(self.message, type="AgentMessage")}}
+            path.write_text(json.dumps(event) + "\n", encoding="utf-8")
+        self.history["thread"]["id"] = healthy_thread
+        self.manager.current_history = Mock(return_value=self.history)
         self.manager.reconcile = Mock()
         self.manager.publish = Mock()
         original_stat = Path.stat
@@ -90,7 +314,7 @@ class AsyncInputTests(unittest.TestCase):
         with patch.object(b, 'SESSION_ROOT', root), patch.object(Path, 'stat', selective_stat):
             self.manager.poll()
         self.manager.reconcile.assert_called_once()
-        self.assertEqual(self.manager.reconcile.call_args.args[0], self.thread)
+        self.assertEqual(self.manager.reconcile.call_args.args[0], healthy_thread)
         self.manager.publish.assert_called_once()
 
     def test_question_id_matches_desktop_canonical_serialization(self):

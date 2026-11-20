@@ -15,8 +15,11 @@ import threading
 import time
 import uuid
 
+from codex_telegram_bridge.codex.async_rollout import AsyncRolloutTail
 from codex_telegram_bridge.codex.desktop import DesktopBridgeSafetyError, DesktopIpcInactive, DesktopIpcUnavailable
-from codex_telegram_bridge.codex.history import read_thread_history, question_answers, REPLY_OPEN, REPLY_CLOSE
+from codex_telegram_bridge.codex.history import (
+    complete_question_history, read_thread_history, question_answers, superseded_turns, REPLY_OPEN, REPLY_CLOSE,
+)
 
 
 def question_id(item_id: str, index: int) -> str:
@@ -37,7 +40,9 @@ class AsyncInputs:
         self.bot = bot
         self.database = Path(database or (data_dir() / 'telegram_async_inputs.sqlite3'))
         self.identity = (bot.token.split(':')[0], bot.chat_id)
-        self.updated = {}
+        self.rollouts = AsyncRolloutTail()
+        self.checked_hints = {}
+        self.last_check = {}
         self.failures = {}
         self.worker = None
 
@@ -48,6 +53,10 @@ class AsyncInputs:
         db.row_factory = sqlite3.Row
         try:
             db.execute('CREATE TABLE IF NOT EXISTS hints(thread TEXT PRIMARY KEY,updated REAL)')
+            db.execute('''CREATE TABLE IF NOT EXISTS observations(
+                bot TEXT, chat TEXT, thread TEXT, kind TEXT, item TEXT, turn TEXT,
+                queued REAL, due REAL, attempts INTEGER,
+                PRIMARY KEY(bot,chat,thread,kind,item))''')
             db.execute('''CREATE TABLE IF NOT EXISTS questions(
                 bot TEXT,chat TEXT,key TEXT,thread TEXT,turn TEXT,item TEXT,qindex INTEGER,
                 title TEXT,options TEXT,status TEXT,message INTEGER,created REAL,
@@ -189,10 +198,13 @@ class AsyncInputs:
     def current_history(self, thread_id, *, item_limit=240):
         history = read_thread_history(self.bot.app, thread_id, turn_limit=1, item_limit=item_limit,
                                       cancelled=self.bot.stop_event.is_set)
+        if (history.get('thread') or {}).get('id') != thread_id:
+            raise ValueError(_t('Desktop 未返回可验证的当前任务状态。'))
         if self.bot._owns_thread(thread_id) and thread_id in self.bot.active_turns:
             latest = ((history.get('thread') or {}).get('turns') or [{}])[-1]
-            if latest.get('id') == self.bot.active_turns[thread_id]:
-                latest['status'] = 'inProgress'
+            if latest.get('id') != self.bot.active_turns[thread_id]:
+                raise ValueError(_t('当前 Turn 尚未写入可读历史，暂缓异步问题处理。'))
+            latest['status'] = 'inProgress'
             return history
         # An independent read-only app-server labels another owner's persisted
         # in-flight turn as interrupted. Runtime status must come from Desktop.
@@ -310,8 +322,11 @@ class AsyncInputs:
         if not isinstance(answer, str) or not answer.strip() or len(answer) > 20000:
             raise ValueError(_t('请提供不超过 20000 字符的回答。'))
         history = self.current_history(row['thread'], item_limit=400)
-        self.reconcile(row['thread'], history)
         latest = ((history.get('thread') or {}).get('turns') or [{}])[-1]
+        if latest.get('id') == row['turn'] and latest.get('status') == 'inProgress':
+            complete_question_history(self.bot.app, row['thread'], latest, self.bot.stop_event.is_set,
+                                      wanted={row['item']})
+        self.reconcile(row['thread'], history)
         item = next((item for item in latest.get('items', []) if item.get('id') == row['item']), None)
         row = self.get(key)
         if (row['status'] not in {'waiting', 'publishing'} or latest.get('id') != row['turn']
@@ -367,43 +382,130 @@ class AsyncInputs:
             self.bot._ui_local.message_id = panel
         self.refresh_card(self.get(key))
 
-    def poll(self):
-        threads = self.bot._list_threads(limit=30)
+    def _queue_observation(self, db, thread, kind, now, *, item='', turn='', refresh=False):
+        # The journal holds IDs, never question text. Duplicate file/live events
+        # cannot create an additional card or reset a failed read's backoff.
+        identity = (*self.identity, thread, kind, item)
+        db.execute('''INSERT OR IGNORE INTO observations
+            SELECT ?,?,?,?,?,?,?,?,0 WHERE NOT EXISTS (
+                SELECT 1 FROM questions WHERE bot=? AND chat=? AND thread=? AND turn=? AND item=?)''',
+            (*identity, turn, now, now, *self.identity, thread, turn, item))
+        if refresh:
+            db.execute('''UPDATE observations SET queued=?,due=?,attempts=0
+                WHERE bot=? AND chat=? AND thread=? AND kind=? AND item=?''', (now, now, *identity))
+
+    def _sync_observations(self, thread, now):
         with self.db() as db:
-            db.execute('DELETE FROM hints WHERE updated<?', (time.time()-1800,))
-            hinted = {row[0] for row in db.execute('SELECT thread FROM hints WHERE updated>?', (time.time()-1800,))}
-            pending = {row[0] for row in db.execute("SELECT DISTINCT thread FROM questions WHERE bot=? AND chat=? AND status IN ('new','waiting','publishing','submitted','uncertain')", self.identity)}
-        from codex_telegram_bridge.app import (
-            SESSION_ROOT, persisted_thread_paths, read_persisted_thread_activity,
-        )
-        from codex_telegram_bridge.codex.receipts import checkpoint
-        priority = hinted | pending
-        present = {thread['id'] for thread in threads}
-        threads += [{'id': tid} for tid in priority if tid not in present]
-        if self.bot.stop_event.is_set():
+            work = db.execute('SELECT * FROM observations WHERE bot=? AND chat=? AND thread=?',
+                              (*self.identity, thread)).fetchall()
+        if not work:
             return
-        rollouts = persisted_thread_paths(thread['id'] for thread in threads)
-        for thread in threads:
+        retry = {(job['kind'], job['item']) for job in work}
+        try:
+            history = self.current_history(thread)
+            verified = history.get('thread') or {}
+            latest = (verified.get('turns') or [{}])[-1]
+            status = latest.get('status')
+            if (verified.get('id') != thread or not latest.get('id')
+                    or status not in {'inProgress', 'completed', 'interrupted', 'failed'}):
+                raise ValueError(_t('Desktop 未返回可验证的当前任务状态。'))
+            if status == 'inProgress' and latest.get('_itemsTruncated'):
+                wanted = None
+                if all(job['kind'] in {'item', 'state'} for job in work):
+                    with self.db() as db:
+                        wanted = {row[0] for row in db.execute(
+                            "SELECT item FROM questions WHERE bot=? AND chat=? AND thread=? AND turn=? "
+                            "AND status IN ('new','waiting','publishing','submitted','submitting','uncertain')",
+                            (*self.identity, thread, latest['id']))}
+                    wanted.update(job['item'] for job in work if job['turn'] == latest['id'])
+                complete_question_history(self.bot.app, thread, latest, self.bot.stop_event.is_set, wanted=wanted)
+            self.reconcile(thread, history)
+            with self.db() as db:
+                known = dict(db.execute('SELECT item,MAX(created) FROM questions WHERE bot=? AND chat=? '
+                                        'AND thread=? AND turn=? GROUP BY item', (*self.identity, thread, latest['id'])))
+            newest = max(known.values(), default=0)
+            other_turns = {job['turn'] for job in work if job['kind'] == 'item' and job['turn'] != latest['id']}
+            older_turns = superseded_turns(self.bot.app, thread, latest['id'], other_turns, self.bot.stop_event.is_set)
+            for job in work:
+                kind, item = job['kind'], job['item']
+                if kind == 'item':
+                    done = (job['turn'] in older_turns or
+                            (job['turn'] == latest['id'] and (item in known or status != 'inProgress')))
+                elif kind == 'hook':
+                    done = newest >= job['queued'] or now - job['queued'] >= 1800
+                else:
+                    done = True
+                if done:
+                    retry.discard((kind, item))
+            self.failures.pop(thread, None)
+        except Exception as exc:
+            if now - self.failures.get(thread, 0) >= 60:
+                from codex_telegram_bridge.app import log
+                log('async task observation postponed: ' + type(exc).__name__)
+                self.failures[thread] = now
+        # A failed or not-yet-visible read is safe to repeat. Sending or
+        # answering a question is owned by the existing question ledger.
+        finished = time.time()
+        with self.db() as db:
+            for job in work:
+                identity = (*self.identity, thread, job['kind'], job['item'])
+                if (job['kind'], job['item']) not in retry:
+                    db.execute('DELETE FROM observations WHERE bot=? AND chat=? AND thread=? AND kind=? AND item=?',
+                               identity)
+                else:
+                    delay = min(120, 5 * 2 ** min(job['attempts'], 5))
+                    db.execute('''UPDATE observations SET due=?,attempts=attempts+1
+                        WHERE bot=? AND chat=? AND thread=? AND kind=? AND item=?''',
+                        (finished + delay, *identity))
+        self.last_check[thread] = finished
+
+    def poll(self):
+        from codex_telegram_bridge.app import SESSION_ROOT
+
+        now = time.time()
+        with self.db() as db:
+            hints = dict(db.execute('SELECT thread,updated FROM hints WHERE updated>=?', (now - 1800,)))
+            db.execute('DELETE FROM hints WHERE updated<?', (now - 1800,))
+            pending = {row[0] for row in db.execute(
+                "SELECT DISTINCT thread FROM questions WHERE bot=? AND chat=? "
+                "AND status IN ('new','waiting','publishing','submitted','submitting','uncertain')",
+                self.identity)}
+            watching = {row[0] for row in db.execute(
+                'SELECT DISTINCT thread FROM observations WHERE bot=? AND chat=?', self.identity)}
+
+        scan = self.rollouts.scan(SESSION_ROOT, pending | watching | hints.keys())
+        with self.db() as db:
+            db.execute('''DELETE FROM observations WHERE bot=? AND chat=? AND kind='item' AND EXISTS (
+                SELECT 1 FROM questions q WHERE q.bot=observations.bot AND q.chat=observations.chat
+                AND q.thread=observations.thread AND q.turn=observations.turn AND q.item=observations.item)''',
+                self.identity)
+            for (thread, item), turn in scan.questions.items():
+                self._queue_observation(db, thread, 'item', now, item=item, turn=turn)
+            for thread in scan.recover:
+                self._queue_observation(db, thread, 'recovery', now)
+            for thread in scan.refresh:
+                self._queue_observation(db, thread, 'state', now, refresh=True)
+            for thread in pending:
+                if now - self.last_check.get(thread, 0) >= 120:
+                    self._queue_observation(db, thread, 'state', now)
+            for thread, stamp in hints.items():
+                if self.checked_hints.get(thread) != stamp:
+                    self._queue_observation(db, thread, 'hook', stamp, refresh=True)
+            targets = [row[0] for row in db.execute('''SELECT thread FROM observations
+                WHERE bot=? AND chat=? AND due<=? GROUP BY thread
+                ORDER BY MIN(CASE WHEN kind='recovery' THEN 1 ELSE 0 END),MIN(due),MIN(queued),thread
+                LIMIT 8''', (*self.identity, now))]
+        self.rollouts.acknowledge(scan)
+        self.checked_hints = hints
+        self.last_check = {thread: stamp for thread, stamp in self.last_check.items()
+                           if thread in pending or thread in watching}
+        deadline = time.monotonic() + 5
+        for thread in targets:
             if self.bot.stop_event.is_set():
                 return
-            tid = thread['id']
-            try:
-                rollout = rollouts.get(tid)
-                if tid not in priority and (rollout is None or not read_persisted_thread_activity(rollout)[0]):
-                    continue
-                path, size = checkpoint(tid, SESSION_ROOT)
-                stamp = (thread.get('updatedAt'), path, size if path else int(time.monotonic() // 30))
-                if tid not in priority and self.updated.get(tid) == stamp:
-                    continue
-                history = self.current_history(tid)
-                self.reconcile(tid, history)
-                self.updated[tid] = stamp
-                self.failures.pop(tid, None)
-            except Exception as exc:
-                if time.monotonic() - self.failures.get(tid, -1000) > 60:
-                    from codex_telegram_bridge.app import log
-                    log('async task observation postponed: ' + type(exc).__name__)
-                    self.failures[tid] = time.monotonic()
+            self._sync_observations(thread, now)
+            if time.monotonic() >= deadline:
+                break
         self.publish()
 
     def _loop(self):

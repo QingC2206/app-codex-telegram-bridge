@@ -9008,7 +9008,7 @@
       "assertion": "过期问题引用拒绝，不能回退成普通任务输入。同步题路由另由R04测试。",
       "reviewer": "Codex rule assertion review 2026-10-28",
       "tests": {
-        "test_async_inputs.AsyncInputTests.test_reply_to_expired_card_does_not_fall_through_to_normal_task_message": "065a86ae7b0c2a0602528bfbe885d202e88b2dbf5bce6220faf4a6b5f0aaf204"
+        "test_async_inputs.AsyncInputTests.test_reply_to_expired_card_does_not_fall_through_to_normal_task_message": "78f8936c48e9075a0c6a780618790ad83877017ff79b8186477ca953366ba941"
       }
     },
     "REG-A21-R05-82": {
@@ -9314,8 +9314,13 @@
       "assertion": "原问题读取走当前Desktop，提示observe/publish去重且重启不重发。",
       "reviewer": "Codex rule assertion review 2026-10-28",
       "tests": {
-        "test_async_inputs.AsyncInputTests.test_desktop_runtime_overrides_other_readers_interrupted_status": "7c62ad3fc2f5071dd6f7441df98f7656fe5583252df805cd491e0513dc7e3f77",
-        "test_async_inputs.AsyncInputTests.test_duplicate_events_and_restart_do_not_resend_question": "fbab5ca249d236abeb969a6975e701e9bfeaa001ac4581ef9fabae1e5b9223c3"
+        "test_async_inputs.AsyncInputTests.test_desktop_runtime_overrides_other_readers_interrupted_status": "fb12266c6281a3ccc920ad8a08737f0bd8ba5e1c0721d6eded3a89d83a66676f",
+        "test_async_inputs.AsyncInputTests.test_duplicate_events_and_restart_do_not_resend_question": "9ab1f307fc641dddb69956959fb0418f1365e56d5b872b6f493bb77283c83134",
+        "test_async_inputs.AsyncInputTests.test_old_rewritten_file_recovers_waiting_question_without_hook": "8e8cd506c532bc43ca9bacf05411bf7054be8468052affb10687aef0adf80544",
+        "test_async_inputs.AsyncInputTests.test_question_before_cold_tail_is_recovered_but_closed_archive_stays_idle": "8e1ae4173676562bcd388ec87b80ccff59fe7f67c46b7118fed03b28446d3ce5",
+        "test_async_inputs.AsyncInputTests.test_pending_read_survives_outage_restart_and_rollout_removal": "c5882348c8bd0abc9897cd41a626d8371e25e3909c212432a69c832311ff5e7e",
+        "test_async_inputs.AsyncInputTests.test_failed_journal_write_does_not_acknowledge_rollout": "d6600655162910bb129772010daff12631a50634123a35c214b16fbc575f52f4",
+        "test_async_inputs.AsyncInputTests.test_pre_tool_hint_retries_when_only_a_previous_question_is_visible": "7591b128f081a19c8fb2371f0c6db63f6e59544fceefedd02ffb7695acbb5a71"
       }
     },
     "REG-B07-R02-107": {
@@ -9327,10 +9332,12 @@
       "assertion": "完整thread/turn/item/question索引绑定并按原问题校验；跨bot/chat、已变化题、已结束Turn拒绝，重复只提交一次。",
       "reviewer": "Codex rule assertion review 2026-10-28",
       "tests": {
-        "test_async_inputs.AsyncInputTests.test_direct_reply_is_bound_to_the_original_question_and_sent_once": "dcb2aad44f4526b8391cf5b5e4a441fadf4dc55b4729e84251fc7dd63ec43a19",
-        "test_async_inputs.AsyncInputTests.test_other_bot_or_chat_cannot_use_the_question_key": "af2b184e2d3994d0b1b47a748fdc0eb8eca48d2dddd4ba4821a53b8e20e798a5",
-        "test_async_inputs.AsyncInputTests.test_question_content_change_is_rejected": "6a221a1c5111ec109bb15bb1b1b09e2bb8da2453cd5fcdaf2f15b06eacba4c93",
-        "test_async_inputs.AsyncInputTests.test_changed_or_ended_turn_never_receives_an_answer": "e9746ed5f2e7344abbac9c5ffd5fcb015a3a6ed51e4e20370bd8b680a7f8b6c1"
+        "test_async_inputs.AsyncInputTests.test_direct_reply_is_bound_to_the_original_question_and_sent_once": "d2782e76e3354b45c540b7e69363fd15e52a4422e47e0da2e354c38997fcaad4",
+        "test_async_inputs.AsyncInputTests.test_other_bot_or_chat_cannot_use_the_question_key": "52f5a8c8a842f750c92e12547ddca154515c7f7f9529a6f653e6d5f6595318b6",
+        "test_async_inputs.AsyncInputTests.test_question_content_change_is_rejected": "ea8b80a072cd6038a959b7aa514c023777a8511dd027f78aa99e82c6c2350770",
+        "test_async_inputs.AsyncInputTests.test_changed_or_ended_turn_never_receives_an_answer": "859da494fa18b7d82c78df75c9d78e11265ee1cd5dfa9b03ae803f235af03858",
+        "test_async_inputs.AsyncInputTests.test_answer_rechecks_older_pages_and_blocks_a_previously_answered_question": "6629be854c1ec085be895191ef836b24fc7a9d4c76f0bdf919f88a2441eff59d",
+        "test_async_inputs.AsyncInputTests.test_lagging_turn_is_retried_and_proven_older_turn_is_retired": "db2c457adbf6c4ee66f8ab2cf3313223c14c143a91d95bd10c80288acfa5425e"
       }
     },
     "REG-B07-R03-108": {
@@ -9342,10 +9349,10 @@
       "assertion": "已提交/未知/已回答/结束分别显示；原问题与答案保留，未回答结束不伪造答案。",
       "reviewer": "Codex rule assertion review 2026-10-28",
       "tests": {
-        "test_async_inputs.AsyncInputTests.test_choice_answer_survives_restart_and_turn_end": "5afab7c1cfe6223c9316d8c5842bbe121795b0d7e87810594ce6f1c3019d04bf",
-        "test_async_inputs.AsyncInputTests.test_uncertain_submission_is_durable_and_never_retried": "76d82453e3bd50cd9b3bef06d63a7b6606f6c450cc33667878a937e98cf4cbda",
-        "test_async_inputs.AsyncInputTests.test_escaped_native_answer_is_resolved_and_disables_old_card": "aebea271be4c0ef0992939accbf3db053772a6256c8f8d0818a0c24e47acd9ee",
-        "test_async_inputs.AsyncInputTests.test_ended_unanswered_question_keeps_title_without_inventing_answer": "185399ab660a2cded6a2e19d4c2567cdd6fe98a16927fe81b06ffcc15f8532cc"
+        "test_async_inputs.AsyncInputTests.test_choice_answer_survives_restart_and_turn_end": "fe09bae07046143d95542377516c92d67de44c5d19fd23289c1c8b90460bb3e3",
+        "test_async_inputs.AsyncInputTests.test_uncertain_submission_is_durable_and_never_retried": "05870104c8108f7943f0a8852e2741690e1a0f02d9971f58a9ac1a5caff4ca1f",
+        "test_async_inputs.AsyncInputTests.test_escaped_native_answer_is_resolved_and_disables_old_card": "b64398fd1fed08f23f7c8342ce40406445f3349b0e1b116ac443aff8946551a7",
+        "test_async_inputs.AsyncInputTests.test_ended_unanswered_question_keeps_title_without_inventing_answer": "f141a0d1d51fc81fc7f743944a60ec66bf53287f4ab094792d00701ed08410a5"
       }
     },
     "REG-B07-R05-109": {
@@ -9780,7 +9787,8 @@
       "reviewer": "Codex cross-review map-platforms.json",
       "tests": {
         "test_protocol_adaptation.ProtocolTests.test_bounded_history_reports_truncation": "bbabdd934a14cae465354a7895291209b08d9a3a244f84399e7c3ab56f88ab9c",
-        "test_protocol_adaptation.ProtocolTests.test_wrong_turn_item_and_duplicate_cursor_are_rejected": "c454615701b2ffc936f63fc53ae48040be6a54cce26e204a6ab942205ae09fe7"
+        "test_protocol_adaptation.ProtocolTests.test_wrong_turn_item_and_duplicate_cursor_are_rejected": "c454615701b2ffc936f63fc53ae48040be6a54cce26e204a6ab942205ae09fe7",
+        "test_protocol_adaptation.ProtocolTests.test_question_recovery_rejects_foreign_items_and_repeated_cursor_before_publication": "3c9a56570a793d813c489ba7c254bb38719d49d4287636a7916e56039ad1d41c"
       }
     },
     "REG-platforms-C03-R03": {
@@ -9792,7 +9800,8 @@
       "reviewer": "Codex cross-review map-platforms.json",
       "tests": {
         "test_fix6_platform_contracts.PlatformRuleTests.test_question_answers_require_explicit_typed_user_envelope": "3ce93db680b5f3d9272f98fa586b96a743f192ba72395c0747204eb116675c8f",
-        "test_async_inputs.AsyncInputTests.test_escaped_native_answer_is_resolved_and_disables_old_card": "aebea271be4c0ef0992939accbf3db053772a6256c8f8d0818a0c24e47acd9ee"
+        "test_async_inputs.AsyncInputTests.test_escaped_native_answer_is_resolved_and_disables_old_card": "b64398fd1fed08f23f7c8342ce40406445f3349b0e1b116ac443aff8946551a7",
+        "test_async_inputs.AsyncInputTests.test_delegated_answer_signal_retires_original_buttons_during_active_turn": "0268b6f6b5835bfc414c36cd32792dd6ce3876ba99d9b45d5b85f10a6f10497d"
       }
     },
     "REG-platforms-C03-R04": {
@@ -11741,7 +11750,7 @@
       "assertion": "HTML发送与排队编辑保持parse_mode、实体及按钮。",
       "reviewer": "Codex cross-review map-notifications.json",
       "tests": {
-        "test_async_inputs.AsyncInputTests.test_html_send_and_queued_edit_preserve_native_entities_and_buttons": "2d8206d14bd99b9ed9f3ba9ee79e2c325da30118980039348affcc80c14ab884"
+        "test_async_inputs.AsyncInputTests.test_html_send_and_queued_edit_preserve_native_entities_and_buttons": "ca21c3d2c4ad9b3579a68dc335d97f3a17ebe3d3bbc2b1074d52a9ecbe9c4960"
       }
     },
     "REG-notifications-N07-R05": {
@@ -12599,7 +12608,7 @@
       "assertion": "真实 handle_update 处理 asyncq:other；两种反馈模式均不写表情、不创建持久反馈、不提交答案，问题状态不变；原问题仍是文字提示的回复目标。",
       "reviewer": "Codex macOS native findings and shared-path assertion review",
       "tests": {
-        "test_async_inputs.AsyncInputTests.test_opening_async_text_input_does_not_complete_question_feedback": "4c805ab9d1159ad27fdb9314445f4dbfa2f841ce0465c3ca786b6431ce30ecea"
+        "test_async_inputs.AsyncInputTests.test_opening_async_text_input_does_not_complete_question_feedback": "05e3309fcce4d91a5480a61974a701ad40a3d2eb7eb3fb63fe4b072eed4fe54e"
       }
     },
     "REG-FINAL-STALE-CHOICE": {

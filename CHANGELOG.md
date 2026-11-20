@@ -2,6 +2,10 @@
 
 ## 未发布 / Unreleased
 
+- 降低 Windows 查找 Codex Desktop 的开销。先按进程名筛选，再核验安装路径和启动参数。多实例和无法核验的候选仍按原有安全规则处理。
+- 异步提问按本地会话变化和钩子提示核对。Robot 重启、Desktop 历史暂不可读或提问位于长回合早期时，恢复后可以找回待答卡。用户通过 Desktop 委派回答后，Telegram 原卡会保留回答并收起按钮。
+- Reduce Windows Desktop discovery overhead by filtering process names before inspecting executable paths and arguments. Ambiguous instances and unverifiable candidates retain their existing safeguards.
+- Check asynchronous questions when local session events or hooks signal a change. Recover pending cards after a restart, a temporary history outage, or a question buried earlier in a long turn. A delegated Desktop answer updates the original Telegram card and retires its answer buttons.
 - 适配新版 Windows Desktop 安装包内的 `app/resources/codex.exe`：通过系统包登记核验安装目录，优先使用正在运行的 Desktop 配套程序，排除渲染辅助进程，兼容已删除的旧包路径提示；继续拒绝 VS Code、独立 CLI、伪造包路径及多版本冲突。修复由旧路径限制导致的 Telegram 回复、额度查询和提问监控失败。
 - Support `app/resources/codex.exe` in newer Windows Desktop packages. Verify the install location through Windows package registration, prefer the running Desktop runtime, exclude renderer helpers, and tolerate a deleted old-package hint. Continue rejecting VS Code, standalone CLI, lookalike packages, and ambiguous versions. Restore Telegram replies, quota queries, and question monitoring blocked by the old path restriction.
 - 整合 Windows/macOS 共用的控制器、投递、反馈及额度状态逻辑，平台适配层继续负责原生连接、进程清理、凭据和服务安装；保留 Windows 的 Desktop 默认后端。
