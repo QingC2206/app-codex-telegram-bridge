@@ -45,7 +45,7 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
         "mode": "submission-and-receipt" if send_probe else "read-only",
         "success": False,
         "checks": {name: "not_run" for name in (
-            "telegram_api", "desktop_connection", "target_task",
+            "telegram_api", "desktop_connection", "target_task", "user_input_channel",
             "desktop_delivery", "telegram_delivery")},
         "telegram_inbound": "not_exercised",
         "desktop_attempts": 0, "telegram_attempts": 0,
@@ -104,6 +104,34 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
             report["thread_id"] = thread_id
             report["checks"][stage] = "passed"
 
+        if not send_probe:
+            stage = "user_input_channel"
+            from ..codex import background_queue
+            from ..codex.errors import DesktopFollowerMissing
+            channel = client._legacy_for_current_desktop(thread_id, endpoint=verified_endpoint())
+            windows_queue = getattr(getattr(client, 'access', None), 'supports_background_queue', False) is True
+            try:
+                if thread_id:
+                    report["target_owner_loaded"] = channel.find_thread_owner(thread_id)
+                else:
+                    handle = channel._open()
+                    channel._close(handle)
+                use_queue = windows_queue and report.get("target_owner_loaded") is False
+            except DesktopFollowerMissing:
+                if not windows_queue:
+                    raise
+                use_queue = True
+            if use_queue:
+                if thread_id:
+                    report['target_status'] = background_queue.target_status(client, endpoint, thread_id)
+                # A list of an unused thread's queue is a read-only capability check.
+                with background_queue.open_queue(client, verified_endpoint(), thread_id or str(uuid.uuid4())):
+                    verified_endpoint()
+                report['input_route'] = 'desktop-background-queue'
+            else:
+                report['input_route'] = 'desktop-follower'
+            report["checks"][stage] = "passed"
+
         if send_probe:
             stage = "desktop_delivery"
             sessions = profile / "sessions"
@@ -121,6 +149,7 @@ def check_connection(*, thread_id: str = "", send_probe: bool = False,
             if not isinstance(result, dict) or result.get("route") != "desktop-user-input" or not result.get('turn_id'):
                 raise RuntimeError("消息提交未确认使用 Desktop 用户输入通道；不会重发。")
             report['desktop_route'] = result['route']
+            report['checks']['user_input_channel'] = 'passed'
             deadline = time.monotonic() + receipt_timeout
             while True:
                 if Path(rollout).stat().st_size < offset:

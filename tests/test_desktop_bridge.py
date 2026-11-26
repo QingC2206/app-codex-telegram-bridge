@@ -1,5 +1,6 @@
 """Offline Desktop routing regressions. No Telegram/model/task writes."""
 import json
+import mmap
 import os
 import sqlite3
 from pathlib import Path
@@ -9,6 +10,9 @@ from unittest.mock import Mock, patch
 
 import codex_telegram_bridge.codex.desktop as d
 from codex_telegram_bridge.platforms.windows.desktop_access import WindowsDesktopAccess
+from codex_telegram_bridge.platforms.windows.discovery import _desktop_environment_values
+from codex_telegram_bridge.platforms.windows import transport as win_transport
+from codex_telegram_bridge.i18n import using_language
 import codex_telegram_bridge.app as b
 import codex_telegram_bridge.telegram.notifications as n
 class FakeTransport(b.CodexDesktopIpc):
@@ -129,6 +133,13 @@ class BridgeTests(unittest.TestCase):
     def test_read_only_probe_never_sends_a_follow_up(self):
         self.assertEqual(self.native.read_thread('task')['thread']['id'], 'task')
         self.assertFalse(self.mutations())
+
+    def test_missing_background_channel_stops_before_navigation_or_user_input(self):
+        with patch.object(self.owner, '_open', side_effect=d.DesktopIpcUnavailable('fixture channel missing')):
+            with self.assertRaisesRegex(d.DesktopIpcUnavailable, 'fixture channel missing'):
+                self.control.send_follow_up('task', 'hello', '', recover_owner=True)
+        self.assertEqual(self.owner.requests, [])
+        self.assertEqual(self.transport.requests, [])
 
     def test_receipt_history_read_is_bounded_and_read_only(self):
         self.native.read_submission_history('task', timeout=3)
@@ -433,6 +444,91 @@ class BridgeTests(unittest.TestCase):
     def test_empty_input_does_not_connect(self):
         with self.assertRaises(ValueError): self.control.send_follow_up('task', ' ', '')
         self.discover.assert_not_called()
+
+
+class WindowsChannelTests(unittest.TestCase):
+    def test_only_absent_follower_pipe_reports_missing_background_input(self):
+        t = win_transport.WindowsTransport()
+        t.kernel32 = Mock()
+        t.kernel32.WaitNamedPipeW.return_value = False
+        for pipe, error, expected in (
+            (win_transport.FOLLOWER_PIPE, 2, 'live follow-up channel'),
+            (win_transport.FOLLOWER_PIPE, 3, 'live follow-up channel'),
+            (win_transport.FOLLOWER_PIPE, 5, 'Windows error 5'),
+            (r'\\.\pipe\codex-app-tools-test', 2, 'Windows error 2'),
+        ):
+            with self.subTest(pipe=pipe, error=error), using_language('en'):
+                t.PIPE_PATH = pipe
+                with patch.object(win_transport.ctypes, 'get_last_error', create=True, return_value=error):
+                    with self.assertRaisesRegex(d.DesktopIpcUnavailable, expected):
+                        t._open()
+        t.kernel32.CreateFileW.assert_not_called()
+
+
+class WindowsEnvironmentReadTests(unittest.TestCase):
+    @staticmethod
+    def block(size):
+        fields = 'IGNORED=\0UserProfile=C:\\Users\\fixture\0CODEX_APP_TOOLS_PIPE_PATH=fixture\0\0'
+        padding = 'x' * ((size - len(fields.encode('utf-16-le'))) // 2)
+        return fields.replace('IGNORED=', 'IGNORED=' + padding).encode('utf-16-le')
+
+    def test_valid_terminator_in_last_readable_page(self):
+        start = 16
+        end = 3 * mmap.PAGESIZE
+        block = self.block(end - start)
+        calls = []
+
+        def read(address, size):
+            if address + size > end:
+                raise d.DesktopBridgeSafetyError('Fixture read crossed the last readable page')
+            calls.append((address, size))
+            return block[address - start:address - start + size]
+
+        self.assertEqual(_desktop_environment_values(start, read),
+                         {'USERPROFILE': r'C:\Users\fixture', 'CODEX_APP_TOOLS_PIPE_PATH': 'fixture'})
+        last_address, last_size = calls[-1]
+        self.assertEqual(last_address + last_size, end)
+        self.assertTrue(all(size <= mmap.PAGESIZE - address % mmap.PAGESIZE for address, size in calls))
+
+    def test_double_nul_across_pages_and_unicode_across_reads(self):
+        block = 'HOME=项目😀\0\0'.encode('utf-16-le')
+        # Put the first terminating NUL at the end of the page. Returning
+        # short reads also splits the surrogate pair before the terminator.
+        start = mmap.PAGESIZE - (len(block) - 2)
+        def read(address, size):
+            offset = address - start
+            return block[offset:offset + min(2, size)]
+        self.assertEqual(_desktop_environment_values(start, read), {'HOME': '项目😀'})
+
+    def test_inaccessible_or_truncated_block_never_returns_partial_identity(self):
+        prefix = 'CODEX_HOME=fixture\0'.encode('utf-16-le')
+        start = mmap.PAGESIZE - len(prefix)
+        for ending in ('unreadable', 'empty', 'odd'):
+            with self.subTest(ending=ending):
+                def read(address, size):
+                    if address == start:
+                        return prefix[:size]
+                    if ending == 'unreadable':
+                        raise d.DesktopBridgeSafetyError('Fixture page is inaccessible')
+                    return b'' if ending == 'empty' else b'\0'
+                with self.assertRaises(d.DesktopBridgeSafetyError):
+                    _desktop_environment_values(start, read)
+
+    def test_byte_limit_is_independent_of_page_alignment(self):
+        limit = 256 * 1024
+        start = 16
+        valid = self.block(limit)
+        for block in (valid, valid[:-2] + 'x\0\0'.encode('utf-16-le')):
+            with self.subTest(within_limit=len(block) == limit):
+                def read(address, size):
+                    offset = address - start
+                    self.assertLessEqual(offset + size, limit)
+                    return block[offset:offset + size]
+                if len(block) == limit:
+                    self.assertIn('USERPROFILE', _desktop_environment_values(start, read))
+                else:
+                    with self.assertRaises(d.DesktopBridgeSafetyError):
+                        _desktop_environment_values(start, read)
 
 
 class DiscoveryTests(unittest.TestCase):

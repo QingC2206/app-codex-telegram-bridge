@@ -7,19 +7,12 @@ import re
 import sys
 import time
 
+from ..paths import auth_stamp
 
 TTL = 47 * 3600
 SAFETY = re.compile(rb'^(\S+) info \[cumberbatch\] cumberbatch_safety_decision '
                     rb'sourceThreadId=([0-9a-f-]{36}) sourceTurnId=([0-9a-f-]{36}) suppressed=(true|false)\b',
                     re.MULTILINE)
-
-
-def auth_stamp(profile):
-    try:
-        stat = (profile / 'auth.json').stat()
-        return stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
-    except OSError:
-        return None
 
 
 def log_roots():

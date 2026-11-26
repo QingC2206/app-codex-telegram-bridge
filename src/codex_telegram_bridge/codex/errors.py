@@ -10,6 +10,10 @@ class DesktopOwnerDiscoveryUnavailable(DesktopIpcUnavailable):
     """An initialized broker could not answer owner discovery; no input was sent."""
 
 
+class DesktopFollowerMissing(DesktopIpcUnavailable):
+    """Windows reported the verified follower pipe missing before any frame."""
+
+
 class DesktopIpcInactive(DesktopIpcError):
     pass
 

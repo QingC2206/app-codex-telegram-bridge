@@ -3,8 +3,10 @@ from codex_telegram_bridge.i18n import tr as _t
 import ctypes,json,os,struct,time
 from ctypes import wintypes
 from typing import Any
-from ...codex.errors import DesktopIpcError,DesktopIpcUnavailable
+from ...codex.errors import DesktopFollowerMissing,DesktopIpcError,DesktopIpcUnavailable
 from .discovery import validate_pipe_server
+
+FOLLOWER_PIPE = r'\\.\pipe\codex-ipc'
 
 class WindowsTransport:
     def __init__(self, timeout: float = 35):
@@ -67,6 +69,8 @@ class WindowsTransport:
         wait_ms = max(1, int(min(self.timeout, 10) * 1000))
         if not self.kernel32.WaitNamedPipeW(self.PIPE_PATH, wait_ms):
             error = ctypes.get_last_error()
+            if error in (2, 3) and self.PIPE_PATH == FOLLOWER_PIPE:
+                raise DesktopFollowerMissing(_t('当前 Desktop 未提供实时追加通道。'))
             raise DesktopIpcUnavailable(_t('Codex Desktop IPC 不可用（Windows 错误 {p0}）。', p0=format(error, '')))
         handle = self.kernel32.CreateFileW(
             self.PIPE_PATH,
@@ -80,6 +84,8 @@ class WindowsTransport:
         invalid_handle = ctypes.c_void_p(-1).value
         if handle == invalid_handle:
             error = ctypes.get_last_error()
+            if error in (2, 3) and self.PIPE_PATH == FOLLOWER_PIPE:
+                raise DesktopFollowerMissing(_t('当前 Desktop 未提供实时追加通道。'))
             raise DesktopIpcUnavailable(_t('无法连接 Codex Desktop IPC（Windows 错误 {p0}）。', p0=format(error, '')))
         if self.expected_server_pid is not None:
             try:

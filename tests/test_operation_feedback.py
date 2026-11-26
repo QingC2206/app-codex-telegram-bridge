@@ -126,7 +126,7 @@ class OperationFeedbackTests(unittest.TestCase):
 
     def test_unknown_submission_neither_claims_failure_nor_success(self):
         self.bot.awaiting_continue['123'] = 'task-a'
-        self.bot.start_turn = Mock(side_effect=b.DesktopSubmissionUnknown('not confirmed'))
+        self.bot._send_plain_text = Mock(side_effect=b.DesktopSubmissionUnknown('not confirmed'))
         with self.assertRaises(b.DesktopSubmissionUnknown):
             self.update('continue')
         self.assertNotIn('😢', self.emojis())
@@ -207,7 +207,7 @@ class OperationFeedbackTests(unittest.TestCase):
 
     def test_task_submission_does_not_finish_on_acceptance(self):
         self.bot.awaiting_continue['123'] = 'task-a'
-        self.bot.start_turn = lambda thread, text: self.bot._submission_feedback(thread, 'turn-a', 'accepted')
+        self.bot._send_plain_text = lambda thread, text: self.bot._submission_feedback(thread, 'turn-a', 'accepted')
         self.update('继续处理')
         self.assertEqual(self.emojis()[-1], '🤔')
         self.assertNotIn('🎉', self.emojis())

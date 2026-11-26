@@ -8,6 +8,8 @@ import re
 import sqlite3
 from typing import Any
 
+from ..paths import resolved_rollout
+
 READ_LIMIT = 4 * 1024 * 1024
 
 
@@ -33,7 +35,7 @@ def session_path(thread_id: str, sessions: Path) -> Path | None:
     def valid(value: Any) -> Path | None:
         if not isinstance(value, str) or not value:
             return None
-        path = Path(value).resolve()
+        path = resolved_rollout(value)
         if (path.is_relative_to(state_root) and path.name.startswith("rollout-")
                 and path.name.endswith(thread_id + ".jsonl") and path.is_file()):
             return path
@@ -65,7 +67,7 @@ def checkpoint(thread_id: str, sessions: Path) -> tuple[str, int]:
     return (str(path), path.stat().st_size) if path else ("", 0)
 
 
-def read_receipts(path: Path, offset: int) -> tuple[list[dict[str, Any]], int]:
+def read_receipts(path: Path, offset: int, *, thread_id='', client_id='') -> tuple[list[dict[str, Any]], int]:
     """Scan complete appended records; leave an unfinished final line for retry."""
     with path.open("rb") as f:
         size = path.stat().st_size
@@ -84,7 +86,23 @@ def read_receipts(path: Path, offset: int) -> tuple[list[dict[str, Any]], int]:
         except (ValueError, UnicodeError):
             continue
         payload = record.get("payload") if isinstance(record, dict) else None
-        if not isinstance(payload, dict) or record.get("type") != "response_item":
+        if not isinstance(payload, dict):
+            continue
+        if client_id:
+            item = payload.get('item')
+            if (record.get('type') != 'event_msg' or payload.get('type') != 'item_completed'
+                    or payload.get('thread_id') != thread_id or not isinstance(item, dict)
+                    or item.get('type') != 'UserMessage' or item.get('client_id') != client_id):
+                continue
+            content = item.get('content')
+            if (isinstance(payload.get('turn_id'), str) and payload['turn_id']
+                    and isinstance(item.get('id'), str) and item['id']
+                    and isinstance(content, list) and len(content) == 1 and isinstance(content[0], dict)
+                    and isinstance(content[0].get('text'), str)):
+                receipts.append({'turn_id': payload['turn_id'], 'item_id': item['id'],
+                                 'digest': prompt_digest(thread_id, content[0]['text'])})
+            continue
+        if record.get("type") != "response_item":
             continue
         metadata = payload.get("internal_chat_message_metadata_passthrough")
         origin = ''

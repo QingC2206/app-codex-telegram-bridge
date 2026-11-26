@@ -62,6 +62,9 @@ def _reaction_db(*, timeout=30):
     db.execute("CREATE TABLE IF NOT EXISTS reaction_outcomes (bot TEXT, thread TEXT, turn TEXT, emoji TEXT, PRIMARY KEY(bot, thread, turn))")
     db.execute("CREATE TABLE IF NOT EXISTS task_reply_sources (bot TEXT, chat TEXT, thread TEXT, turn TEXT, message INTEGER, updated REAL, PRIMARY KEY(bot,chat,thread,turn))")
     db.execute("CREATE TABLE IF NOT EXISTS desktop_submissions (bot TEXT,chat TEXT,message INTEGER,thread TEXT,path TEXT,offset INTEGER,digest TEXT,created REAL,turn TEXT,item TEXT, PRIMARY KEY(bot,chat,message))")
+    db.execute("CREATE TABLE IF NOT EXISTS desktop_queue_sends (bot TEXT,chat TEXT,message INTEGER,client TEXT UNIQUE NOT NULL,queue_id TEXT NOT NULL DEFAULT '',card INTEGER,checked REAL NOT NULL DEFAULT 0,PRIMARY KEY(bot,chat,message))")
+    db.execute("CREATE TABLE IF NOT EXISTS desktop_queue_retry (client TEXT PRIMARY KEY,probe_after REAL NOT NULL DEFAULT 0,"
+               "card_after REAL NOT NULL DEFAULT 0,queue_notice INTEGER NOT NULL DEFAULT 0)")
     db.execute("CREATE TABLE IF NOT EXISTS reaction_retries (bot TEXT,chat TEXT,message INTEGER, PRIMARY KEY(bot,chat,message))")
     db.execute("CREATE TABLE IF NOT EXISTS reaction_results (bot TEXT,chat TEXT,message INTEGER,applied INTEGER NOT NULL, PRIMARY KEY(bot,chat,message))")
     db.execute("CREATE TABLE IF NOT EXISTS navigation_roots (bot TEXT, chat TEXT, origin INTEGER, panel INTEGER, status TEXT, PRIMARY KEY(bot,chat,origin))")
@@ -280,10 +283,18 @@ def remember_desktop_submission(token, chat, message, thread, text):
     db = _reaction_db()
     try:
         with db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute("SELECT 1 FROM desktop_queue_sends WHERE bot=? AND chat=? AND message=?",
+                          (token.split(':')[0], str(chat), message)).fetchone():
+                from ..codex.errors import DesktopSubmissionUnknown
+                raise DesktopSubmissionUnknown(_t('该 Telegram 消息已有提交记录，未重发。'))
             db.execute("INSERT OR REPLACE INTO desktop_submissions VALUES (?,?,?,?,?,?,?,?,?,?)",
                        (token.split(':')[0], str(chat), message, thread, path, offset,
                         desktop_receipts.prompt_digest(thread, text), time.time(), '', ''))
-            db.execute("DELETE FROM desktop_submissions WHERE created<?", (time.time()-30*86400,))
+            db.execute("DELETE FROM desktop_submissions WHERE created<? AND NOT EXISTS "
+                       "(SELECT 1 FROM desktop_queue_sends q WHERE (q.bot,q.chat,q.message)="
+                       "(desktop_submissions.bot,desktop_submissions.chat,desktop_submissions.message))",
+                       (time.time()-30*86400,))
         return True
     finally:
         db.close()
@@ -314,13 +325,15 @@ def forget_desktop_submission(token, chat, message, thread):
     db = _reaction_db()
     try:
         with db:
-            db.execute("DELETE FROM desktop_submissions WHERE bot=? AND chat=? AND message=? AND thread=? AND turn=''",
+            db.execute("DELETE FROM desktop_submissions WHERE bot=? AND chat=? AND message=? AND thread=? AND turn='' "
+                       "AND NOT EXISTS (SELECT 1 FROM desktop_queue_sends q WHERE (q.bot,q.chat,q.message)="
+                       "(desktop_submissions.bot,desktop_submissions.chat,desktop_submissions.message))",
                        (token.split(':')[0], str(chat), message, thread))
     finally:
         db.close()
 
 
-def bind_desktop_submission(token, chat, message, thread, turn, item='', *, update_reaction=True):
+def bind_desktop_submission(token, chat, message, thread, turn, item='', *, update_reaction=True, client_id=''):
     if not turn:
         return False
     bot = token.split(':')[0]
@@ -328,6 +341,10 @@ def bind_desktop_submission(token, chat, message, thread, turn, item='', *, upda
     try:
         with db:
             db.execute('BEGIN IMMEDIATE')
+            queued = db.execute("SELECT client FROM desktop_queue_sends WHERE bot=? AND chat=? AND message=?",
+                                (bot, str(chat), message)).fetchone()
+            if (queued[0] if queued else '') != client_id:
+                return False
             if item and db.execute("SELECT 1 FROM desktop_submissions WHERE bot=? AND thread=? AND item=?",
                                    (bot, thread, item)).fetchone():
                 return False
@@ -350,10 +367,13 @@ def bind_desktop_submission(token, chat, message, thread, turn, item='', *, upda
 
 
 def resolve_desktop_submissions(token, thread_id=None, *, update_reactions=True, deadline=None):
+    from ..storage import desktop_queue
+    desktop_queue.reconcile(token, thread_id, update_reactions=update_reactions, deadline=deadline)
     db = _reaction_db(timeout=30 if update_reactions else 0)
     bot = token.split(':')[0]
     try:
-        query = "SELECT chat,message,thread,path,offset,digest,created FROM desktop_submissions WHERE bot=? AND turn='' AND created>?"
+        query = ("SELECT chat,message,thread,path,offset,digest,created FROM desktop_submissions s WHERE bot=? AND turn='' AND created>? "
+                 "AND NOT EXISTS (SELECT 1 FROM desktop_queue_sends q WHERE (q.bot,q.chat,q.message)=(s.bot,s.chat,s.message))")
         params = [bot, time.time()-86400]
         if thread_id:
             query += " AND thread=?"; params.append(thread_id)
@@ -395,7 +415,9 @@ def resolve_desktop_history_submissions(token, thread_id, history, *, expected_t
         return
     db = _reaction_db(timeout=0)
     try:
-        rows = db.execute("SELECT chat,message,digest,created FROM desktop_submissions WHERE bot=? AND thread=? AND turn='' AND created>? ORDER BY created,message LIMIT 50",
+        rows = db.execute("SELECT chat,message,digest,created FROM desktop_submissions s WHERE bot=? AND thread=? AND turn='' AND created>? "
+                          "AND NOT EXISTS (SELECT 1 FROM desktop_queue_sends q WHERE (q.bot,q.chat,q.message)=(s.bot,s.chat,s.message)) "
+                          "ORDER BY created,message LIMIT 50",
                           (token.split(':')[0], thread_id, time.time()-86400)).fetchall()
     finally:
         db.close()

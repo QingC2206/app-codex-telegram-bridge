@@ -1,60 +1,13 @@
 """macOS Desktop access: verified local ownership and existing-thread deep links."""
-import json
 from pathlib import Path
-import re
-import sqlite3
 import subprocess
 import time
 
 from ..desktop_access import NativeDesktopAccess
 from ..discovery import desktop_roots
+from ..local_thread import validate_local_desktop_thread
 from ...codex.errors import DesktopBridgeSafetyError
 from ...i18n import tr as _t
-
-
-def validate_local_desktop_thread(endpoint, thread_id: str) -> None:
-    """Verify a Desktop target without using the separately signed App Tools API.
-
-    On macOS the follower broker accepts local clients while App Tools requires
-    app-owned process ancestry. For an ordinary reply, the live broker owner
-    determines whether to steer or start a turn. Its verified PID/UID and this
-    same-profile, Desktop-origin check are sufficient; no active-turn snapshot
-    is inferred from the database. Strict turn-specific operations read a
-    fresh snapshot from the verified follower owner.
-    """
-    if not endpoint.profile or not re.fullmatch(r'[A-Za-z0-9-]{6,64}', thread_id):
-        raise DesktopBridgeSafetyError(_t('无法确认原 Desktop 任务的本机归属，未提交消息。'))
-    profile = endpoint.profile.resolve()
-    databases = sorted((p for p in profile.glob('state_*.sqlite')
-                        if re.fullmatch(r'state_[0-9]+\.sqlite', p.name)),
-                       key=lambda p: int(p.stem.split('_')[1]), reverse=True)
-    try:
-        if not databases:
-            raise ValueError('missing Desktop metadata')
-        db = sqlite3.connect(databases[0].resolve().as_uri() + '?mode=ro', uri=True, timeout=0.2)
-        try:
-            row = db.execute('SELECT rollout_path, archived FROM threads WHERE id=?',
-                             (thread_id,)).fetchone()
-        finally:
-            db.close()
-        if not row or row[1]:
-            raise ValueError('missing or archived Desktop thread')
-        transcript = Path(row[0]).resolve()
-        if not transcript.is_relative_to(profile / 'sessions'):
-            raise ValueError('transcript outside Desktop profile')
-        with transcript.open(encoding='utf-8') as stream:
-            record = json.loads(stream.readline(2 * 1024 * 1024))
-        header = record.get('payload', {})
-        from ...storage.state import StateStore
-        managed = StateStore().snapshot().get('managed_threads', {}).get(thread_id) or {}
-        bot_created = managed.get('origin') == 'bot_created'
-        if (record.get('type') != 'session_meta' or header.get('id') != thread_id
-                or header.get('originator') != 'Codex Desktop' and not bot_created
-                or isinstance(header.get('source'), dict)):
-            raise ValueError('not the original Desktop conversation')
-    except (OSError, sqlite3.Error, ValueError, TypeError, AttributeError) as exc:
-        raise DesktopBridgeSafetyError(_t('原 Desktop 任务的本机记录无法核实，消息未发送。请检查该任务是否已归档或迁移。')) from exc
-
 
 
 class MacOSDesktopAccess(NativeDesktopAccess):

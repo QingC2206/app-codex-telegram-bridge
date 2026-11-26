@@ -36,6 +36,8 @@ from codex_telegram_bridge.features.quota_state import QuotaState, QuotaSnapshot
 from codex_telegram_bridge.plugins.host import PluginHost
 from codex_telegram_bridge.features.side_chat import SideChats
 from codex_telegram_bridge.features.async_inputs import AsyncInputs
+from codex_telegram_bridge.features import desktop_delivery
+from codex_telegram_bridge.storage import desktop_inbox
 from codex_telegram_bridge.codex.history import read_thread_history
 from codex_telegram_bridge.features.running_tasks import (
     collect_running_tasks, RunningScanState, LifecycleCandidates, RUNNING_SCAN_TIMEOUT,
@@ -171,11 +173,12 @@ class CodexAppServer:
         self,
         on_event: Callable[[dict[str, Any]], None],
         on_server_request: Callable[[dict[str, Any]], None],
-        *, runtime=None, argv=None, stderr_callback=None,
+        *, runtime=None, argv=None, stderr_callback=None, profile_env=None,
     ):
         self.runtime = runtime
         self.argv = argv
         self.stderr_callback = stderr_callback
+        self.profile_env = profile_env
         self.initialize_result = None
         self.on_event = on_event
         self.on_server_request = on_server_request
@@ -223,6 +226,9 @@ class CodexAppServer:
             executable = Path(self.runtime['codex_executable']) if self.runtime else locate_codex()
             executable_signature = self._executable_signature(executable)
             process_env = os.environ.copy()
+            if self.profile_env is not None:
+                process_env.pop('CODEX_SQLITE_HOME', None)
+                process_env.update(self.profile_env)
             if self.runtime or getattr(self, 'side_chat', False):
                 for name in ('CODEX_APP_TOOLS_PIPE_PATH', 'CODEX_THREAD_ID', 'CODEX_TURN_ID',
                              'CODEX_INTERNAL_ORIGINATOR_OVERRIDE'):
@@ -377,7 +383,7 @@ class CodexAppServer:
             response_queue: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1)
             self.pending[request_id] = response_queue
         try:
-            mutating = method in {'thread/start', 'thread/resume', 'thread/fork', 'turn/start',
+            mutating = method in {'thread/start', 'thread/resume', 'thread/fork', 'thread/queue/add', 'turn/start',
                                  'turn/steer', 'turn/interrupt', 'account/rateLimitResetCredit/consume'}
             try:
                 self._send({"method": method, "id": request_id, "params": params})
@@ -1324,6 +1330,11 @@ class TelegramCodexBot:
         self.plugins.start()
         self._set_commands()
         offset = int(self.state.snapshot().get("update_offset") or 0)
+        durable = desktop_delivery.enabled(self)
+        bot_id = self.token.split(':', 1)[0]
+        if durable:
+            offset = max(offset, desktop_inbox.offset(bot_id))
+            desktop_inbox.recover(bot_id, self.chat_id)
         if offset == 0:
             # Do not replay messages that were sent during the original setup wizard.
             try:
@@ -1358,13 +1369,18 @@ class TelegramCodexBot:
         failures = 0
         while not self.stop_event.is_set():
             try:
+                poll_timeout = 25
+                if durable:
+                    desktop_delivery.drain(self)
+                    if desktop_inbox.pending(bot_id, self.chat_id):
+                        poll_timeout = 2
                 updates = telegram_call(
                     self.token,
                     "getUpdates",
                     {
                         "offset": offset,
                         "limit": 50,
-                        "timeout": 25,
+                        "timeout": poll_timeout,
                         "allowed_updates": ["message", "callback_query"],
                     },
                     timeout=35,
@@ -1376,19 +1392,28 @@ class TelegramCodexBot:
                     update_id = int(update.get("update_id", 0))
                     if update_id < offset:
                         continue
-                    # Persist consumption before any Desktop/model action. A
-                    # crash after submission must not replay the same command.
                     next_offset = max(offset, update_id + 1)
-                    self.state.update(update_offset=next_offset)
-                    offset = next_offset
+                    deferred = durable and desktop_delivery.may_stage(self, update)
+                    if not deferred:
+                        self.state.update(update_offset=next_offset)
+                    self._ui_local.poll_update = update if deferred else None
                     try:
                         self.handle_update(update)
+                    except desktop_delivery.IntakeUnavailable:
+                        raise
                     except Exception as exc:
                         log(f"update handler failed: {exc}\n{traceback.format_exc()}", self.token)
                         try:
                             self.send(self._command_error_text(exc))
                         except Exception:
                             pass
+                    finally:
+                        self._ui_local.poll_update = None
+                    if deferred:
+                        self.state.update(update_offset=next_offset)
+                    offset = next_offset
+                    if deferred:
+                        desktop_delivery.drain(self)
             except KeyboardInterrupt:
                 break
             except Exception as exc:
@@ -1605,6 +1630,11 @@ class TelegramCodexBot:
             try:
                 telegram_notify_module.retry_pending_completions()
                 telegram_notify_module.resolve_desktop_submissions(self.token)
+                if not self.runtime_options and not self.quiet_mode_enabled():
+                    from ..storage import desktop_queue
+                    if desktop_delivery.enabled(self):
+                        desktop_queue.recheck_uncertain(self)
+                    desktop_queue.update_cards(self)
                 telegram_notify_module.retry_task_reactions(self.token)
                 rows = telegram_notify_module.task_reactions(self.token)
                 for chat, message, thread, turn, emoji, updated in rows:
@@ -1638,6 +1668,16 @@ class TelegramCodexBot:
             return user_id == self.chat_id
         return user_id in self.allowed_user_ids
 
+    def _consume_poll_update(self):
+        """Non-replayable operations keep their pre-dispatch checkpoint."""
+        update = getattr(self._ui_local, 'poll_update', None)
+        if update:
+            try:
+                self.state.update(update_offset=update['update_id'] + 1)
+            except OSError as exc:
+                raise desktop_delivery.IntakeUnavailable('Telegram checkpoint unavailable') from exc
+            self._ui_local.poll_update = None
+
     def handle_update(self, update):
         incoming = update.get("callback_query") or update.get("message")
         if not isinstance(incoming, dict):
@@ -1647,6 +1687,8 @@ class TelegramCodexBot:
                 or not self._authorized_sender(message.get("chat"), incoming.get("from"))):
             return
         previous = getattr(self._ui_local, "source_message_id", None)
+        previous_sender = getattr(self._ui_local, 'sender_id', '')
+        self._ui_local.sender_id = str(incoming['from']['id'])
         previous_feedback = getattr(self._ui_local, "feedback", None)
         is_callback = isinstance(update.get("callback_query"), dict)
         action = str(incoming.get("data") or "").partition("|")[0] if is_callback else ""
@@ -1676,6 +1718,7 @@ class TelegramCodexBot:
             if operation:
                 operation.__exit__(None, None, None)
             self._ui_local.source_message_id = previous
+            self._ui_local.sender_id = previous_sender
             self._ui_local.feedback = previous_feedback
 
     def _handle_update_inner(self, update: dict[str, Any]) -> None:
@@ -1752,6 +1795,7 @@ class TelegramCodexBot:
                 return
             side_route = self.sides.lookup(reply_to_message_id)
             if side_route:
+                self._consume_poll_update()
                 self.sides.submit(side_route, text)
                 return
             thread_id = self.awaiting_direct_reply.get(reply_to_message_id)
@@ -1764,6 +1808,7 @@ class TelegramCodexBot:
             self._input_error(_t('这条消息没有可确认的任务关联。请回复任务完成通知、详情或进度卡片；旧消息可先打开任务详情再回复。'))
             return
         if self.chat_id in self.pending_free_text and not is_command:
+            self._consume_poll_update()
             prompt_id = self.pending_free_text[self.chat_id]
             if prompt_id.startswith('async:'):
                 self.pending_free_text.pop(self.chat_id, None)
@@ -1771,17 +1816,37 @@ class TelegramCodexBot:
             else:
                 self._input_error(_t('请使用 Telegram 回复对应的文字输入提示；没有引用的文字不会提交答案。'))
             return
-        if self.chat_id in self.awaiting_continue and not is_command:
-            thread_id = self.awaiting_continue.pop(self.chat_id)
-            self._reaction("👀", thread_id)
+        picked = None
+        if not is_command and desktop_delivery.enabled(self):
             try:
-                self.start_turn(thread_id, text)
+                picked = desktop_inbox.selection(desktop_delivery.identity(self))
+            except sqlite3.Error as exc:
+                raise desktop_delivery.IntakeUnavailable('Telegram task selection unavailable') from exc
+        legacy_selection = self.chat_id in self.awaiting_continue and not self.input_selection.get('sender')
+        if not is_command and (picked or legacy_selection):
+            thread_id = picked['thread'] if picked else self.awaiting_continue[self.chat_id]
+            self._reaction("👀", thread_id)
+            self._ui_local.selection_nonce = picked['nonce'] if picked else ''
+            try:
+                self._send_plain_text(thread_id, text)
             except DesktopIpcUnavailable:
-                self.awaiting_continue[self.chat_id] = thread_id
                 self._reaction("")
                 raise
+            except DesktopSubmissionUnknown:
+                self.awaiting_continue.pop(self.chat_id, None)
+                if picked:
+                    desktop_inbox.clear_selection(desktop_delivery.identity(self), picked['nonce'])
+                raise
+            finally:
+                self._ui_local.selection_nonce = ''
+            self.awaiting_continue.pop(self.chat_id, None)
+            if picked:
+                desktop_inbox.clear_selection(desktop_delivery.identity(self), picked['nonce'])
             return
-        if self.chat_id in self.awaiting_steer and not is_command:
+        steer_sender = self.input_selection.get('sender') if self.input_selection.get('mode') == 'steer' else None
+        if (self.chat_id in self.awaiting_steer and not is_command
+                and (not steer_sender or steer_sender == desktop_delivery.identity(self)[2])):
+            self._consume_poll_update()
             thread_id = self.awaiting_steer.pop(self.chat_id)
             self._reaction("👀", thread_id)
             self.steer_turn(thread_id, text)
@@ -3046,11 +3111,88 @@ class TelegramCodexBot:
             )
             return
         reference, separator, text = argument.partition(" ")
-        thread_id = self.resolve_thread(reference)
+        thread_id = (reference if desktop_delivery.enabled(self) and desktop_delivery.full_thread_id(reference)
+                     else self.resolve_thread(reference))
         if not separator or not text.strip():
             self._request_task_message(thread_id, "send")
             return
-        self.start_turn(thread_id, text.strip())
+        self._send_plain_text(thread_id, text.strip())
+
+    def _send_plain_text(self, thread_id, text):
+        if desktop_delivery.admit(self, thread_id, text, 'send'):
+            return
+        if not self._background_queue_reply(thread_id, text):
+            self._start_plain_turn(thread_id, text)
+
+    def _start_plain_turn(self, thread_id, text):
+        previous = getattr(self._ui_local, 'plain_turn', False)
+        self._ui_local.plain_turn = True
+        try:
+            self.start_turn(thread_id, text)
+        finally:
+            self._ui_local.plain_turn = previous
+
+    def _background_queue_reply(self, thread_id, text, *, force_queue=False):
+        """Select a background route before any follower input can be sent."""
+        source_id = getattr(self._ui_local, 'source_message_id', None)
+        if (not source_id or self.runtime_options or self._owns_thread(thread_id)
+                or getattr(getattr(self.desktop, 'access', None), 'supports_background_queue', False) is not True):
+            return False
+        from ..codex import background_queue
+        from ..codex.errors import DesktopFollowerMissing
+        from ..storage import desktop_queue
+        self._require_task_actions()
+        source = desktop_queue.key(self.token, self.chat_id, source_id)
+        previous = desktop_queue.existing(source, thread_id, text)
+        if previous:
+            self._defer_feedback()
+            return True
+        endpoint = self.desktop.native.discover()
+        if not force_queue:
+            follower = self.desktop._legacy_for_current_desktop(thread_id, endpoint=endpoint)
+            try:
+                if follower.find_thread_owner(thread_id):
+                    return False
+            except DesktopFollowerMissing:
+                pass
+        status = background_queue.target_status(self.desktop, endpoint, thread_id)
+        from ..features.suggested_replies import note_user_input
+        note_user_input(self.token, self.chat_id, thread_id)
+        self._reaction('👀', thread_id)
+        with background_queue.open_queue(self.desktop, endpoint, thread_id) as client:
+            durable = getattr(self._ui_local, 'inbox_row', None) is not None
+            guard = (lambda db: desktop_inbox.writing(source, db)) if durable else None
+            client_id = desktop_queue.claim(source, thread_id, text, before_write=guard)
+            if client_id is None:
+                # Another handler already claimed this exact Telegram update.
+                desktop_queue.existing(source, thread_id, text)
+                self._defer_feedback()
+                return True
+            try:
+                self.desktop._check_instance(endpoint, thread_id)
+                self._require_task_actions()
+                if durable:
+                    desktop_delivery.validate_for_write(self, self._ui_local.inbox_row)
+            except Exception:
+                desktop_queue.release_before_send(source, client_id, durable=durable)
+                raise
+            self._defer_feedback()
+            try:
+                queue_id = background_queue.enqueue_once(client, thread_id, client_id, text)
+                desktop_queue.acknowledge(source, queue_id)
+                state = 'queued'
+            except (DesktopSubmissionUnknown, sqlite3.Error):
+                state = 'unknown'
+        try:
+            result = self.send(desktop_queue.status_text(thread_id, state, status), desktop_queue.task_keyboard(thread_id))
+            if isinstance(result, dict):
+                desktop_queue.remember_card(source, result.get('message_id'))
+        except Exception as exc:
+            # A Telegram outage after the mutation cannot turn it into a failed send.
+            if isinstance(exc, telegram_notify_module.TelegramApiError) and exc.code == 429:
+                desktop_queue.card_limited(source, exc, sending=True)
+            log('Desktop queue status card unavailable: ' + type(exc).__name__)
+        return True
 
     @staticmethod
     def _turn_status_is_active(status: Any) -> bool:
@@ -3108,6 +3250,8 @@ class TelegramCodexBot:
         return self._turn_status_is_active(status), ""
 
     def request_direct_reply(self, thread_id: str) -> None:
+        if desktop_delivery.enabled(self):
+            desktop_inbox.clear_selection(desktop_delivery.identity(self))
         self.awaiting_continue.pop(self.chat_id, None)
         self.awaiting_steer.pop(self.chat_id, None)
         text = _t('**💬 直接回复任务 `{p0}`**\n\n请手动回复这条提示并输入文字。普通输入不会自动发送。若任务仍在运行，我会再让你选择追加、中断后发送或取消。取消输入请点击下方的取消回复。', p0=format(thread_id[:8], ''))
@@ -3152,11 +3296,13 @@ class TelegramCodexBot:
 
     def submit_direct_reply(self, thread_id: str, text: str) -> None:
         self._require_task_actions()
+        if desktop_delivery.admit(self, thread_id, text.strip(), 'reply'):
+            return
         from ..features.suggested_replies import note_user_input
         note_user_input(self.token, self.chat_id, thread_id)
         title = self.task_names.get(thread_id, thread_id[:8])
         receipt = None
-        if not self._reaction("👀", thread_id):
+        if not self._reaction("👀", thread_id) and not getattr(self._ui_local, 'inbox_row', None):
             try:
                 receipt = self.send(_t('**📨 已收到，正在提交**\n\n任务：{p0} · `{p1}`', p0=format(title, ''), p1=format(thread_id[:8], '')))
             except Exception as exc:
@@ -3179,10 +3325,12 @@ class TelegramCodexBot:
         prompt = text.strip()
         if not prompt:
             raise ValueError(_t('回复内容不能为空。'))
+        if self._background_queue_reply(thread_id, prompt):
+            return
         active, turn_id = self._thread_activity(thread_id)
         if not active:
             try:
-                self.start_turn(thread_id, prompt)
+                self._start_plain_turn(thread_id, prompt)
             except ActiveWriterConflict:
                 # Another Codex client became active between the read-only
                 # status check and thread/resume. Treat that race exactly like
@@ -3307,6 +3455,16 @@ class TelegramCodexBot:
             verb = _t('追加到') if thread_id in self.active_turns else _t('继续')
         nonce = self._new_sequence()
         self.input_selection = {"nonce": nonce, "mode": mode, "thread_id": thread_id}
+        if desktop_delivery.enabled(self):
+            actor = desktop_delivery.identity(self)
+            if mode == 'send' and actor[2]:
+                scope = desktop_delivery.account_binding(self) if desktop_delivery.full_thread_id(thread_id) else ''
+                desktop_inbox.save_selection(actor, thread_id, nonce, scope,
+                                             self.state.snapshot().get('quiet_generation', 0))
+            else:
+                desktop_inbox.clear_selection(actor)
+            if actor[2]:
+                self.input_selection['sender'] = actor[2]
         self.send(
             _t('请直接发送下一条指令；它会{p0}任务 `{p1}`。\n\n也可以点取消，不影响其他操作。', p0=format(verb, ''), p1=format(thread_id[:8], '')),
             {"inline_keyboard": [[{"text": _t('取消输入'), "callback_data": f"cancelinput|{nonce}"},
@@ -3341,12 +3499,21 @@ class TelegramCodexBot:
             except (OSError, sqlite3.Error) as exc:
                 raise DesktopIpcUnavailable(_t('无法记录本次提交，建议回复尚未发送。')) from exc
 
+        durable = getattr(self._ui_local, 'inbox_row', None) is not None
+        def guard_plain(endpoint):
+            nonlocal tracked
+            desktop_delivery.before_write(self)
+            tracked = track()
+
         if not expected_completed_turn_id:
             from ..features.suggested_replies import note_user_input
             note_user_input(self.token, self.chat_id, thread_id)
-            tracked = track()
+            if not durable:
+                tracked = track()
         try:
-            recovery = {'recover_owner': True} if not self._owns_thread(thread_id) else {}
+            background_only = (getattr(getattr(self.desktop, 'access', None), 'supports_background_queue', False) is True
+                               and source and not expected_turn_id)
+            recovery = {'recover_owner': True} if not self._owns_thread(thread_id) and not background_only else {}
             if expected_completed_turn_id:
                 result = self.desktop.send_follow_up(thread_id, text, cwd,
                     expected_completed_turn_id=expected_completed_turn_id, before_start=claim_and_track)
@@ -3354,7 +3521,8 @@ class TelegramCodexBot:
                 result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False,
                                                      expected_turn_id=expected_turn_id, **recovery)
             elif start_if_inactive:
-                result = self.desktop.send_follow_up(thread_id, text, cwd, **recovery)
+                guard = {'before_start': guard_plain} if durable else {}
+                result = self.desktop.send_follow_up(thread_id, text, cwd, **recovery, **guard)
             else:
                 result = self.desktop.send_follow_up(thread_id, text, cwd, start_if_inactive=False, **recovery)
             if result and result.get('owner_recovered'):
@@ -3441,6 +3609,11 @@ class TelegramCodexBot:
             raise DesktopIpcError(_t('无法向 Codex Desktop 发送消息：{p0}', p0=format(exc, ''))) from exc
         if desktop_result is not None:
             self._announce_desktop_follow_up(thread_id, desktop_result)
+            return
+        from ..codex.errors import DesktopFollowerMissing
+        if (not managed and getattr(self._ui_local, 'plain_turn', False)
+                and (desktop_unavailable is None or isinstance(desktop_unavailable, DesktopFollowerMissing))
+                and self._background_queue_reply(thread_id, text, force_queue=True)):
             return
         if persisted_thread_is_active(thread_id):
             raise ActiveWriterConflict(
@@ -3827,7 +4000,7 @@ class TelegramCodexBot:
                 "settings", "language", "subagents", "task", "tasklist", "diff", "usage", "quotaview",
                 "reply", "replypage", "replyfile", "localpath", "closepanel", "navclose", "legacydraft", "runtime", "compathelp",
                 "cancelinput", "backinput", "directcancel", "canceltext", "unwatch",
-                "cancelhours", "cancelquota", "cancelreserve", "refreshreserve"}:
+                "cancelhours", "cancelquota", "cancelreserve", "refreshreserve", "inboxcancel"}:
             if callback.get('id'):
                 self._answer_callback(callback['id'], _t('静默模式仅支持查询和设置。请在 /settings → 静默模式中关闭后重试。'), True)
             return
@@ -3880,7 +4053,7 @@ class TelegramCodexBot:
         action = str(callback.get("data") or "").split("|")[0]
         editable = {"watch", "unwatch", "reply", "replypage", "screenshot", "task", "tasklist", "diff", "usage", "quotaview", "closepanel", "cancelinput", "backinput", "directchoice",
                     "reservequota", "reservehours", "cancelhours", "backhours", "resetnow", "confirmquota", "cancelquota", "cancelreserve", "refreshreserve",
-                    "continue", "steerpick", "approval", "question", "canceltext", "language", "settings"}
+                    "continue", "steerpick", "approval", "question", "canceltext", "language", "settings", "inboxsend", "inboxcancel"}
         previous = getattr(self._ui_local, "message_id", None)
         previous_return = getattr(self._ui_local, "return_keyboard", None)
         self._ui_local.return_keyboard = None
@@ -3947,10 +4120,20 @@ class TelegramCodexBot:
                 pending.pop('free_text_prompt', None)
                 self._enqueue_question(sequence)
             elif action in {"cancelinput", "backinput"}:
-                if value != self.input_selection.get("nonce"):
+                selected = self.input_selection
+                if desktop_delivery.enabled(self):
+                    actor = desktop_delivery.identity(self)
+                    saved = desktop_inbox.selection(actor)
+                    if saved and saved['nonce'] == value:
+                        desktop_inbox.clear_selection(actor, value)
+                        selected = {'mode': 'send', 'thread_id': saved['thread'], 'nonce': value}
+                    elif selected.get('sender') and (selected.get('mode') == 'send' or selected['sender'] != actor[2]):
+                        raise ValueError(_t('这次输入操作已结束，未影响当前操作。'))
+                if value != selected.get("nonce"):
                     raise ValueError(_t('这次输入操作已结束，未影响当前操作。'))
-                mode, target = self.input_selection["mode"], self.input_selection["thread_id"]
-                self.input_selection = {}
+                mode, target = selected["mode"], selected["thread_id"]
+                if value == self.input_selection.get('nonce'):
+                    self.input_selection = {}
                 waiting = self.awaiting_steer if mode == "steer" else self.awaiting_continue
                 if waiting.get(self.chat_id) == target:
                     waiting.pop(self.chat_id, None)
@@ -3958,6 +4141,8 @@ class TelegramCodexBot:
                     self.show_task_list()
                 else:
                     self.send(_t('已取消本次输入。'), {"inline_keyboard": [[{"text": _t('返回任务列表'), "callback_data": "tasklist|all:0"}]]})
+            elif action in {'inboxsend', 'inboxcancel'}:
+                desktop_delivery.confirm(self, value, action == 'inboxsend')
             elif action == "closepanel":
                 self.send(_t('已关闭此面板。'), {"inline_keyboard": []})
             elif action == "task":
@@ -4530,6 +4715,7 @@ class TelegramCodexBot:
                 continue
             if not self._question_text_valid(prompt):
                 raise ValueError(_t('此输入已结束。'))
+            self._consume_poll_update()
             self._answer_question(prompt['sequence'], text, expected_index=prompt['index'])
             return True
         return False

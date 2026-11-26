@@ -11,7 +11,8 @@ else:
 
 def default_broker_path(profile=None):
     if os.name == 'nt':
-        return r'\\.\pipe\codex-ipc'
+        from .windows.transport import FOLLOWER_PIPE
+        return FOLLOWER_PIPE
     current = (profile or codex_home())/'ipc/ipc.sock'
     if current.exists():
         return str(current)

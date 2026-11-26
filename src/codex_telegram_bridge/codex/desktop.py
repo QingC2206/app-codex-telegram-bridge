@@ -470,6 +470,8 @@ class DesktopControl:
                 self.access.validate_reply(endpoint, thread_id, reader,
                     start_if_inactive=start_if_inactive, expected_turn_id=expected_turn_id,
                     check_instance=lambda: self._check_instance(endpoint, thread_id))
+                if before_start is not None:
+                    before_start(endpoint)
 
         start_options = {'start_only': True} if expected_completed_turn_id else {}
         try:

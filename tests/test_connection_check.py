@@ -75,6 +75,49 @@ class AcceptanceGateTests(unittest.TestCase):
         self.api.assert_not_called()
         self.client.send_follow_up.assert_not_called()
 
+    def test_readable_task_cannot_hide_missing_user_input_channel(self):
+        owner = self.client._legacy_for_current_desktop.return_value
+        owner.find_thread_owner.side_effect = desktop.DesktopIpcUnavailable('fixture channel missing')
+        report = self.run_check(send_probe=False)
+        self.assertFalse(report['success'])
+        self.assertEqual(report['checks']['target_task'], 'passed')
+        self.assertEqual(report['failure_stage'], 'user_input_channel')
+        self.assertEqual((report['desktop_attempts'], report['telegram_attempts']), (0, 0))
+        self.client.send_follow_up.assert_not_called()
+
+    def test_reachable_channel_with_unloaded_task_never_navigates_in_read_only_check(self):
+        self.client._legacy_for_current_desktop.return_value.find_thread_owner.return_value = False
+        report = self.run_check(send_probe=False)
+        self.assertTrue(report['success'])
+        self.assertFalse(report['target_owner_loaded'])
+        self.assertEqual(report['checks']['user_input_channel'], 'passed')
+        self.client._recover_thread_owner.assert_not_called()
+        self.client.send_follow_up.assert_not_called()
+
+    def test_read_only_check_without_target_rejects_missing_channel(self):
+        channel = self.client._legacy_for_current_desktop.return_value
+        channel._open.side_effect = desktop.DesktopIpcUnavailable('fixture channel missing')
+        report = self.run_check(thread_id='', send_probe=False)
+        self.assertFalse(report['success'])
+        self.assertEqual(report['failure_stage'], 'user_input_channel')
+        channel.find_thread_owner.assert_not_called()
+        self.client.send_follow_up.assert_not_called()
+
+    def test_read_only_queue_probe_reports_unloaded_chat_without_submitting(self):
+        from contextlib import nullcontext
+        from codex_telegram_bridge.codex import background_queue
+        from codex_telegram_bridge.codex.errors import DesktopFollowerMissing
+        self.client.access.supports_background_queue = True
+        self.client._legacy_for_current_desktop.return_value.find_thread_owner.side_effect = DesktopFollowerMissing()
+        with patch.object(background_queue, 'open_queue', return_value=nullcontext()) as queue_check, \
+                patch.object(background_queue, 'target_status', return_value='notLoaded'):
+            report = self.run_check(send_probe=False)
+        self.assertTrue(report['success'])
+        self.assertEqual((report['input_route'], report['target_status']), ('desktop-background-queue', 'notLoaded'))
+        self.assertEqual((report['desktop_attempts'], report['telegram_attempts']), (0, 0))
+        queue_check.assert_called_once()
+        self.client.send_follow_up.assert_not_called()
+
     def test_telegram_success_cannot_hide_desktop_discovery_failure(self):
         self.mocks[2].side_effect = desktop.DesktopBridgeSafetyError('invalid native endpoint')
         report = self.run_check()

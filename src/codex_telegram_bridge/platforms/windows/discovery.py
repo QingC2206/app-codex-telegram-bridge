@@ -2,8 +2,36 @@ from __future__ import annotations
 from codex_telegram_bridge.i18n import tr as _t
 import ctypes,os,struct
 from ctypes import wintypes
+import mmap
 from pathlib import Path
 from ...codex.errors import DesktopBridgeSafetyError,DesktopIpcUnavailable
+
+
+def _desktop_environment_values(start: int, read) -> dict[str, str]:
+    raw = bytearray()
+    limit = 256 * 1024
+    while len(raw) < limit:
+        offset = len(raw)
+        address = start + offset
+        # The terminator can be in the last readable page. Windows can reject
+        # an entire read that extends even one byte into the following page.
+        page_remaining = mmap.PAGESIZE - address % mmap.PAGESIZE
+        chunk = read(address, min(1024, page_remaining, limit - offset))
+        if not chunk or len(chunk) % 2:
+            break
+        raw.extend(chunk)
+        # Include the preceding UTF-16 code unit for a split double NUL.
+        tail = raw[max(0, offset - 2):].decode("utf-16-le", errors="surrogatepass")
+        if "\0\0" in tail:
+            block = raw.decode("utf-16-le", errors="surrogatepass").partition("\0\0")[0]
+            values = {}
+            for line in block.split("\0"):
+                key, _, value = line.partition("=")
+                if key.upper() in ("CODEX_HOME", "CODEX_APP_TOOLS_PIPE_PATH", "USERPROFILE", "HOME", "CODEX_SQLITE_HOME"):
+                    values[key.upper()] = value
+            return values
+    raise DesktopBridgeSafetyError(_t('Desktop 环境不完整，未提交消息。'))
+
 
 def _process_environment(pid: int) -> dict[str, str]:
     """Read a 64-bit Desktop's environment; return only profile/pipe values.
@@ -59,21 +87,7 @@ def _process_environment(pid: int) -> dict[str, str]:
             raise DesktopBridgeSafetyError(_t('无法读取 Desktop 环境信息，未提交消息。'))
         parameters = pointer(int(info.peb) + 0x20)
         environment = pointer(parameters + 0x80)
-        raw = bytearray()
-        for _ in range(256):
-            chunk = read(environment + len(raw), 1024)
-            if not chunk or len(chunk) % 2:
-                break
-            raw.extend(chunk)
-            decoded = raw.decode("utf-16-le", errors="surrogatepass")
-            if "\0\0" in decoded:
-                values = {}
-                for line in decoded.split("\0\0", 1)[0].split("\0"):
-                    key, _, value = line.partition("=")
-                    if key.upper() in ("CODEX_HOME", "CODEX_APP_TOOLS_PIPE_PATH", "USERPROFILE", "HOME"):
-                        values[key.upper()] = value
-                return values
-        raise DesktopBridgeSafetyError(_t('Desktop 环境不完整，未提交消息。'))
+        return _desktop_environment_values(environment, read)
     finally:
         kernel32.CloseHandle(handle)
 

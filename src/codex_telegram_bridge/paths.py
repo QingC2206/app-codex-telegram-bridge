@@ -1,10 +1,31 @@
 """Profile-scoped runtime data; never write beside installed Python modules."""
 import os
 from pathlib import Path
+import re
+
+
+def resolved_rollout(value) -> Path:
+    path = Path(value).resolve()
+    # Windows Desktop records extended drive paths in its SQLite metadata.
+    # Compare them in the profile's spelling only if they identify the same file.
+    if os.name == 'nt' and re.match(r'^\\\\\?\\[A-Za-z]:\\', str(path)):
+        ordinary = Path(str(path)[4:]).resolve()
+        if ordinary.is_file() and ordinary.samefile(path):
+            return ordinary
+    return path
 
 
 def codex_home() -> Path:
     return Path(os.environ.get('CODEX_HOME') or Path.home() / '.codex').expanduser().resolve()
+
+
+def auth_stamp(profile):
+    """Identify a change of login file without opening it."""
+    try:
+        stat = (profile / 'auth.json').stat()
+        return stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
+    except OSError:
+        return None
 
 
 def data_dir() -> Path:

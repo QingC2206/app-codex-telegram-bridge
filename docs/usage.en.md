@@ -25,11 +25,17 @@ Each bot configuration has one receiving chat. The language preference belongs t
 
 Ordinary text does not automatically select the most recent task. Without a task association, the bot asks you to select one. If an old message has no association, open the corresponding task details first.
 
-If no reply owner is found before submission, the bot tries to open the target task once in the same Desktop profile, with up to 10 seconds for channel recovery. This changes the task visible on your computer; input is sent only after the channel is verified. Recovery failure does not take over the task or replay earlier failed messages. Queries and quiet mode do not switch tasks.
+On Windows Store builds that support background queues, direct replies and `/send` use the original chat's live channel when available. If the channel or its owner is unavailable, the bridge queues the text for that chat in the background. Your current window stays in place. Quiet mode still allows only queries and settings.
+
+**Queued** means an idle chat can pick up the message, a busy chat will process it after the current turn, and an unloaded chat will wait until Desktop loads it. The card changes to **Received by the original chat** once the bridge matches the unique message ID in that chat's history. If the queue acknowledgement is lost, the bridge continues checking. Each Telegram message is submitted at most once. Keep the original message to follow its status.
+
+**Saved locally** means the bridge encrypted your ordinary text for the original chat using Windows DPAPI for the current user. For 10 minutes after you send it on Telegram, the bridge can submit it when Desktop recovers if it can verify that no write started. After that, the original sender can choose **Confirm send** or **Cancel**. Pending text is kept for up to 24 hours and cleared once submitted or canceled. Recovery rechecks the account, task, sender, and quiet-mode settings.
+
+A `/send` task selection lasts for 10 minutes and survives a bridge restart. Each sender in a group has a separate selection. If an acknowledgement is pending, wait for the original status card to update. The bridge reconnects to check the queue and the original chat. If Telegram rate-limits a card update, it retries after Telegram's requested delay.
 
 ### Tasks started from iOS before their desktop window loads
 
-You do not need to open the task manually first. Direct replies, `/send`, `/steer`, and asynchronous answers share the recovery mechanism above. `/stop` and “Interrupt and send” also recover the original window, then verify and interrupt the specified turn. If that turn ends or changes during recovery, the operation stops. An uncertain interrupt acknowledgement prevents the follow-up message.
+The background queue also works for a local Desktop chat started from iOS or Android. Operations tied to a particular turn, including `/steer`, `/stop`, asynchronous answers, and suggested replies, still require the corresponding live Desktop capability. Platforms that support window recovery may open the original chat in the same profile and recheck the target turn.
 
 `/running`, task details, progress tracking, and stop/append selectors verify live state through Desktop. Queries and button rendering do not load windows. Unloaded metadata and stale lifecycle records are not authoritative live status. Question cards retain the original question, answer, and status.
 
@@ -37,7 +43,7 @@ Here, “remote” means iOS started a task on this computer's Desktop. Desktop 
 
 ### Replying to running tasks
 
-When directly replying to a running task, choose:
+When the live channel is available, a direct reply to a running task offers the choices below. On the background queue, ordinary text goes into the next turn.
 
 - **Append without interrupting:** append to the current task.
 - **Interrupt current turn and send:** available only when Desktop provides a verifiable interruption capability.
@@ -131,6 +137,8 @@ Repeated samples are counted together, with at most 100 samples retained. Each w
 
 | Symptom | What to check |
 | --- | --- |
+| Queued, waiting for the chat to receive it | If the chat is unloaded, open it in Desktop to process pending messages. Run `doctor --thread-id FULL_THREAD_ID --json` for a read-only check. An `input_route` of `desktop-background-queue` identifies the queue |
+| Background queue unavailable | Check that the Windows Store Desktop app is running under the expected account and profile. The read-only check above reports the status under `user_input_channel` |
 | Desktop owner not found / reply channel not ready | The bot tried to open the task in the same Desktop profile. Check the target task and `CODEX_HOME` on your computer; retry only after confirming that this message was not sent |
 | Unknown submission outcome | Check the latest Desktop messages before resending |
 | Menu still uses the old language | Reopen the menu later or send `/language`; typed commands do not depend on the menu |

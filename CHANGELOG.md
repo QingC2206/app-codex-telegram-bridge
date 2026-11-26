@@ -2,6 +2,18 @@
 
 ## 未发布 / Unreleased
 
+- Windows Robot 会先将普通回复、`/send` 正文加密保存，再确认 Telegram 更新。重启后可恢复待发文字和任务选择。自动发送窗口为 10 分钟，超过后由原发送者确认。
+- Windows Robot now saves ordinary replies and `/send` text encrypted before acknowledging a Telegram update. Pending text and task selections survive restarts. After the 10-minute automatic delivery window, the original sender can confirm delivery.
+- 修复实时通道在写入前消失时的后台投递。排队回执丢失后，Robot 可用独立连接分页找回原任务的排队记录。Telegram 限流后的状态卡重试独立于 Desktop 提交。
+- Fixed background delivery when the live channel disappears before a write. A fresh read-only connection can recover a lost queue acknowledgement across pages. Telegram rate-limit retries update the status card independently of Desktop submission.
+
+- 修复 Windows 上直接回复和 `/send` 偶发提示“读取 Desktop 环境失败”。Robot 现在按内存页边界读取 Desktop 环境，读到完整结束标记后立即核验原实例和连接地址。
+- Fixed intermittent Windows failures when replying or using `/send`. The bridge now reads the Desktop environment up to each page boundary and validates the original instance and endpoint once it finds the complete terminator.
+- 只读连接检查会单独核验后台用户消息通道。即使原任务可以读取，缺少发送通道也会明确报出。
+- Read-only connection checks now verify the background user-input channel separately and report when it is unavailable, even if the target chat can be read.
+- Windows 商店版 Desktop 的实时通道或目标窗口不可用时，Telegram 直接回复和 `/send` 可以后台排队。Robot 核对原任务的唯一用户消息回执后更新卡片，同一条 Telegram 消息即使超时或重启也只提交一次。
+- Windows Store Desktop can now queue Telegram replies and `/send` in the background when the live channel or target window is unavailable. The card updates on a matching user-message receipt from the original chat. Timeouts and restarts do not resubmit the same Telegram message.
+
 - 新增默认的 Desktop Hook 建议来源。Robot 可在原有通知过滤前收集输入框建议，按完整生成标识关联晚到的原文或归属，核对 Desktop 放行记录后更新对应的 Telegram 完成卡。正常 JSON 回复继续投递。支持这一回调的 Desktop 版本可沿用原启动入口。
 - Added a default Desktop hook source for suggested replies. It captures composer callbacks before notification filtering, joins late text or source metadata using the full generation IDs, and updates the matching Telegram card after Desktop approval. Ordinary JSON replies still reach Telegram. Compatible Desktop builds work with the usual launcher.
 

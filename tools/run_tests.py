@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GROUPS = {
     'AppServer': ['app_server', 'app_server_gaps', 'app_server_ui', 'shared_controller', 'controller_delivery'],
     'Compatibility': ['platform_compatibility', 'desktop_bridge', 'management', 'platforms.test_macos_desktop_access'],
-    'Communication': ['desktop_bridge','desktop_receipts','connection_check','protocol_adaptation','async_inputs','remote_tasks'],
+    'Communication': ['desktop_bridge','desktop_receipts','background_queue','connection_check','protocol_adaptation','async_inputs','remote_tasks'],
     'Notifications': ['telegram_tables','notification_diagnostics','internal_requests','completion_routing',
                       'suggested_replies', 'hook_suggestions', 'windows_suggestion_capture'], 'Quota': ['telegram_quota', 'quota_alert_dedup'],
     'Interactions': ['interactions','running_tasks','i18n','settings','quiet_mode'], 'Screenshots': ['screen_capture'],

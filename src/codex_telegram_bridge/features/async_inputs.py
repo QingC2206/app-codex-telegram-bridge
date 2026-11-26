@@ -297,6 +297,7 @@ class AsyncInputs:
                              (*self.identity, message_id)).fetchone()
         if row is None:
             return False
+        self.bot._consume_poll_update()
         self.submit(row['key'], answer)
         return True
 
